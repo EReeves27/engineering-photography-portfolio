@@ -1,5 +1,6 @@
 import "./styles/main.css";
 import { initApp } from "./app.js";
+import { mountPhotographyFromConfig } from "./photography/render-from-config.js";
 
 import homeTop from "./shared/home-top.html?raw";
 import homeClose from "./shared/home-close.html?raw";
@@ -29,4 +30,5 @@ document.getElementById("app").innerHTML = [
   engPageResume,
 ].join("");
 
+mountPhotographyFromConfig();
 initApp();
