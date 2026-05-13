@@ -34,8 +34,8 @@ export const PHOTO_HOME = {
   stats: [
     { valueHtml: '2000<span>+</span>', label: "Images" },
     { valueHtml: '3<span>yr</span>', label: "Shooting" },
-    { valueHtml: "4", label: "Genres" },
-    { valueHtml: 'CANON DSLR,<span> LUMIX Mirrorless</span>', label: "Format" },
+    { valueHtml: "Lightroom Classic", label: "Editing" },
+    { valueHtml: 'CANON DSLR,<span> LUMIX Mirrorless</span>', label: "Equipment" },
   ],
   heroModeTag: "Photography Portfolio",
   /** HTML allowed (e.g. <br>, <em>) */
@@ -177,29 +177,29 @@ export const GRAD_PHOTOS = {
 
 /** Full grad page (below nav). */
 export const PHOTO_GRAD_PAGE = {
-  heroEyebrow: "Class of 2025",
+  heroEyebrow: "Class of 2026",
   heroTitleHtml: "Graduate <em>Photos</em>",
   heroTagline:
-    "Celebrate your milestone with photos that feel as meaningful as the moment. Natural light, real locations, no stiff poses.",
+    "Celebrate your milestone with photos that feel as meaningful as the moment!",
   heroCtaLabel: "Book your session",
   gallerySectionLabel: "Sample gallery",
   packagesSectionLabel: "Packages",
   packages: [
     {
-      name: "Essential",
-      price: "$150",
+      name: "Solo",
+      price: "$100",
+      priceNote: " / session",
+      featured: true,
+      badge: "",
+      features: ["2 hour session", "2 location", "Edited photos", "Online gallery"],
+    },
+    {
+      name: "Group (2+)",
+      price: "$90 / person",
       priceNote: " / session",
       featured: false,
       badge: "",
-      features: ["1 hour session", "1 location", "20 edited photos", "Online gallery"],
-    },
-    {
-      name: "Signature",
-      price: "$275",
-      priceNote: " / session",
-      featured: true,
-      badge: "Most popular",
-      features: ["2 hour session", "2 locations", "50 edited photos", "Online gallery", "Print release"],
+      features: ["3 hour session", "3 locations", "Solo photos for everyone", "Group photos", "Edited photos", "Online gallery"],
     },
   ],
   testimonialsSectionLabel: "What past clients say",
@@ -217,19 +217,19 @@ export const PHOTO_GRAD_PAGE = {
   faq: [
     {
       q: "When should I book?",
-      a: "Sessions book up fast around graduation season. I recommend reaching out 4–6 weeks in advance to lock in your date.",
+      a: "Sessions book up fast around graduation season. I recommend reaching out 2-4 weeks in advance to lock in your date.",
     },
     {
       q: "Where do shoots take place?",
-      a: "Anywhere you'd like — your campus, a local park, the beach, downtown. I'm familiar with great spots across Southern California.",
+      a: "Anywhere you'd like! At UCSB, I've done Henley Gate, Devs Beanch, Coal Oil Point, Goleta Beach, the Library, and DP!",
     },
     {
       q: "How long until I get my photos?",
-      a: "Edited photos delivered via online gallery within 7–10 days. Rush delivery available on request.",
+      a: "Edited photos delivered via online gallery within 7–14 days. Rush delivery available on request.",
     },
     {
       q: "What should I wear?",
-      a: "Wear what makes you feel like yourself. Solid colors tend to photograph well. Cap and gown shots are always a great addition.",
+      a: "Wear what makes you feel like yourself!",
     },
   ],
   bottomCtaLabel: "Book your session",
