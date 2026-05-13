@@ -105,43 +105,35 @@ function buildEngHomeInnerHtml() {
         escapeHtml(c.subtitle) +
         "</div>" +
         clh +
-        '<i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div></div>'
+        '<i class="ti ti-arrow-up-right" style="font-size:11.25px;"></i>View</div></div></div>'
       );
     })
     .join("");
 
-  var avatar =
+  var bioPhotoInner =
     h.bio.avatarSrc ?
-      '<img src="' +
+      '<img class="bio-photo-img" src="' +
       escapeAttr(h.bio.avatarSrc) +
       '" alt="' +
       escapeAttr(h.bio.avatarAlt) +
       '">'
-    : '<i class="ti ti-user"></i>';
+    : '<div class="bio-photo-placeholder"><i class="ti ti-user"></i></div>';
 
   return (
     '<div class="stats">' +
     statsHtml +
-    '</div><div class="hero-bio-split fade-in">' +
-    '<div class="hero-side">' +
-    '<div class="mode-tag">' +
-    escapeHtml(h.heroModeTag) +
-    '</div><h1 class="hero-title">' +
-    h.heroTitleHtml +
-    '</h1><p class="hero-desc">' +
-    escapeHtml(h.heroDesc) +
-    "</p></div>" +
-    '<div class="split-div"></div>' +
-    '<div class="bio-side">' +
-    '<div class="avatar-circle">' +
-    avatar +
-    '</div><div class="bio-name">' +
+    '</div><div class="eng-bio-standalone fade-in">' +
+    '<div class="bio-side bio-side--row">' +
+    '<div class="bio-photo-col eng-bio-photo">' +
+    bioPhotoInner +
+    '</div><div class="bio-copy-col">' +
+    '<div class="bio-name">' +
     escapeHtml(h.bio.name) +
     '</div><div class="bio-role">' +
     escapeHtml(h.bio.role) +
     '</div><div class="bio-body">' +
     escapeHtml(h.bio.body) +
-    "</div></div></div>" +
+    "</div></div></div></div>" +
     '<div class="strip">' +
     '<button class="res-btn" onclick="showPage(\'page-resume\')"><i class="ti ti-file-cv"></i> ' +
     escapeHtml(h.resumeButtonLabel) +

@@ -65,24 +65,46 @@ function gradTeaserImageBlock() {
     '<line x1="40" y1="12" x2="40" y2="22" stroke="#c8a97e" stroke-width="1.2" opacity=".6"/>' +
     '<circle cx="40" cy="23" r="2" fill="#c8a97e" opacity=".6"/>' +
     "</svg>" +
-    '<span style="font-family:\'DM Mono\',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#9a8878;">' +
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a8878;">' +
     escapeHtml(g.placeholderCaption) +
     "</span></div>"
   );
 }
 
-function bioAvatarBlock() {
+function photoBioMediaHtml() {
   const b = PHOTO_HOME.bio;
   if (b.avatarSrc) {
     return (
-      '<img src="' +
+      '<img class="bio-photo-img" src="' +
       escapeAttr(b.avatarSrc) +
       '" alt="' +
       escapeAttr(b.avatarAlt) +
       '">'
     );
   }
-  return '<i class="ti ti-user" style="color:#c8a97e;font-size:36px;"></i>';
+  return (
+    '<div class="bio-photo-placeholder">' +
+    '<i class="ti ti-user"></i></div>'
+  );
+}
+
+/** Standalone bio (photo home — placed below grad preview). */
+function photoBioStandaloneHtml() {
+  const h = PHOTO_HOME;
+  return (
+    '<div class="pho-bio-standalone fade-in">' +
+    '<div class="bio-side bio-side--row">' +
+    '<div class="bio-photo-col pho-bio-photo">' +
+    photoBioMediaHtml() +
+    '</div><div class="bio-copy-col">' +
+    '<div class="bio-name" style="color:#1c1410;">' +
+    escapeHtml(h.bio.name) +
+    '</div><div class="bio-role" style="color:#c8a97e;">' +
+    escapeHtml(h.bio.role) +
+    '</div><div class="bio-body" style="color:#9a8878;">' +
+    escapeHtml(h.bio.body) +
+    "</div></div></div></div>"
+  );
 }
 
 function buildPhotoHomeInnerHtml() {
@@ -106,27 +128,7 @@ function buildPhotoHomeInnerHtml() {
   return (
     '<div class="stats">' +
     statsHtml +
-    '</div><div class="hero-bio-split fade-in" style="border-bottom-color:#e0d8cd;">' +
-    '<div class="hero-side">' +
-    '<div class="mode-tag">' +
-    escapeHtml(h.heroModeTag) +
-    '</div><h1 class="hero-title">' +
-    h.heroTitleHtml +
-    '</h1><p class="hero-desc">' +
-    escapeHtml(h.heroDesc) +
-    "</p></div>" +
-    '<div class="split-div" style="background:#e0d8cd;"></div>' +
-    '<div class="bio-side">' +
-    '<div class="avatar-circle" style="background:#ede8e0;border-color:#c8a97e;">' +
-    bioAvatarBlock() +
-    '</div><div class="bio-name" style="color:#1c1410;">' +
-    escapeHtml(h.bio.name) +
-    '</div><div class="bio-role" style="color:#c8a97e;">' +
-    escapeHtml(h.bio.role) +
-    '</div><div class="bio-body" style="color:#9a8878;">' +
-    escapeHtml(h.bio.body) +
-    "</div></div></div>" +
-    '<div class="wheel-wrap">' +
+    '</div><div class="wheel-wrap">' +
     '<div class="sec-hdr">' +
     '<span class="sec-title" style="color:#9a8878;">' +
     escapeHtml(h.carouselSectionTitle) +
@@ -145,7 +147,7 @@ function buildPhotoHomeInnerHtml() {
     '<div class="sec-hdr" style="margin-bottom:14px;">' +
     '<span class="sec-title" style="color:#9a8878;">' +
     escapeHtml(g.sectionTitle) +
-    '</span><span style="font-family:\'DM Mono\',monospace;font-size:9px;color:#c8a97e;cursor:pointer;" onclick="showPage(\'page-grad\')">' +
+    '</span><span style="font-family:\'DM Mono\',monospace;font-size:11.25px;color:#c8a97e;cursor:pointer;" onclick="showPage(\'page-grad\')">' +
     escapeHtml(g.seeAllLabel) +
     "</span></div></div>" +
     '<div class="grad-preview fade-in" onclick="showPage(\'page-grad\')">' +
@@ -160,10 +162,11 @@ function buildPhotoHomeInnerHtml() {
     '</div><div class="grad-preview-desc">' +
     escapeHtml(g.desc) +
     '</div><button class="grad-preview-cta" onclick="event.stopPropagation();showPage(\'page-grad\')">' +
-    '<i class="ti ti-school" style="font-size:13px;"></i> ' +
+    '<i class="ti ti-school" style="font-size:16.25px;"></i> ' +
     escapeHtml(g.ctaLabel) +
     "</button></div></div>" +
-    '<div class="divider" style="background:#e0d8cd;margin-top:20px;"></div>' +
+    photoBioStandaloneHtml() +
+    '<div class="divider" style="background:#e0d8cd;margin-top:0;"></div>' +
     '<div class="works">' +
     '<div class="sec-hdr">' +
     '<span class="sec-title" style="color:#9a8878;">' +
@@ -243,7 +246,7 @@ function buildGradPageInnerHtml() {
     "</button></div>" +
     '<div class="grad-section"><div class="grad-sec-label">' +
     escapeHtml(p.gallerySectionLabel) +
-    '</div><div class="adaptive-grid" id="grad-gallery"></div></div>' +
+    '</div><div class="grad-justified-gallery" id="grad-gallery"></div></div>' +
     '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
     escapeHtml(p.packagesSectionLabel) +
     '</div><div class="package-grid">' +
