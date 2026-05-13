@@ -1,0 +1,99 @@
+  <!-- Photography panel -->
+  <div id="pp" class="panel">
+    <div class="stats">
+      <div class="stat fade-in"><div class="stat-n">200<span>+</span></div><div class="stat-l">Images</div></div>
+      <div class="stat fade-in d1"><div class="stat-n">5<span>yr</span></div><div class="stat-l">Shooting</div></div>
+      <div class="stat fade-in d2"><div class="stat-n">4</div><div class="stat-l">Genres</div></div>
+      <div class="stat fade-in d3"><div class="stat-n">35<span>mm</span></div><div class="stat-l">Format</div></div>
+    </div>
+    <div class="hero-bio-split fade-in" style="border-bottom-color:#e0d8cd;">
+      <div class="hero-side">
+        <div class="mode-tag">Photography Portfolio</div>
+        <h1 class="hero-title">Light, shadow<br>and <em>time.</em></h1>
+        <p class="hero-desc">Documentary and fine-art photography — urban landscapes, portraiture, and natural environments.</p>
+      </div>
+      <div class="split-div" style="background:#e0d8cd;"></div>
+      <div class="bio-side">
+        <!--
+          PROFILE PHOTO (photography side):
+          Replace the <i> tag below with:
+          <img src="photos/profile-photo.jpg" alt="Ethan Reeves">
+        -->
+        <div class="avatar-circle" style="background:#ede8e0;border-color:#c8a97e;">
+          <i class="ti ti-user" style="color:#c8a97e;font-size:36px;"></i>
+        </div>
+        <div class="bio-name" style="color:#1c1410;">Ethan Reeves</div>
+        <div class="bio-role" style="color:#c8a97e;">Photographer</div>
+        <div class="bio-body" style="color:#9a8878;">Southern California based. Shooting street, landscape, and portrait on 35mm and digital.</div>
+      </div>
+    </div>
+
+    <!-- Carousel — auto-built from CAROUSEL_PHOTOS -->
+    <div class="wheel-wrap">
+      <div class="sec-hdr">
+        <span class="sec-title" style="color:#9a8878;">Featured shots</span>
+        <span class="sec-count" id="sc" style="color:#c8a97e;"></span>
+      </div>
+      <div class="wheel-outer">
+        <div class="wheel" id="wheel">
+          <div class="slides-track" id="slides-track"></div>
+        </div>
+        <button class="wheel-arr wl" id="warr-l" aria-label="Previous"><i class="ti ti-arrow-left"></i></button>
+        <button class="wheel-arr wr" id="warr-r" aria-label="Next"><i class="ti ti-arrow-right"></i></button>
+      </div>
+      <div class="wheel-nav">
+        <button class="wbtn" id="prev" aria-label="Previous"><i class="ti ti-arrow-left"></i></button>
+        <div class="wheel-dots" id="dots"></div>
+        <button class="wbtn" id="next" aria-label="Next"><i class="ti ti-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- Grad preview section -->
+    <div style="padding: 4px 18px 6px;">
+      <div class="sec-hdr" style="margin-bottom:14px;">
+        <span class="sec-title" style="color:#9a8878;">Graduate photos</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:#c8a97e;cursor:pointer;" onclick="showPage('page-grad')">See all ›</span>
+      </div>
+    </div>
+    <div class="grad-preview fade-in" onclick="showPage('page-grad')">
+      <div class="grad-preview-img" id="grad-preview-img">
+        <!--
+          GRAD PREVIEW IMAGE:
+          To use a real photo, replace this entire div content with:
+          <img src="photos/grad/your-best-shot.jpg" alt="Graduate photos" style="width:100%;height:100%;object-fit:cover;">
+        -->
+        <div class="bokeh" style="width:90px;height:90px;background:#c8a97e;top:-20px;right:20px;"></div>
+        <div class="bokeh" style="width:50px;height:50px;background:#c8a97e;bottom:10px;left:30px;"></div>
+        <div class="grad-preview-img-placeholder">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <circle cx="28" cy="20" r="12" stroke="#c8a97e" stroke-width="1.4" opacity=".7"/>
+            <circle cx="28" cy="20" r="5" fill="#c8a97e" opacity=".5"/>
+            <path d="M10 48 Q28 34 46 48" stroke="#c8a97e" stroke-width="1.4" fill="none" opacity=".5"/>
+            <polygon points="28,6 40,12 28,18 16,12" fill="#c8a97e" opacity=".55"/>
+            <line x1="40" y1="12" x2="40" y2="22" stroke="#c8a97e" stroke-width="1.2" opacity=".6"/>
+            <circle cx="40" cy="23" r="2" fill="#c8a97e" opacity=".6"/>
+          </svg>
+          <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#9a8878;">Sample portrait — golden hour</span>
+        </div>
+      </div>
+      <div class="grad-preview-body">
+        <div class="grad-preview-eyebrow">Class of 2025 · Now booking</div>
+        <div class="grad-preview-title">Graduate <em>Photos</em></div>
+        <div class="grad-preview-desc">Looking for grad photos? Celebrate your milestone with portraits that feel as meaningful as the moment — natural light, real locations, no stiff poses. Sessions available across Southern California.</div>
+        <button class="grad-preview-cta" onclick="event.stopPropagation();showPage('page-grad')">
+          <i class="ti ti-school" style="font-size:13px;"></i> View packages &amp; book
+        </button>
+      </div>
+    </div>
+
+    <div class="divider" style="background:#e0d8cd;margin-top:20px;"></div>
+
+    <!-- Series cards — auto-built from SERIES array -->
+    <div class="works">
+      <div class="sec-hdr">
+        <span class="sec-title" style="color:#9a8878;">Selected series</span>
+        <span class="sec-count" style="color:#c8a97e;" id="series-count"></span>
+      </div>
+      <div class="grid" id="series-grid"></div>
+    </div>
+  </div>

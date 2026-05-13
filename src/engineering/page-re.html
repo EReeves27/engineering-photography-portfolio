@@ -1,0 +1,19 @@
+<div class="page eng-det" id="page-re">
+  <div class="det-nav">
+    <div class="det-nav-actions">
+      <button type="button" class="eng-back" onclick="showPage('page-home')" style="background:#7f77dd;color:#26215c;"><i class="ti ti-arrow-left"></i> Back</button>
+      <button type="button" class="home-btn" onclick="goHome()" aria-label="Home"><i class="ti ti-home"></i></button>
+    </div>
+    <div class="det-logo" style="color:#e8eaf6;">Ethan<em style="font-style:italic;color:#afa9ec;">R.</em></div>
+  </div>
+  <div class="proj-body">
+    <span class="proj-cat-badge" style="background:#2a1a2e;color:#afa9ec;border:.5px solid #7f77dd;">Research</span>
+    <h1 class="proj-title">ML Inference <em style="color:#afa9ec;">Latency Study</em></h1>
+    <p class="proj-sub">Systematic study of inference latency trade-offs for transformer models on edge hardware across four devices.</p>
+    <div class="proj-btns"><button class="pbtn" style="background:#7f77dd;color:#26215c;border:none;"><i class="ti ti-file-text"></i> Full paper</button><button class="pbtn" style="border:.5px solid #2a2a40;color:#e8eaf6;"><i class="ti ti-brand-github"></i> Dataset</button></div>
+    <div class="proj-divider"></div>
+    <div class="proj-sec"><div class="proj-sec-title" style="color:#afa9ec;">Abstract</div><div class="abstract-block">Edge deployment of transformer models presents latency challenges poorly characterized across hardware profiles. This study finds a 4.2× latency reduction with INT8 quantization at under 1% accuracy loss across four target devices.</div></div>
+    <div class="proj-sec"><div class="proj-sec-title">Key findings</div><div class="finding-card"><div class="finding-num">Finding 01</div><div class="finding-text">INT8 quantization reduced mean latency by 4.2× on Jetson Nano vs FP32 baseline</div><div class="finding-sub">0.8% accuracy loss on CIFAR-10</div></div><div class="finding-card"><div class="finding-num">Finding 02</div><div class="finding-text">FPGA target outperformed MCU by 11× at equivalent power draw</div><div class="finding-sub">Custom accelerator reduced off-chip memory access by 60%</div></div></div>
+    <div class="proj-sec"><div class="proj-sec-title">Key metrics</div><div class="metrics-grid"><div class="metric"><div class="metric-val">4.2<span style="color:#afa9ec;">×</span></div><div class="metric-lbl">Latency reduction</div></div><div class="metric"><div class="metric-val">&lt;1<span style="color:#afa9ec;">%</span></div><div class="metric-lbl">Accuracy loss</div></div><div class="metric"><div class="metric-val">4</div><div class="metric-lbl">Target devices</div></div><div class="metric"><div class="metric-val">11<span style="color:#afa9ec;">×</span></div><div class="metric-lbl">FPGA vs MCU</div></div></div></div>
+  </div>
+</div>

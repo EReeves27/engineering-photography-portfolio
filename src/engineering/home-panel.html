@@ -1,0 +1,67 @@
+  <!-- Engineering panel -->
+  <div id="pe" class="panel active">
+    <div class="stats">
+      <div class="stat fade-in"><div class="stat-n">12<span>+</span></div><div class="stat-l">Projects</div></div>
+      <div class="stat fade-in d1"><div class="stat-n">4<span>yr</span></div><div class="stat-l">Experience</div></div>
+      <div class="stat fade-in d2"><div class="stat-n">6</div><div class="stat-l">Technologies</div></div>
+      <div class="stat fade-in d3"><div class="stat-n">3</div><div class="stat-l">Open-source</div></div>
+    </div>
+    <div class="hero-bio-split fade-in">
+      <div class="hero-side">
+        <div class="mode-tag">Engineering Portfolio</div>
+        <h1 class="hero-title">Building things<br>that <em>work.</em></h1>
+        <p class="hero-desc">Software, hardware, and research engineering — clean architecture, real systems, meaningful results.</p>
+      </div>
+      <div class="split-div"></div>
+      <div class="bio-side">
+        <!--
+          PROFILE PHOTO (engineering side):
+          Replace the <i> tag below with:
+          <img src="photos/profile-eng.jpg" alt="Ethan Reeves">
+        -->
+        <div class="avatar-circle"><i class="ti ti-user"></i></div>
+        <div class="bio-name">Ethan Reeves</div>
+        <div class="bio-role">Software &amp; Systems Engineer</div>
+        <div class="bio-body">Based in Southern California. Building fast, reliable software — from embedded systems to full-stack platforms.</div>
+      </div>
+    </div>
+    <div class="strip">
+      <button class="res-btn" onclick="showPage('page-resume')"><i class="ti ti-file-cv"></i> View resume</button>
+    </div>
+    <div class="divider"></div>
+    <div class="works">
+      <div class="sec-hdr"><span class="sec-title">Selected work</span><span class="sec-count">06 projects</span></div>
+      <div class="grid">
+        <div class="card fade-in d1" onclick="showPage('page-sw')">
+          <div class="cv" style="background:#0d0d1a">
+            <!--
+              PROJECT THUMBNAIL: replace SVG with:
+              <img src="photos/projects/rest-api-thumb.jpg" style="width:100%;height:100%;object-fit:cover;">
+            -->
+            <svg width="50" height="50" viewBox="0 0 50 50" fill="none"><rect x="6" y="17" width="38" height="6" rx="2" fill="#4f8ef7" opacity=".8"/><rect x="6" y="27" width="24" height="5" rx="2" fill="#4f8ef7" opacity=".4"/><rect x="6" y="9" width="14" height="4" rx="2" fill="#4f8ef7" opacity=".5"/></svg>
+          </div>
+          <div class="cb"><span class="cat-badge cat-sw">Software</span><div class="cn">REST API Platform</div><div class="cs">Node.js, PostgreSQL</div><div class="clh"><i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div>
+        </div>
+        <div class="card fade-in d2" onclick="showPage('page-hw')">
+          <div class="cv" style="background:#0d0d1a"><svg width="50" height="50" viewBox="0 0 50 50" fill="none"><rect x="12" y="12" width="26" height="26" rx="3" stroke="#5dcaa5" stroke-width="1.1" opacity=".5"/><circle cx="25" cy="25" r="5" fill="#5dcaa5" opacity=".7"/><line x1="12" y1="19" x2="6" y2="19" stroke="#5dcaa5" stroke-width="1" opacity=".5"/><line x1="38" y1="19" x2="44" y2="19" stroke="#5dcaa5" stroke-width="1" opacity=".5"/></svg></div>
+          <div class="cb"><span class="cat-badge cat-hw">Hardware</span><div class="cn">Sensor Array</div><div class="cs">STM32, RTOS</div><div class="clh" style="color:#5dcaa5;"><i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div>
+        </div>
+        <div class="card fade-in d1" onclick="showPage('page-re')">
+          <div class="cv" style="background:#0d0d1a"><svg width="50" height="50" viewBox="0 0 50 50" fill="none"><circle cx="25" cy="18" r="8" stroke="#afa9ec" stroke-width="1.1" opacity=".5"/><line x1="25" y1="26" x2="25" y2="34" stroke="#afa9ec" stroke-width="1" opacity=".5"/><circle cx="25" cy="18" r="3" fill="#afa9ec" opacity=".6"/></svg></div>
+          <div class="cb"><span class="cat-badge cat-re">Research</span><div class="cn">ML Latency Study</div><div class="cs">PyTorch, Analysis</div><div class="clh" style="color:#afa9ec;"><i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div>
+        </div>
+        <div class="card fade-in d2" onclick="showPage('page-sw')">
+          <div class="cv" style="background:#0d0d1a"><svg width="50" height="50" viewBox="0 0 50 50" fill="none"><rect x="8" y="8" width="13" height="13" rx="2" fill="#4f8ef7" opacity=".3" stroke="#4f8ef7" stroke-width="1"/><rect x="29" y="8" width="13" height="13" rx="2" fill="#4f8ef7" opacity=".3" stroke="#4f8ef7" stroke-width="1"/><rect x="8" y="29" width="13" height="13" rx="2" fill="#4f8ef7" opacity=".3" stroke="#4f8ef7" stroke-width="1"/><rect x="29" y="29" width="13" height="13" rx="2" fill="#4f8ef7" opacity=".5" stroke="#4f8ef7" stroke-width="1"/></svg></div>
+          <div class="cb"><span class="cat-badge cat-sw">Software</span><div class="cn">Cache Layer</div><div class="cs">Redis, Go</div><div class="clh"><i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div>
+        </div>
+        <div class="card fade-in d1" onclick="showPage('page-hw')">
+          <div class="cv" style="background:#0d0d1a"><svg width="50" height="50" viewBox="0 0 50 50" fill="none"><rect x="8" y="14" width="34" height="22" rx="2" stroke="#5dcaa5" stroke-width="1.1" opacity=".4"/><rect x="14" y="20" width="8" height="10" rx="1" fill="#5dcaa5" opacity=".2"/><rect x="26" y="20" width="10" height="10" rx="1" fill="#5dcaa5" opacity=".35"/></svg></div>
+          <div class="cb"><span class="cat-badge cat-hw">Hardware</span><div class="cn">Motor Driver PCB</div><div class="cs">KiCad, BLDC</div><div class="clh" style="color:#5dcaa5;"><i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div>
+        </div>
+        <div class="card fade-in d2" onclick="showPage('page-re')">
+          <div class="cv" style="background:#0d0d1a"><svg width="50" height="50" viewBox="0 0 50 50" fill="none"><polyline points="6,40 14,22 22,30 30,12 44,26" stroke="#afa9ec" stroke-width="1.4" fill="none" opacity=".7"/><circle cx="14" cy="22" r="2.5" fill="#afa9ec" opacity=".7"/><circle cx="22" cy="30" r="2.5" fill="#afa9ec" opacity=".7"/><circle cx="30" cy="12" r="2.5" fill="#afa9ec" opacity=".7"/></svg></div>
+          <div class="cb"><span class="cat-badge cat-re">Research</span><div class="cn">Edge Inference Survey</div><div class="cs">TensorFlow, C++</div><div class="clh" style="color:#afa9ec;"><i class="ti ti-arrow-up-right" style="font-size:9px;"></i>View</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
