@@ -363,11 +363,18 @@ nav {
   cursor: zoom-in;
 }
 
-/* Grad sample gallery — justified rows, natural aspect, no captions */
-.grad-justified-gallery {
+/* Album “collage”: justified rows — aspect-sized cells, tight gutters, scales with viewport */
+.photo-collage-gallery {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
+  max-width: min(100%, 1320px);
+  margin-inline: auto;
+  box-sizing: border-box;
+  gap: clamp(3px, 0.55vw, 7px);
 }
-.grad-jg-row {
+.photo-collage-row {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -375,22 +382,21 @@ nav {
   width: 100%;
   box-sizing: border-box;
 }
-.grad-jg-row--center {
+.photo-collage-row--center {
   justify-content: center;
 }
-.grad-jg-cell {
-  border-radius: 10px;
+.photo-collage-cell {
+  border-radius: 5px;
   overflow: hidden;
-  border: .5px solid #e0d8cd;
-  background: #ebe4dc;
+  background: #e8e2d8;
   cursor: pointer;
-  transition: transform 0.18s;
+  transition: transform 0.16s;
   box-sizing: border-box;
 }
-.grad-jg-cell:active {
-  transform: scale(0.98);
+.photo-collage-cell:active {
+  transform: scale(0.985);
 }
-.grad-jg-cell img {
+.photo-collage-cell img {
   width: 100%;
   height: 100%;
   object-fit: contain;

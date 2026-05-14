@@ -246,7 +246,7 @@ function buildGradPageInnerHtml() {
     "</button></div>" +
     '<div class="grad-section"><div class="grad-sec-label">' +
     escapeHtml(p.gallerySectionLabel) +
-    '</div><div class="grad-justified-gallery" id="grad-gallery"></div></div>' +
+    '</div><div class="photo-collage-gallery" id="grad-gallery"></div></div>' +
     '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
     escapeHtml(p.packagesSectionLabel) +
     '</div><div class="package-grid">' +

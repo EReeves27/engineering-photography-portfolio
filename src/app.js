@@ -1,4 +1,28 @@
 import { CAROUSEL_PHOTOS, SERIES, GRAD_PHOTOS } from "./photography/config.js";
+import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
+
+/** Last segment of `folder` (e.g. `/photos/san-sebastian/` → `san-sebastian`). */
+function albumSlugFromFolder(folder) {
+  var s = String(folder || "").replace(/\/+$/, "");
+  var m = s.match(/\/photos\/([^/]+)$/);
+  return m ? m[1] : "";
+}
+
+/** Manual `images` in config wins; else filenames from `public/photos/<slug>/` at build time. */
+function resolvedSeriesImages(s) {
+  if (s.images && s.images.length > 0) return s.images;
+  var slug = albumSlugFromFolder(s.folder);
+  var list = SERIES_ALBUM_IMAGES[slug];
+  return Array.isArray(list) ? list.slice() : [];
+}
+
+/** Same as series: optional `GRAD_PHOTOS.images` overrides auto-list for `public/photos/grad/`. */
+function resolvedGradImages() {
+  if (GRAD_PHOTOS.images && GRAD_PHOTOS.images.length > 0) return GRAD_PHOTOS.images;
+  var slug = albumSlugFromFolder(GRAD_PHOTOS.folder);
+  var list = SERIES_ALBUM_IMAGES[slug];
+  return Array.isArray(list) ? list.slice() : [];
+}
 
 /* ══════════════════════════════════════════════════════════════
    ADAPTIVE GRID BUILDER
@@ -169,12 +193,13 @@ function buildSeriesGrid() {
       openSeriesDetail(s);
     };
 
+    var imgs = resolvedSeriesImages(s);
     var coverHtml;
-    if (s.images && s.images.length > 0) {
+    if (imgs.length > 0) {
       coverHtml =
         '<div class="pho-card-img"><img src="' +
         s.folder +
-        s.images[0] +
+        imgs[0] +
         '" alt="' +
         s.title +
         '"></div>';
@@ -222,7 +247,6 @@ function openSeriesDetail(s) {
     "</h1>" +
     '<div class="series-meta">' +
     s.meta +
-    (s.shots ? " · " + s.shots : "") +
     "</div>" +
     '<p class="series-desc">' +
     s.desc +
@@ -233,20 +257,14 @@ function openSeriesDetail(s) {
     "</div>" +
     '<div class="photo-grid-wrap">' +
     '<div class="photo-grid-label">Series photos</div>' +
-    '<div class="adaptive-grid" id="series-adaptive-grid"></div>' +
+    '<div class="photo-collage-gallery" id="series-adaptive-grid"></div>' +
     "</div>" +
     '<div class="specs-grid">' +
     '<div class="spec-card"><div class="spec-lbl">Camera</div><div class="spec-val">' +
     (s.camera || "—") +
     "</div></div>" +
-    '<div class="spec-card"><div class="spec-lbl">Film</div><div class="spec-val">' +
-    (s.film || "—") +
-    "</div></div>" +
     '<div class="spec-card"><div class="spec-lbl">Duration</div><div class="spec-val">' +
     (s.duration || "—") +
-    "</div></div>" +
-    '<div class="spec-card"><div class="spec-lbl">Total shots</div><div class="spec-val">' +
-    (s.shots || "—") +
     "</div></div>" +
     "</div>";
 
@@ -254,8 +272,21 @@ function openSeriesDetail(s) {
 
   requestAnimationFrame(function () {
     var grid = document.getElementById("series-adaptive-grid");
-    buildAdaptiveGrid(grid, s.folder, s.images, 8);
+    mountCollagePhotoGallery(grid, s.folder, resolvedSeriesImages(s), {
+      fallbackCount: 8,
+    });
   });
+}
+
+function shuffleArray(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+  }
+  return a;
 }
 
 function sumAspectRatios(row) {
@@ -269,48 +300,80 @@ function rowHeightForWidth(row, widthPx, gapPx) {
   return (widthPx - (row.length - 1) * gapPx) / sumAspectRatios(row);
 }
 
+/** Row height + gutter scale with the window (justified “wall of photos” look). */
+function albumGalleryLayoutMetrics() {
+  var vw = window.innerWidth || 800;
+  var vh = window.innerHeight || 640;
+  var gap = Math.round(Math.max(3, Math.min(8, vw * 0.008 + 3)));
+  var minH = Math.round(Math.max(102, Math.min(172, vw * 0.22, vh * 0.175)));
+  var maxH = Math.round(Math.max(minH + 36, Math.min(340, vw * 0.37, vh * 0.31)));
+  return { gap: gap, minH: minH, maxH: maxH };
+}
+
 /**
- * Grad sample page: justified rows (Flickr-style) so images keep aspect ratio,
- * pack edge-to-edge, and order can differ from config for nicer rows.
+ * Dense justified rows (Flickr-style): cells sized to each image’s aspect ratio — no crop, little empty mat.
+ * Order is shuffled so the “collage” changes between visits; row packing fills width edge-to-edge.
+ * @param {HTMLElement} grid
+ * @param {string} folder
+ * @param {string[]} filenames
+ * @param {{ fallbackCount?: number }} [opts]
  */
-function buildGradGallery() {
-  var grid = document.getElementById("grad-gallery");
+function mountCollagePhotoGallery(grid, folder, filenames, opts) {
+  opts = opts || {};
+  var fallbackCount = opts.fallbackCount != null ? opts.fallbackCount : 6;
+
   if (!grid) return;
 
-  var folder = GRAD_PHOTOS.folder;
-  var names = GRAD_PHOTOS.images;
-  if (!names || names.length === 0) {
+  if (grid._photoJgRo) {
+    grid._photoJgRo.disconnect();
+    grid._photoJgRo = null;
+  }
+
+  if (!filenames || filenames.length === 0) {
     grid.className = "adaptive-grid";
-    buildAdaptiveGrid(grid, folder, [], 6);
+    buildAdaptiveGrid(grid, folder, [], fallbackCount);
+    grid._photoJgLayout = null;
+    grid._photoJgItems = null;
     return;
   }
 
-  grid.className = "grad-justified-gallery";
+  grid.className = "photo-collage-gallery";
   grid.innerHTML = "";
 
   var items = [];
-  var pending = names.length;
+  var pending = filenames.length;
 
-  function tryLayout() {
+  function tryCollage() {
     if (items.length === 0) {
       grid.className = "adaptive-grid";
-      buildAdaptiveGrid(grid, folder, [], 6);
+      buildAdaptiveGrid(grid, folder, [], fallbackCount);
+      grid._photoJgLayout = null;
+      grid._photoJgItems = null;
       return;
     }
-    items.sort(function (a, b) {
-      return b.w / b.h - a.w / a.h;
-    });
-    grid._gradItems = items;
+
+    grid._photoJgItems = shuffleArray(items);
+
+    function layoutWidth() {
+      var W = grid.clientWidth;
+      if (W < 48) {
+        var wrap = grid.closest(".grad-section") || grid.closest(".photo-grid-wrap") || grid.parentElement;
+        if (wrap && wrap.clientWidth > 48) W = wrap.clientWidth;
+      }
+      if (W < 48) W = Math.min(Math.max(300, (window.innerWidth || 800) - 40), 1280);
+      return W;
+    }
 
     function layout() {
-      var W = grid.clientWidth;
-      var list = grid._gradItems;
-      if (!list || list.length === 0) return;
-      if (W < 48) return;
+      var list = grid._photoJgItems;
+      if (!list || !list.length) return;
 
-      var gap = 8;
-      var minH = 140;
-      var maxH = 400;
+      var W = layoutWidth();
+      var metrics = albumGalleryLayoutMetrics();
+      var gap = metrics.gap;
+      var minH = metrics.minH;
+      var maxH = metrics.maxH;
+
       grid.innerHTML = "";
 
       var i = 0;
@@ -322,7 +385,6 @@ function buildGradGallery() {
           row.push(list[i++]);
           h = rowHeightForWidth(row, W, gap);
         }
-
         while (i < n) {
           var cand = row.concat([list[i]]);
           var ch = rowHeightForWidth(cand, W, gap);
@@ -339,21 +401,20 @@ function buildGradGallery() {
         }
 
         var rowEl = document.createElement("div");
-        rowEl.className = "grad-jg-row";
+        rowEl.className = "photo-collage-row";
         rowEl.style.gap = gap + "px";
-        rowEl.style.marginBottom = gap + "px";
         rowEl.style.height = h + "px";
 
         var contentW = h * sumAr + (row.length - 1) * gap;
         if (W - contentW > 4) {
-          rowEl.classList.add("grad-jg-row--center");
+          rowEl.classList.add("photo-collage-row--center");
         }
 
         for (var r = 0; r < row.length; r++) {
           var it = row[r];
           var cw = h * (it.w / it.h);
           var cell = document.createElement("div");
-          cell.className = "grad-jg-cell";
+          cell.className = "photo-collage-cell";
           cell.style.width = cw + "px";
           cell.style.flexShrink = "0";
           var imgEl = document.createElement("img");
@@ -367,39 +428,42 @@ function buildGradGallery() {
       }
     }
 
-    grid._gradLayout = layout;
-
+    grid._photoJgLayout = layout;
     layout();
 
     if (typeof ResizeObserver !== "undefined") {
-      if (!grid._gradRo) {
-        var roScheduled = false;
-        grid._gradRo = new ResizeObserver(function () {
-          if (roScheduled) return;
-          roScheduled = true;
-          requestAnimationFrame(function () {
-            roScheduled = false;
-            layout();
-          });
-        });
-        grid._gradRo.observe(grid);
-      }
+      var roTimer = null;
+      grid._photoJgRo = new ResizeObserver(function () {
+        if (roTimer) clearTimeout(roTimer);
+        roTimer = setTimeout(function () {
+          roTimer = null;
+          layout();
+        }, 72);
+      });
+      grid._photoJgRo.observe(grid);
     }
   }
 
-  names.forEach(function (filename) {
+  filenames.forEach(function (filename) {
     var src = folder + filename;
     var im = new Image();
     im.onload = function () {
       items.push({ src: src, w: im.naturalWidth, h: im.naturalHeight });
       pending--;
-      if (pending === 0) tryLayout();
+      if (pending === 0) tryCollage();
     };
     im.onerror = function () {
       pending--;
-      if (pending === 0) tryLayout();
+      if (pending === 0) tryCollage();
     };
     im.src = src;
+  });
+}
+
+function buildGradGallery() {
+  var grid = document.getElementById("grad-gallery");
+  mountCollagePhotoGallery(grid, GRAD_PHOTOS.folder, resolvedGradImages(), {
+    fallbackCount: 6,
   });
 }
 
@@ -437,9 +501,17 @@ function showPage(id, scrollSmooth) {
   }
   if (id === "page-grad") {
     var gg = document.getElementById("grad-gallery");
-    if (gg && gg._gradLayout) {
+    if (gg && gg._photoJgLayout) {
       requestAnimationFrame(function () {
-        gg._gradLayout();
+        gg._photoJgLayout();
+      });
+    }
+  }
+  if (id === "page-series-detail") {
+    var sg = document.getElementById("series-adaptive-grid");
+    if (sg && sg._photoJgLayout) {
+      requestAnimationFrame(function () {
+        sg._photoJgLayout();
       });
     }
   }
@@ -468,7 +540,7 @@ function toggleFaq(el) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Album / grad gallery fullscreen lightbox
+   Album justified grids + legacy adaptive placeholders / lightbox
 ══════════════════════════════════════════════════════════════ */
 var photoLightboxEl = null;
 var photoLightboxImg = null;
@@ -519,8 +591,8 @@ function onDocumentClickPhotoLightbox(e) {
   if (e.target.tagName !== "IMG") return;
   if (e.target.closest(".photo-lightbox")) return;
 
-  var gradCell = e.target.closest("#grad-gallery .grad-jg-cell");
-  if (gradCell && gradCell.querySelector(":scope > img") === e.target) {
+  var collageCell = e.target.closest(".photo-collage-cell");
+  if (collageCell && collageCell.querySelector(":scope > img") === e.target) {
     e.preventDefault();
     e.stopPropagation();
     openPhotoLightbox(e.target.currentSrc || e.target.src, e.target.getAttribute("alt") || "");

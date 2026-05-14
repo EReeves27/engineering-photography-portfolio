@@ -1,25 +1,14 @@
 /**
- * =============================================================================
- *  PHOTOGRAPHY — EDIT THIS FILE ONLY (no HTML changes needed)
- * =============================================================================
+ * Photography site copy and paths. Images live under `public/photos/…`
+ * (URLs start with `/photos/…`).
  *
- *  Images: public URLs start with /photos/…  → files under:
- *           public/photos/<folder>/<filename>
+ * Albums (`SERIES`): set `folder` to `/photos/<dir>/`. Omit `images` (or `[]`)
+ * to auto-list files in that folder at build time (`vite.config.js`). Use
+ * `images: ["a.jpg"]` to pin order or a subset.
  *
- *  Sections in this file:
- *    • PHOTO_BRAND / PHOTO_NAV     — logo + nav button labels
- *    • PHOTO_HOME                  — photo tab home (stats, hero, bio, carousel strip, grad teaser, series intro)
- *    • CAROUSEL_PHOTOS             — featured carousel images
- *    • SERIES                      — albums (copy + paths)
- *    • GRAD_PHOTOS                 — grad gallery filenames
- *    • PHOTO_GRAD_PAGE             — full grad booking page
- *    • PHOTO_CONTACT_GRAD          — grad contact form page
- *    • PHOTO_CONTACT_GENERAL       — general contact + socials
- *
- * =============================================================================
+ * Grad gallery (`GRAD_PHOTOS`): same rule for `public/photos/grad/`.
  */
 
-/** Logo markup inside the cream nav bar (HTML allowed). */
 export const PHOTO_BRAND = {
   logoHtml: 'Ethan<em style="font-style:italic;color:#c8a97e;">R.</em>',
 };
@@ -29,7 +18,6 @@ export const PHOTO_NAV = {
   homeAriaLabel: "Home",
 };
 
-/** Photo home tab (#pp): all copy + image paths. `stat.valueHtml` is raw HTML inside the big number. */
 export const PHOTO_HOME = {
   stats: [
     { valueHtml: '2000<span>+</span>', label: "Images" },
@@ -38,12 +26,10 @@ export const PHOTO_HOME = {
     { valueHtml: 'CANON DSLR,<span> LUMIX Mirrorless</span>', label: "Equipment" },
   ],
   heroModeTag: "Photography Portfolio",
-  /** HTML allowed (e.g. <br>, <em>) */
   heroTitleHtml: "Light, shadow<br>and <em>time.</em>",
   heroDesc:
     "Documentary and fine-art photography — urban landscapes, portraiture, and natural environments.",
   bio: {
-    /** Set to "" to show the default user icon instead of a photo */
     avatarSrc: "/photos/profile/profile_pic.jpeg",
     avatarAlt: "Ethan Reeves",
     name: "Ethan Reeves",
@@ -54,11 +40,9 @@ export const PHOTO_HOME = {
   gradStrip: {
     sectionTitle: "Graduate photos",
     seeAllLabel: "See all ›",
-    /** Hero image on the home grad strip; "" = decorative placeholder */
     teaserImageSrc: "",
     teaserImageAlt: "Graduate photos",
     eyebrow: "Class of 2025 · Now booking",
-    /** HTML allowed */
     titleHtml: "Graduate <em>Photos</em>",
     desc: "Looking for grad photos? Celebrate your milestone with portraits that feel as meaningful as the moment — natural light, real locations, no stiff poses. Sessions available across Southern California.",
     ctaLabel: "View packages & book",
@@ -67,34 +51,22 @@ export const PHOTO_HOME = {
   seriesSectionTitle: "Selected series",
 };
 
-// -----------------------------------------------------------------------------
-// Featured carousel — files in public/photos/featured/
-// -----------------------------------------------------------------------------
-export const CAROUSEL_PHOTOS = [
-  // { src: "/photos/featured/shot1.jpg", caption: "Downtown LA, 5:42am" },
-];
+/** Featured carousel — add `{ src, caption }` entries; files in `public/photos/featured/`. */
+export const CAROUSEL_PHOTOS = [];
 
-// -----------------------------------------------------------------------------
-// Albums — folder on disk public/photos/<folder>/ ; images = filenames only
-// -----------------------------------------------------------------------------
 export const SERIES = [
   {
-    id: "urban-solitude",
-    title: "Urban Solitude",
+    title: "Solo Trip in Spain",
     titleItalic: "Solitude",
     tag: "Street · Documentary",
-    meta: "Los Angeles · 2023",
-    desc: "A study of stillness within chaos — early morning streets, long shadows, and the quiet architecture of a city before it wakes. Shot over six weeks on Kodak Portra 400.",
-    tags: ["35mm", "Portra 400", "Street", "Golden hour"],
-    camera: "Nikon FM2",
-    film: "Portra 400",
-    duration: "6 weeks",
-    shots: "24 images",
-    folder: "/photos/urban-solitude/",
-    images: [],
+    meta: "San Sebastian, Spain · 2025",
+    desc: "Coastal winter light, empty streets, and the rhythm of a solo walk through San Sebastian.",
+    tags: ["Mirrorless", "Beach", "Street", "Golden hour"],
+    camera: "LUMIX FZ80D",
+    duration: "2 days",
+    folder: "/photos/san-sebastian/",
   },
   {
-    id: "pacific-coast",
     title: "Pacific Coast Dusk",
     titleItalic: "Dusk",
     tag: "Landscape · Natural",
@@ -102,14 +74,10 @@ export const SERIES = [
     desc: "Golden hour along the Pacific coastline. Long exposures, wide skies, and the last light of the day.",
     tags: ["Digital", "Golden hour", "Landscape"],
     camera: "Sony A7III",
-    film: "Digital",
     duration: "3 months",
-    shots: "18 images",
     folder: "/photos/pacific-coast/",
-    images: [],
   },
   {
-    id: "quiet-faces",
     title: "Quiet Faces",
     titleItalic: "Faces",
     tag: "Portrait · Fine-art",
@@ -117,14 +85,10 @@ export const SERIES = [
     desc: "Candid and directed portraits — stillness, expression, and available light.",
     tags: ["Studio", "Portrait", "Film"],
     camera: "Nikon FM2",
-    film: "Ilford HP5",
     duration: "Ongoing",
-    shots: "30 images",
     folder: "/photos/quiet-faces/",
-    images: [],
   },
   {
-    id: "grid-lines",
     title: "Grid Lines",
     titleItalic: "Lines",
     tag: "Architecture · Urban",
@@ -132,14 +96,10 @@ export const SERIES = [
     desc: "The geometry of the built environment — repeating patterns, shadows on concrete, the city as abstract form.",
     tags: ["Architecture", "Urban", "35mm"],
     camera: "Nikon FM2",
-    film: "Kodak T-Max",
     duration: "4 weeks",
-    shots: "20 images",
     folder: "/photos/grid-lines/",
-    images: [],
   },
   {
-    id: "desert-intervals",
     title: "Desert Intervals",
     titleItalic: "Intervals",
     tag: "Landscape · Golden hour",
@@ -147,14 +107,10 @@ export const SERIES = [
     desc: "Vast space, long light, and the silence of the high desert at dusk.",
     tags: ["Desert", "Landscape", "Golden hour", "35mm"],
     camera: "Nikon FM2",
-    film: "Portra 400",
     duration: "2 weekends",
-    shots: "22 images",
     folder: "/photos/desert-intervals/",
-    images: [],
   },
   {
-    id: "film-experiments",
     title: "Film Experiments",
     titleItalic: "Experiments",
     tag: "Abstract · Experimental",
@@ -162,56 +118,16 @@ export const SERIES = [
     desc: "Cross-processing, expired film, light leaks and happy accidents.",
     tags: ["Experimental", "35mm", "Analogue"],
     camera: "Various",
-    film: "Mixed",
     duration: "Ongoing",
-    shots: "40 images",
     folder: "/photos/film-experiments/",
-    images: [],
   },
 ];
 
+/** Grad sample gallery. Omit `images` (or `[]`) to auto-fill from `public/photos/grad/` at build time. */
 export const GRAD_PHOTOS = {
   folder: "/photos/grad/",
-  /** Basenames only — `buildAdaptiveGrid` uses `folder + name`. Captions are derived from the filename. */
-  images: [
-    "daniella_dhruv.jpg",
-    "daniella_flowers.jpg",
-    "daniella_jump.jpg",
-    "daniella_mai.jpg",
-    "matt_aly_air.jpg",
-    "matt_aly_door.jpg",
-    "matt_aly_sit.jpg",
-    "matt_door.jpg",
-    "ryan_dunk.JPG",
-    "ryan_flowers.JPG",
-    "ryan_flowers_2.JPG",
-    "ryan_overlook.JPG",
-    "ryan_powerrangers.JPG",
-    "ryan_wall.JPG",
-    "ryan_wall_2.JPG",
-    "ryan_wall_3.JPG",
-    "ryan_wall_bottom.JPG",
-    "ryan_wall_tap.JPG",
-    "shruthi_crouch.JPG",
-    "shruthi_point.JPG",
-    "shruthi_wall.JPG",
-    "sophia_beach.JPG",
-    "sophia_flowers.JPG",
-    "sophia_hat.JPG",
-    "sophia_logo.JPG",
-    "sophia_wall_bottom.JPG",
-    "sophia_wall_top.JPG",
-    "willy_champagne.JPG",
-    "willy_insidelibrary.JPG",
-    "willy_jump.JPG",
-    "willy_library.JPG",
-    "willy_logo.JPG",
-    "willy_steps.JPG",
-    "willy_wall_top.JPG",
-  ],
 };
 
-/** Full grad page (below nav). */
 export const PHOTO_GRAD_PAGE = {
   heroEyebrow: "Class of 2026",
   heroTitleHtml: "Graduate <em>Photos</em>",
@@ -271,7 +187,6 @@ export const PHOTO_GRAD_PAGE = {
   bottomCtaLabel: "Book your session",
 };
 
-/** Grad booking contact page (form ids must stay stable for submitForm). */
 export const PHOTO_CONTACT_GRAD = {
   eyebrow: "Grad photo booking",
   headingHtml: "Book your <em>session</em>",
@@ -291,7 +206,6 @@ export const PHOTO_CONTACT_GRAD = {
   successBody: "I'll be in touch within 24 hours to confirm your session details.",
 };
 
-/** General photography contact page. */
 export const PHOTO_CONTACT_GENERAL = {
   eyebrow: "Photography enquiries",
   headingHtml: "Get in <em>touch</em>",
@@ -309,7 +223,6 @@ export const PHOTO_CONTACT_GENERAL = {
   successTitle: "Message sent.",
   successBody: "Thanks for reaching out — I'll get back to you within a day or two.",
   socialsTitle: "Find me elsewhere",
-  /** { iconTablerClass, href, title, subtitle } — e.g. icon: "ti-brand-instagram" */
   socialLinks: [
     {
       icon: "ti-brand-instagram",
