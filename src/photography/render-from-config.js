@@ -110,50 +110,30 @@ function photoBioStandaloneHtml() {
 function buildPhotoHomeInnerHtml() {
   const h = PHOTO_HOME;
   const g = h.gradStrip;
-  const statsHtml = h.stats
-    .map(function (row, i) {
-      var d = i === 0 ? "" : " d" + i;
-      return (
-        '<div class="stat fade-in' +
-        d +
-        '"><div class="stat-n">' +
-        row.valueHtml +
-        '</div><div class="stat-l">' +
-        escapeHtml(row.label) +
-        "</div></div>"
-      );
-    })
-    .join("");
 
   return (
-    '<div class="stats">' +
-    statsHtml +
-    '</div><div class="wheel-wrap">' +
-    '<div class="sec-hdr">' +
-    '<span class="sec-title" style="color:#9a8878;">' +
-    escapeHtml(h.carouselSectionTitle) +
-    '</span><span class="sec-count" id="sc" style="color:#c8a97e;"></span></div>' +
-    '<div class="wheel-outer">' +
-    '<div class="wheel" id="wheel"><div class="slides-track" id="slides-track"></div></div>' +
-    '<button class="wheel-arr wl" id="warr-l" aria-label="Previous"><i class="ti ti-arrow-left"></i></button>' +
-    '<button class="wheel-arr wr" id="warr-r" aria-label="Next"><i class="ti ti-arrow-right"></i></button>' +
-    "</div>" +
-    '<div class="wheel-nav">' +
-    '<button class="wbtn" id="prev" aria-label="Previous"><i class="ti ti-arrow-left"></i></button>' +
-    '<div class="wheel-dots" id="dots"></div>' +
-    '<button class="wbtn" id="next" aria-label="Next"><i class="ti ti-arrow-right"></i></button>' +
-    "</div></div>" +
-    '<div style="padding: 4px 18px 6px;">' +
-    '<div class="sec-hdr" style="margin-bottom:14px;">' +
+    // Immersive photo collage — populated by buildHomePhotoCollage() in app.js
+    '<div class="pho-imm-home">' +
+    '<div class="pho-imm-collage" id="pho-home-collage"></div>' +
+
+    // Albums CTA
+    '<div class="pho-albums-cta">' +
+    '<button class="pho-albums-cta-btn" onclick="showPage(\'page-albums\')">' +
+    '<i class="ti ti-layout-grid"></i> Browse all albums' +
+    '</button>' +
+    '</div>' +
+
+    // Grad strip
+    '<div class="pho-grad-hdr">' +
     '<span class="sec-title" style="color:#9a8878;">' +
     escapeHtml(g.sectionTitle) +
     '</span><span style="font-family:\'DM Mono\',monospace;font-size:11.25px;color:#c8a97e;cursor:pointer;" onclick="showPage(\'page-grad\')">' +
     escapeHtml(g.seeAllLabel) +
-    "</span></div></div>" +
+    '</span></div>' +
     '<div class="grad-preview fade-in" onclick="showPage(\'page-grad\')">' +
     '<div class="grad-preview-img" id="grad-preview-img">' +
     gradTeaserImageBlock() +
-    "</div>" +
+    '</div>' +
     '<div class="grad-preview-body">' +
     '<div class="grad-preview-eyebrow">' +
     escapeHtml(g.eyebrow) +
@@ -164,15 +144,31 @@ function buildPhotoHomeInnerHtml() {
     '</div><button class="grad-preview-cta" onclick="event.stopPropagation();showPage(\'page-grad\')">' +
     '<i class="ti ti-school" style="font-size:16.25px;"></i> ' +
     escapeHtml(g.ctaLabel) +
-    "</button></div></div>" +
-    photoBioStandaloneHtml() +
-    '<div class="divider" style="background:#e0d8cd;margin-top:0;"></div>' +
-    '<div class="works">' +
-    '<div class="sec-hdr">' +
-    '<span class="sec-title" style="color:#9a8878;">' +
-    escapeHtml(h.seriesSectionTitle) +
-    '</span><span class="sec-count" style="color:#c8a97e;" id="series-count"></span></div>' +
-    '<div class="grid" id="series-grid"></div></div>'
+    '</button></div></div>' +
+    '</div>' +
+
+    // Hidden carousel DOM — kept for JS event wiring, never visible on photo home
+    '<div id="carousel-section" style="display:none;">' +
+    '<div class="wheel" id="wheel"><div class="slides-track" id="slides-track"></div></div>' +
+    '<button id="warr-l"></button><button id="warr-r"></button>' +
+    '<button id="prev"></button><button id="next"></button>' +
+    '<div id="dots"></div><span id="sc"></span>' +
+    '</div>'
+  );
+}
+
+function buildAlbumsPageInnerHtml() {
+  const h = PHOTO_HOME;
+  return (
+    '<div class="albums-hero">' +
+    '<div class="pho-ei-eyebrow" style="margin-bottom:6px;">' + escapeHtml(h.heroModeTag) + '</div>' +
+    '<h1 class="albums-title">Albums</h1>' +
+    '</div>' +
+    '<div class="pho-works-hdr">' +
+    '<span class="sec-title" style="color:#9a8878;">' + escapeHtml(h.seriesSectionTitle) + '</span>' +
+    '<span class="sec-count" style="color:#c8a97e;" id="series-count"></span>' +
+    '</div>' +
+    '<div class="pho-series-list" id="series-grid"></div>'
   );
 }
 
@@ -378,6 +374,9 @@ export function mountPhotographyFromConfig() {
   var pp = document.getElementById("pp");
   if (pp) pp.innerHTML = buildPhotoHomeInnerHtml();
 
+  var albums = document.getElementById("page-albums");
+  if (albums) albums.innerHTML = phoDetNav("page-home") + buildAlbumsPageInnerHtml();
+
   var grad = document.getElementById("page-grad");
   if (grad) grad.innerHTML = phoDetNav("page-home") + buildGradPageInnerHtml();
 
@@ -390,6 +389,6 @@ export function mountPhotographyFromConfig() {
   var series = document.getElementById("page-series-detail");
   if (series) {
     series.innerHTML =
-      phoDetNav("page-home") + '<div id="series-detail-content"></div>';
+      phoDetNav("page-albums") + '<div id="series-detail-content"></div>';
   }
 }

@@ -1,4 +1,4 @@
-import { CAROUSEL_PHOTOS, SERIES, GRAD_PHOTOS } from "./photography/config.js";
+import { CAROUSEL_PHOTOS, SERIES, GRAD_PHOTOS, HOME_PHOTOS, PHOTO_HOME } from "./photography/config.js";
 import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
 
 /** Last segment of `folder` (e.g. `/photos/san-sebastian/` → `san-sebastian`). */
@@ -114,17 +114,16 @@ function buildCarousel() {
   dotsEl.innerHTML = "";
 
   var photos = CAROUSEL_PHOTOS;
+
+  // Only show the carousel section when real photos are configured
+  var carouselSection = document.getElementById("carousel-section");
+  if (carouselSection) {
+    carouselSection.style.display = (photos && photos.length > 0) ? "" : "none";
+  }
+
   if (!photos || photos.length === 0) {
-    for (var i = 0; i < 5; i++) {
-      var slide = document.createElement("div");
-      slide.className = "c-slide";
-      slide.innerHTML =
-        '<div class="c-slide-placeholder"><i class="ti ti-camera" style="font-size:27.5px;color:#9a8878;"></i><span class="sl">Photo ' +
-        (i + 1) +
-        "</span></div>";
-      track.appendChild(slide);
-    }
-    carouselTotal = 5;
+    carouselTotal = 0;
+    return;
   } else {
     photos.forEach(function (p) {
       var slide = document.createElement("div");
@@ -201,45 +200,139 @@ function buildSeriesGrid() {
 
   SERIES.forEach(function (s, idx) {
     var card = document.createElement("div");
-    card.className = "pho-card";
+    card.className = "pho-ser-card";
     card.onclick = function () {
       openSeriesDetail(s);
     };
 
     var imgs = resolvedSeriesImages(s);
     var coverBase = seriesCardCoverBasename(s, imgs);
-    var coverHtml;
+    var mediaHtml;
     if (coverBase) {
-      coverHtml =
-        '<div class="pho-card-img"><img src="' +
+      mediaHtml =
+        '<div class="pho-ser-card-media">' +
+        '<img class="pho-ser-card-img" src="' +
         s.folder +
         coverBase +
         '" alt="' +
         s.title +
-        '"></div>';
-    } else {
-      coverHtml =
-        '<div class="pho-card-img" style="background:#ede8e0;">' +
-        SVG_ICONS[idx % SVG_ICONS.length] +
+        '" loading="lazy">' +
         "</div>";
+    } else {
+      mediaHtml =
+        '<div class="pho-ser-card-media">' +
+        '<div class="pho-ser-card-placeholder">' +
+        SVG_ICONS[idx % SVG_ICONS.length] +
+        "</div></div>";
     }
 
+    var titleHtml = s.title.replace(
+      s.titleItalic,
+      "<em>" + s.titleItalic + "</em>"
+    );
+    var tagDisplay = s.tag.split("·")[0].trim();
+
     card.innerHTML =
-      coverHtml +
-      '<div class="pho-card-body">' +
-      '<div class="pho-cc">' +
-      s.tag.split("·")[0].trim() +
+      mediaHtml +
+      '<div class="pho-ser-card-overlay">' +
+      '<div class="pho-ser-card-tag">' +
+      tagDisplay +
       "</div>" +
-      '<div class="pho-cn">' +
-      s.title +
+      '<div class="pho-ser-card-title">' +
+      titleHtml +
       "</div>" +
-      '<div class="pho-cs">' +
+      '<div class="pho-ser-card-foot">' +
+      '<span class="pho-ser-card-meta">' +
       s.meta +
-      "</div>" +
-      '<div class="pho-clh"><i class="ti ti-arrow-up-right" style="font-size:11.25px;"></i>View</div>' +
-      "</div>";
+      "</span>" +
+      '<span class="pho-ser-card-view"><i class="ti ti-arrow-up-right" style="font-size:11px;"></i></span>' +
+      "</div></div>";
+
     grid.appendChild(card);
   });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   IMMERSIVE HOME PHOTO COLLAGE
+   Builds the scrolling single-photo stream on the photography home.
+   Uses HOME_PHOTOS if populated, otherwise auto-picks one cover per series.
+   Bio card is inserted after the 3rd photo.
+══════════════════════════════════════════════════════════════ */
+function buildHomePhotoCollage() {
+  var container = document.getElementById("pho-home-collage");
+  if (!container) return;
+  container.innerHTML = "";
+
+  var photos = HOME_PHOTOS && HOME_PHOTOS.length > 0
+    ? HOME_PHOTOS.map(function (p) { return { src: p.src, alt: p.alt || "" }; })
+    : (function () {
+        var picks = [];
+        SERIES.forEach(function (s) {
+          var imgs = resolvedSeriesImages(s);
+          var cover = seriesCardCoverBasename(s, imgs);
+          if (cover) picks.push({ src: s.folder + cover, alt: s.title });
+        });
+        return picks;
+      })();
+
+  var bioInsertAt = 3;
+
+  function appendBioCard(parent) {
+    var b = PHOTO_HOME.bio;
+    var card = document.createElement("div");
+    card.className = "pho-imm-bio";
+    var mediaHtml = b.avatarSrc
+      ? '<img class="pho-imm-bio-img" src="' + b.avatarSrc + '" alt="' + (b.avatarAlt || "") + '">'
+      : '<div class="pho-imm-bio-img-placeholder"><i class="ti ti-user"></i></div>';
+    card.innerHTML =
+      '<div class="pho-imm-bio-inner">' +
+      mediaHtml +
+      '<div class="pho-imm-bio-text">' +
+      '<div class="pho-imm-bio-eyebrow">Photographer</div>' +
+      '<div class="pho-imm-bio-name">' + (b.name || "") + '</div>' +
+      '<p class="pho-imm-bio-body">' + (b.body || "") + '</p>' +
+      '</div></div>';
+    parent.appendChild(card);
+  }
+
+  function appendPlaceholders(parent, count) {
+    for (var i = 0; i < count; i++) {
+      if (i === bioInsertAt) appendBioCard(parent);
+      var ph = document.createElement("div");
+      ph.className = "pho-imm-photo pho-imm-photo--placeholder";
+      ph.innerHTML = '<i class="ti ti-camera"></i><span>Add photos to HOME_PHOTOS in config.js</span>';
+      parent.appendChild(ph);
+    }
+    if (count <= bioInsertAt) appendBioCard(parent);
+  }
+
+  if (photos.length === 0) {
+    appendPlaceholders(container, 6);
+    return;
+  }
+
+  photos.forEach(function (p, idx) {
+    if (idx === bioInsertAt) appendBioCard(container);
+
+    var wrap = document.createElement("div");
+    wrap.className = "pho-imm-photo";
+
+    var img = document.createElement("img");
+    img.src = p.src;
+    img.alt = p.alt || "";
+    img.loading = idx < 3 ? "eager" : "lazy";
+    img.style.width = "100%";
+    img.style.height = "auto";
+    img.style.display = "block";
+    img.addEventListener("click", function () {
+      openPhotoLightbox(img.src, img.alt);
+    });
+
+    wrap.appendChild(img);
+    container.appendChild(wrap);
+  });
+
+  if (photos.length <= bioInsertAt) appendBioCard(container);
 }
 
 function openSeriesDetail(s) {
@@ -524,6 +617,7 @@ function sw() {
   document.getElementById("pp").classList.toggle("active", isP);
   document.getElementById("nav-li").style.display = isP ? "none" : "flex";
   document.getElementById("nav-ig").style.display = isP ? "flex" : "none";
+  document.getElementById("nav-albums").style.display = isP ? "flex" : "none";
   if (isP) {
     startTimer();
   } else {
@@ -664,6 +758,7 @@ export function initApp() {
   buildCarousel();
   buildSeriesGrid();
   buildGradGallery();
+  buildHomePhotoCollage();
 
   document.getElementById("tog").addEventListener("keydown", function (e) {
     if (e.key === "Enter" || e.key === " ") {

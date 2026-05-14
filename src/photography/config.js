@@ -56,6 +56,16 @@ export const PHOTO_HOME = {
 /** Featured carousel — add `{ src, caption }` entries; files in `public/photos/featured/`. */
 export const CAROUSEL_PHOTOS = [];
 
+/**
+ * Curated home-page photos — individual shots shown in the immersive
+ * scrolling collage. Add `{ src, alt }` entries pointing to any file
+ * under `public/`. Leave empty ([]) to auto-pick one cover per series.
+ *
+ * Example:
+ *   { src: "/photos/san-sebastian/IMG_001.jpg", alt: "San Sebastián harbour" }
+ */
+export const HOME_PHOTOS = [];
+
 export const SERIES = [
   {
     title: "Solo Trip in Spain",
