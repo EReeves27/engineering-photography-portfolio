@@ -16,6 +16,19 @@ function resolvedSeriesImages(s) {
   return Array.isArray(list) ? list.slice() : [];
 }
 
+/** Basename for series card cover, or null if no images. Honors `s.coverImage` when it matches a file. */
+function seriesCardCoverBasename(s, imgs) {
+  if (!imgs || imgs.length === 0) return null;
+  var want = s.coverImage != null ? String(s.coverImage).trim() : "";
+  if (want) {
+    var wl = want.toLowerCase();
+    for (var i = 0; i < imgs.length; i++) {
+      if (imgs[i] === want || imgs[i].toLowerCase() === wl) return imgs[i];
+    }
+  }
+  return imgs[0];
+}
+
 /** Same as series: optional `GRAD_PHOTOS.images` overrides auto-list for `public/photos/grad/`. */
 function resolvedGradImages() {
   if (GRAD_PHOTOS.images && GRAD_PHOTOS.images.length > 0) return GRAD_PHOTOS.images;
@@ -194,12 +207,13 @@ function buildSeriesGrid() {
     };
 
     var imgs = resolvedSeriesImages(s);
+    var coverBase = seriesCardCoverBasename(s, imgs);
     var coverHtml;
-    if (imgs.length > 0) {
+    if (coverBase) {
       coverHtml =
         '<div class="pho-card-img"><img src="' +
         s.folder +
-        imgs[0] +
+        coverBase +
         '" alt="' +
         s.title +
         '"></div>';
@@ -300,14 +314,42 @@ function rowHeightForWidth(row, widthPx, gapPx) {
   return (widthPx - (row.length - 1) * gapPx) / sumAspectRatios(row);
 }
 
-/** Row height + gutter scale with the window (justified “wall of photos” look). */
+/** 0 at narrow widths → 1 at wide; linear in between (album grids shrink smoothly). */
+function albumGalleryWidthT(vw) {
+  var wMin = 320;
+  var wMax = 1280;
+  if (vw <= wMin) return 0;
+  if (vw >= wMax) return 1;
+  return (vw - wMin) / (wMax - wMin);
+}
+
+/**
+ * Justified row targets: ~3× prior “default” size at wide viewports, linearly smaller as the window narrows.
+ * Capped by viewport height so rows never dominate the screen on short displays.
+ */
 function albumGalleryLayoutMetrics() {
-  var vw = window.innerWidth || 800;
+  var vw = window.innerWidth || 360;
   var vh = window.innerHeight || 640;
-  var gap = Math.round(Math.max(3, Math.min(8, vw * 0.008 + 3)));
-  var minH = Math.round(Math.max(102, Math.min(172, vw * 0.22, vh * 0.175)));
-  var maxH = Math.round(Math.max(minH + 36, Math.min(340, vw * 0.37, vh * 0.31)));
-  return { gap: gap, minH: minH, maxH: maxH };
+  var t = albumGalleryWidthT(vw);
+
+  var minWide = 318;
+  var maxWide = 660;
+  var gapWide = 20;
+
+  var minNarrow = 96;
+  var maxNarrow = 228;
+  var gapNarrow = 6;
+
+  var minH = Math.round(minNarrow + t * (minWide - minNarrow));
+  var maxH = Math.round(maxNarrow + t * (maxWide - maxNarrow));
+  maxH = Math.max(maxH, minH + 44);
+  maxH = Math.min(maxH, Math.floor(vh * 0.52));
+
+  var minHCapped = Math.min(minH, Math.max(72, maxH - 48));
+  var gap = Math.round(gapNarrow + t * (gapWide - gapNarrow));
+  gap = Math.max(4, Math.min(26, gap));
+
+  return { gap: gap, minH: minHCapped, maxH: maxH };
 }
 
 /**

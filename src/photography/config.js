@@ -5,6 +5,8 @@
  * Albums (`SERIES`): set `folder` to `/photos/<dir>/`. Omit `images` (or `[]`)
  * to auto-list files in that folder at build time (`vite.config.js`). Use
  * `images: ["a.jpg"]` to pin order or a subset.
+ * Optional `coverImage: "file.jpg"` sets the portfolio home card cover (basename
+ * must match a file in that folder); omit to use the first image.
  *
  * Grad gallery (`GRAD_PHOTOS`): same rule for `public/photos/grad/`.
  */
@@ -58,7 +60,7 @@ export const SERIES = [
   {
     title: "Solo Trip in Spain",
     titleItalic: "Solitude",
-    tag: "Street · Documentary",
+    tag: "Beach · Street · Sunset",
     meta: "San Sebastian, Spain · 2025",
     desc: "Coastal winter light, empty streets, and the rhythm of a solo walk through San Sebastian.",
     tags: ["Mirrorless", "Beach", "Street", "Golden hour"],

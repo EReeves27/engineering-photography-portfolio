@@ -153,8 +153,21 @@ function buildEngHomeInnerHtml() {
 function projButtonsHtml(buttons) {
   return buttons
     .map(function (b) {
+      if (b.href) {
+        return (
+          '<a class="pbtn" href="' +
+          escapeAttr(b.href) +
+          '" target="_blank" rel="noopener noreferrer" style="' +
+          escapeAttr(b.style) +
+          '"><i class="ti ' +
+          escapeAttr(b.icon) +
+          '"></i> ' +
+          escapeHtml(b.label) +
+          "</a>"
+        );
+      }
       return (
-        '<button class="pbtn" style="' +
+        '<button type="button" class="pbtn" style="' +
         escapeAttr(b.style) +
         '"><i class="ti ' +
         escapeAttr(b.icon) +
@@ -300,6 +313,10 @@ function buildSwPageBody() {
 
 function buildHwPageBody() {
   const p = ENG_PAGE_HW;
+  var feats =
+    p.features && p.features.length ?
+      featuresSection(p.featuresSectionTitle, p.features, p.featureBulletColor)
+    : "";
   return (
     '<div class="proj-body">' +
     '<span class="proj-cat-badge" style="' +
@@ -315,6 +332,7 @@ function buildHwPageBody() {
     '</div><div class="proj-divider"></div>' +
     schematicBlock(p.schematic) +
     chipsSection(p.chipsSectionTitle, p.chips) +
+    feats +
     metricsSection(p.metricsSectionTitle, p.metrics) +
     timelineSection(p.timelineSectionTitle, p.timeline, p.timelineDotColor) +
     "</div>"
@@ -372,15 +390,73 @@ function buildRePageBody() {
   );
 }
 
+function resumeCourseworkHtml(r) {
+  if (!r.coursework || !r.coursework.length) return "";
+  var lis = r.coursework
+    .map(function (line) {
+      return "<li>" + escapeHtml(line) + "</li>";
+    })
+    .join("");
+  return (
+    '<div class="res-sec"><div class="res-sec-title">' +
+    escapeHtml(r.courseworkSectionTitle || "Coursework") +
+    '</div><ul class="res-cw">' +
+    lis +
+    "</ul></div>"
+  );
+}
+
+function resumeProjectsHtml(r) {
+  if (!r.projects || !r.projects.length) return "";
+  var items = r.projects
+    .map(function (p) {
+      return (
+        '<div class="res-item res-item--compact"><div class="res-ih"><span class="res-it">' +
+        escapeHtml(p.title) +
+        '</span><span class="res-id">' +
+        escapeHtml(p.meta || "") +
+        "</span></div></div>"
+      );
+    })
+    .join("");
+  return (
+    '<div class="res-sec"><div class="res-sec-title">' +
+    escapeHtml(r.projectsSectionTitle || "Projects") +
+    "</div>" +
+    items +
+    "</div>"
+  );
+}
+
+function resumeExtrasHtml(r) {
+  if (!r.extrasText) return "";
+  return (
+    '<div class="res-sec"><div class="res-sec-title">' +
+    escapeHtml(r.extrasSectionTitle || "Leadership & interests") +
+    '</div><div class="res-ib">' +
+    escapeHtml(r.extrasText) +
+    "</div></div>"
+  );
+}
+
 function buildResumeInnerHtml() {
   const r = ENG_RESUME;
   var contacts = r.contacts
     .map(function (c) {
+      var inner = escapeHtml(c.text);
+      if (c.href) {
+        inner =
+          '<a href="' +
+          escapeAttr(c.href) +
+          '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">' +
+          inner +
+          "</a>";
+      }
       return (
         '<span class="res-ci"><i class="ti ' +
         escapeAttr(c.icon) +
         '"></i>' +
-        escapeHtml(c.text) +
+        inner +
         "</span>"
       );
     })
@@ -422,6 +498,17 @@ function buildResumeInnerHtml() {
     })
     .join("");
 
+  var dl =
+    r.pdfHref ?
+      '<a class="res-dl" href="' +
+      escapeAttr(r.pdfHref) +
+      '" download target="_blank" rel="noopener noreferrer"><i class="ti ti-download"></i> ' +
+      escapeHtml(r.downloadLabel) +
+      "</a>"
+    : '<button type="button" class="res-dl"><i class="ti ti-download"></i> ' +
+      escapeHtml(r.downloadLabel) +
+      "</button>";
+
   return (
     '<div class="res-page">' +
     '<div class="res-name">' +
@@ -431,20 +518,25 @@ function buildResumeInnerHtml() {
     '</div><div class="res-contact-row">' +
     contacts +
     '</div><div class="res-sec"><div class="res-sec-title">' +
-    escapeHtml(r.experienceSectionTitle) +
-    "</div>" +
-    expItems +
-    '</div><div class="res-sec"><div class="res-sec-title">' +
     escapeHtml(r.educationSectionTitle) +
     "</div>" +
     eduItems +
-    '</div><div class="res-sec"><div class="res-sec-title">' +
+    "</div>" +
+    resumeCourseworkHtml(r) +
+    '<div class="res-sec"><div class="res-sec-title">' +
+    escapeHtml(r.experienceSectionTitle) +
+    "</div>" +
+    expItems +
+    "</div>" +
+    resumeProjectsHtml(r) +
+    '<div class="res-sec"><div class="res-sec-title">' +
     escapeHtml(r.skillsSectionTitle) +
     '</div><div class="res-skills">' +
     skills +
-    '</div></div><button class="res-dl"><i class="ti ti-download"></i> ' +
-    escapeHtml(r.downloadLabel) +
-    "</button></div>"
+    "</div></div>" +
+    resumeExtrasHtml(r) +
+    dl +
+    "</div>"
   );
 }
 

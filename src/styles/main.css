@@ -579,7 +579,8 @@ nav {
 .proj-title em { font-style: italic; }
 .proj-sub { font-size: 16.25px; line-height: 1.75; color: #5a6080; margin-bottom: 16px; }
 .proj-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 20px; }
-.pbtn { display: flex; align-items: center; gap: 5px; padding: 7px 11px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11.25px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; background: transparent; transition: opacity .2s; }
+.pbtn { display: flex; align-items: center; gap: 5px; padding: 7px 11px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11.25px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; background: transparent; transition: opacity .2s; text-decoration: none; box-sizing: border-box; }
+a.pbtn { color: inherit; }
 .pbtn:active { opacity: .7; }
 .proj-divider { height: .5px; background: #2a2a40; margin: 0 0 18px; }
 .proj-sec { margin-bottom: 20px; }
@@ -631,8 +632,13 @@ nav {
 .res-ib { font-size: 13.75px; color: #5a6080; line-height: 1.6; }
 .res-skills { display: flex; gap: 5px; flex-wrap: wrap; }
 .res-skill { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .08em; padding: 4px 8px; border-radius: 20px; background: #13131f; border: .5px solid #2a2a40; color: #4f8ef7; }
-.res-dl { margin-top: 18px; width: 100%; padding: 12px; border-radius: 12px; border: none; background: #4f8ef7; color: #0d0d1a; font-family: 'DM Mono', monospace; font-size: 12.5px; letter-spacing: .15em; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; font-weight: 600; transition: opacity .2s; }
+.res-dl { margin-top: 18px; width: 100%; padding: 12px; border-radius: 12px; border: none; background: #4f8ef7; color: #0d0d1a; font-family: 'DM Mono', monospace; font-size: 12.5px; letter-spacing: .15em; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; font-weight: 600; transition: opacity .2s; text-decoration: none; box-sizing: border-box; }
+a.res-dl { color: #0d0d1a; }
 .res-dl:active { opacity: .8; }
+.res-cw { margin: 0; padding-left: 18px; color: #5a6080; font-size: 13.75px; line-height: 1.55; }
+.res-cw li { margin-bottom: 4px; }
+.res-item--compact { margin-bottom: 7px; }
+.res-item--compact:last-child { margin-bottom: 0; }
 
 /* ── Contact pages ─────────────────────────────────────────── */
 .contact-wrap { padding: 22px 18px 32px; }
