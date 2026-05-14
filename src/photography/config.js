@@ -21,16 +21,7 @@ export const PHOTO_NAV = {
 };
 
 export const PHOTO_HOME = {
-  stats: [
-    { valueHtml: '2000<span>+</span>', label: "Images" },
-    { valueHtml: '3<span>yr</span>', label: "Shooting" },
-    { valueHtml: "Lightroom Classic", label: "Editing" },
-    { valueHtml: 'CANON DSLR,<span> LUMIX Mirrorless</span>', label: "Equipment" },
-  ],
   heroModeTag: "Photography Portfolio",
-  heroTitleHtml: "Light, shadow<br>and <em>time.</em>",
-  heroDesc:
-    "Documentary and fine-art photography — urban landscapes, portraiture, and natural environments.",
   bio: {
     avatarSrc: "/photos/profile/profile_pic.jpeg",
     avatarAlt: "Ethan Reeves",

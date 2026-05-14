@@ -71,42 +71,6 @@ function gradTeaserImageBlock() {
   );
 }
 
-function photoBioMediaHtml() {
-  const b = PHOTO_HOME.bio;
-  if (b.avatarSrc) {
-    return (
-      '<img class="bio-photo-img" src="' +
-      escapeAttr(b.avatarSrc) +
-      '" alt="' +
-      escapeAttr(b.avatarAlt) +
-      '">'
-    );
-  }
-  return (
-    '<div class="bio-photo-placeholder">' +
-    '<i class="ti ti-user"></i></div>'
-  );
-}
-
-/** Standalone bio (photo home — placed below grad preview). */
-function photoBioStandaloneHtml() {
-  const h = PHOTO_HOME;
-  return (
-    '<div class="pho-bio-standalone fade-in">' +
-    '<div class="bio-side bio-side--row">' +
-    '<div class="bio-photo-col pho-bio-photo">' +
-    photoBioMediaHtml() +
-    '</div><div class="bio-copy-col">' +
-    '<div class="bio-name" style="color:#1c1410;">' +
-    escapeHtml(h.bio.name) +
-    '</div><div class="bio-role" style="color:#c8a97e;">' +
-    escapeHtml(h.bio.role) +
-    '</div><div class="bio-body" style="color:#9a8878;">' +
-    escapeHtml(h.bio.body) +
-    "</div></div></div></div>"
-  );
-}
-
 function buildPhotoHomeInnerHtml() {
   const h = PHOTO_HOME;
   const g = h.gradStrip;
