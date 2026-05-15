@@ -60,7 +60,7 @@ export const HOME_PHOTOS = [];
 export const SERIES = [
   {
     title: "Solo Trip in Spain",
-    titleItalic: "Solitude",
+    titleItalic: "...",
     tag: "Beach · Street · Sunset",
     meta: "San Sebastian, Spain · 2025",
     desc: "Coastal winter light, empty streets, and the rhythm of a solo walk through San Sebastian.",
@@ -70,15 +70,15 @@ export const SERIES = [
     folder: "/photos/san-sebastian/",
   },
   {
-    title: "Pacific Coast Dusk",
-    titleItalic: "Dusk",
-    tag: "Landscape · Natural",
-    meta: "California · 2024",
-    desc: "Golden hour along the Pacific coastline. Long exposures, wide skies, and the last light of the day.",
+    title: "Hiking through the streets",
+    titleItalic: "...",
+    tag: "Street · ...",
+    meta: "Lisbon, Portugal · 2025",
+    desc: "...",
     tags: ["Digital", "Golden hour", "Landscape"],
-    camera: "Sony A7III",
-    duration: "3 months",
-    folder: "/photos/pacific-coast/",
+    camera: "LUMIX FZ80D",
+    duration: "1 day",
+    folder: "/photos/lisbon/",
   },
   {
     title: "Quiet Faces",

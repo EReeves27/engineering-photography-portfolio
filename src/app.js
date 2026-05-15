@@ -191,64 +191,91 @@ var SVG_ICONS = [
   '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><ellipse cx="25" cy="32" rx="15" ry="8" stroke="#c8a97e" stroke-width="1.1" opacity=".4"/><path d="M12 28 Q25 8 38 28" stroke="#c8a97e" stroke-width="1.1" fill="none" opacity=".6"/><circle cx="25" cy="18" r="4" fill="#c8a97e" opacity=".5"/></svg>',
 ];
 
+/** Slugs that should never appear as auto-discovered albums (non-photo folders). */
+var AUTO_ALBUM_SKIP = { grad: true, "grad-preview": true, featured: true, profile: true };
+
+/** Title-cases a folder slug: "san-sebastian" → "San Sebastian". */
+function slugToTitle(slug) {
+  return slug.replace(/[-_]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+}
+
+function buildSeriesCard(s, idx, grid) {
+  var card = document.createElement("div");
+  card.className = "pho-ser-card";
+  card.onclick = function () { openSeriesDetail(s); };
+
+  var imgs = resolvedSeriesImages(s);
+  var coverBase = seriesCardCoverBasename(s, imgs);
+  var mediaHtml;
+  if (coverBase) {
+    mediaHtml =
+      '<div class="pho-ser-card-media">' +
+      '<img class="pho-ser-card-img" src="' + s.folder + coverBase + '" alt="' + s.title + '" loading="lazy">' +
+      "</div>";
+  } else {
+    mediaHtml =
+      '<div class="pho-ser-card-media">' +
+      '<div class="pho-ser-card-placeholder">' + SVG_ICONS[idx % SVG_ICONS.length] + "</div></div>";
+  }
+
+  var titleItalic = s.titleItalic || "";
+  var titleHtml = titleItalic
+    ? s.title.replace(titleItalic, "<em>" + titleItalic + "</em>")
+    : s.title;
+  var tagDisplay = s.tag ? s.tag.split("·")[0].trim() : "";
+
+  card.innerHTML =
+    mediaHtml +
+    '<div class="pho-ser-card-overlay">' +
+    '<div class="pho-ser-card-tag">' + tagDisplay + "</div>" +
+    '<div class="pho-ser-card-title">' + titleHtml + "</div>" +
+    '<div class="pho-ser-card-foot">' +
+    '<span class="pho-ser-card-meta">' + (s.meta || "") + "</span>" +
+    '<span class="pho-ser-card-view"><i class="ti ti-arrow-up-right" style="font-size:11px;"></i></span>' +
+    "</div></div>";
+
+  grid.appendChild(card);
+}
+
 function buildSeriesGrid() {
   var grid = document.getElementById("series-grid");
-  var count = document.getElementById("series-count");
+  var countEl = document.getElementById("series-count");
   if (!grid) return;
   grid.innerHTML = "";
-  if (count) count.textContent = String(SERIES.length).padStart(2, "0") + " series";
 
-  SERIES.forEach(function (s, idx) {
-    var card = document.createElement("div");
-    card.className = "pho-ser-card";
-    card.onclick = function () {
-      openSeriesDetail(s);
-    };
+  // Configured series (full metadata)
+  var configuredSlugs = {};
+  SERIES.forEach(function (s) {
+    var slug = albumSlugFromFolder(s.folder);
+    if (slug) configuredSlugs[slug] = true;
+  });
 
-    var imgs = resolvedSeriesImages(s);
-    var coverBase = seriesCardCoverBasename(s, imgs);
-    var mediaHtml;
-    if (coverBase) {
-      mediaHtml =
-        '<div class="pho-ser-card-media">' +
-        '<img class="pho-ser-card-img" src="' +
-        s.folder +
-        coverBase +
-        '" alt="' +
-        s.title +
-        '" loading="lazy">' +
-        "</div>";
-    } else {
-      mediaHtml =
-        '<div class="pho-ser-card-media">' +
-        '<div class="pho-ser-card-placeholder">' +
-        SVG_ICONS[idx % SVG_ICONS.length] +
-        "</div></div>";
-    }
+  // Auto-discovered albums: folders with images not already in SERIES config
+  var autoSeries = [];
+  Object.keys(SERIES_ALBUM_IMAGES).forEach(function (slug) {
+    if (configuredSlugs[slug]) return;
+    if (AUTO_ALBUM_SKIP[slug]) return;
+    var files = SERIES_ALBUM_IMAGES[slug];
+    if (!files || files.length === 0) return;
+    autoSeries.push({
+      title: slugToTitle(slug),
+      titleItalic: "",
+      tag: "",
+      meta: files.length + " photos",
+      desc: "",
+      tags: [],
+      camera: "",
+      duration: "",
+      folder: "/photos/" + slug + "/",
+      images: files,
+    });
+  });
 
-    var titleHtml = s.title.replace(
-      s.titleItalic,
-      "<em>" + s.titleItalic + "</em>"
-    );
-    var tagDisplay = s.tag.split("·")[0].trim();
+  var allSeries = SERIES.concat(autoSeries);
+  if (countEl) countEl.textContent = String(allSeries.length).padStart(2, "0") + " albums";
 
-    card.innerHTML =
-      mediaHtml +
-      '<div class="pho-ser-card-overlay">' +
-      '<div class="pho-ser-card-tag">' +
-      tagDisplay +
-      "</div>" +
-      '<div class="pho-ser-card-title">' +
-      titleHtml +
-      "</div>" +
-      '<div class="pho-ser-card-foot">' +
-      '<span class="pho-ser-card-meta">' +
-      s.meta +
-      "</span>" +
-      '<span class="pho-ser-card-view"><i class="ti ti-arrow-up-right" style="font-size:11px;"></i></span>' +
-      "</div></div>";
-
-    grid.appendChild(card);
+  allSeries.forEach(function (s, idx) {
+    buildSeriesCard(s, idx, grid);
   });
 }
 
@@ -337,7 +364,8 @@ function buildHomePhotoCollage() {
 
 function openSeriesDetail(s) {
   var content = document.getElementById("series-detail-content");
-  var titleHtml = s.title.replace(s.titleItalic, "<em>" + s.titleItalic + "</em>");
+  var ti = s.titleItalic || "";
+  var titleHtml = ti ? s.title.replace(ti, "<em>" + ti + "</em>") : s.title;
   var tagsHtml = s.tags
     .map(function (t) {
       return '<span class="stag">' + t + "</span>";
