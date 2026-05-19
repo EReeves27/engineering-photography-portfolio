@@ -280,16 +280,67 @@ function buildSeriesGrid() {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   IMMERSIVE HOME PHOTO COLLAGE
-   Builds the scrolling single-photo stream on the photography home.
-   Uses HOME_PHOTOS if populated, otherwise auto-picks one cover per series.
-   Bio card is inserted after the 3rd photo.
+   SINGLE-PHOTO HOME VIEWER  (Mike Kelley style)
+   Shows one photo at a time; PREV / NEXT cycle through the set.
+   Uses HOME_PHOTOS if populated, else auto-picks one cover per series.
 ══════════════════════════════════════════════════════════════ */
-function buildHomePhotoCollage() {
-  var container = document.getElementById("pho-home-collage");
-  if (!container) return;
-  container.innerHTML = "";
+var mkPhotos = [];
+var mkIdx = 0;
+var mkTimer = null;
+var mkKeyListenerAdded = false;
 
+var FADE_MS = 350;
+
+function mkShowPhoto(idx) {
+  if (!mkPhotos.length) return;
+  mkIdx = (idx + mkPhotos.length) % mkPhotos.length;
+  var img = document.getElementById("mk-photo-img");
+  var ph  = document.getElementById("mk-photo-placeholder");
+  if (!img) return;
+
+  var newSrc = mkPhotos[mkIdx].src;
+  var newAlt = mkPhotos[mkIdx].alt || "";
+
+  function applyAndFadeIn() {
+    img.src = newSrc;
+    img.alt = newAlt;
+    img.style.display = "block";
+    if (ph) ph.style.display = "none";
+    // Double rAF so the browser commits display:block before starting opacity transition
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        img.style.opacity = "1";
+      });
+    });
+  }
+
+  if (img.style.display === "none") {
+    // First load — skip fade-out, just fade in
+    img.style.opacity = "0";
+    applyAndFadeIn();
+  } else {
+    img.style.opacity = "0";
+    setTimeout(applyAndFadeIn, FADE_MS);
+  }
+}
+
+function mkStartTimer() {
+  clearInterval(mkTimer);
+  if (mkPhotos.length > 1) {
+    mkTimer = setInterval(function () { mkShowPhoto(mkIdx + 1); }, 5000);
+  }
+}
+
+function mkStopTimer() {
+  clearInterval(mkTimer);
+  mkTimer = null;
+}
+
+function mkPrev() { mkShowPhoto(mkIdx - 1); mkStartTimer(); }
+function mkNext() { mkShowPhoto(mkIdx + 1); mkStartTimer(); }
+
+function buildHomePhotoCollage() {
+  // Collect photo list
   var photos = HOME_PHOTOS && HOME_PHOTOS.length > 0
     ? HOME_PHOTOS.map(function (p) { return { src: p.src, alt: p.alt || "" }; })
     : (function () {
@@ -302,64 +353,29 @@ function buildHomePhotoCollage() {
         return picks;
       })();
 
-  var bioInsertAt = 3;
+  mkPhotos = photos;
+  mkIdx = 0;
 
-  function appendBioCard(parent) {
-    var b = PHOTO_HOME.bio;
-    var card = document.createElement("div");
-    card.className = "pho-imm-bio";
-    var mediaHtml = b.avatarSrc
-      ? '<img class="pho-imm-bio-img" src="' + b.avatarSrc + '" alt="' + (b.avatarAlt || "") + '">'
-      : '<div class="pho-imm-bio-img-placeholder"><i class="ti ti-user"></i></div>';
-    card.innerHTML =
-      '<div class="pho-imm-bio-inner">' +
-      mediaHtml +
-      '<div class="pho-imm-bio-text">' +
-      '<div class="pho-imm-bio-eyebrow">Photographer</div>' +
-      '<div class="pho-imm-bio-name">' + (b.name || "") + '</div>' +
-      '<p class="pho-imm-bio-body">' + (b.body || "") + '</p>' +
-      '</div></div>';
-    parent.appendChild(card);
+  if (photos.length > 0) {
+    mkShowPhoto(0);
+    mkStartTimer();
   }
 
-  function appendPlaceholders(parent, count) {
-    for (var i = 0; i < count; i++) {
-      if (i === bioInsertAt) appendBioCard(parent);
-      var ph = document.createElement("div");
-      ph.className = "pho-imm-photo pho-imm-photo--placeholder";
-      ph.innerHTML = '<i class="ti ti-camera"></i><span>Add photos to HOME_PHOTOS in config.js</span>';
-      parent.appendChild(ph);
-    }
-    if (count <= bioInsertAt) appendBioCard(parent);
-  }
-
-  if (photos.length === 0) {
-    appendPlaceholders(container, 6);
-    return;
-  }
-
-  photos.forEach(function (p, idx) {
-    if (idx === bioInsertAt) appendBioCard(container);
-
-    var wrap = document.createElement("div");
-    wrap.className = "pho-imm-photo";
-
-    var img = document.createElement("img");
-    img.src = p.src;
-    img.alt = p.alt || "";
-    img.loading = idx < 3 ? "eager" : "lazy";
-    img.style.width = "100%";
-    img.style.height = "auto";
-    img.style.display = "block";
-    img.addEventListener("click", function () {
-      openPhotoLightbox(img.src, img.alt);
+  // Keyboard arrow navigation (only active in photo mode, only on home page)
+  if (!mkKeyListenerAdded) {
+    mkKeyListenerAdded = true;
+    document.addEventListener("keydown", function (e) {
+      if (!isP) return;
+      var active = document.querySelector(".page.active, .panel.active");
+      if (!active || active.id !== "page-home") return;
+      if (e.key === "ArrowLeft")  { e.preventDefault(); mkPrev(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); mkNext(); }
     });
+  }
 
-    wrap.appendChild(img);
-    container.appendChild(wrap);
-  });
-
-  if (photos.length <= bioInsertAt) appendBioCard(container);
+  // Expose to global for onclick handlers in HTML
+  window.mkPrev = mkPrev;
+  window.mkNext = mkNext;
 }
 
 function openSeriesDetail(s) {
@@ -644,12 +660,14 @@ function sw() {
   document.getElementById("pe").classList.toggle("active", !isP);
   document.getElementById("pp").classList.toggle("active", isP);
   document.getElementById("nav-li").style.display = isP ? "none" : "flex";
-  document.getElementById("nav-ig").style.display = isP ? "flex" : "none";
-  document.getElementById("nav-albums").style.display = isP ? "flex" : "none";
+  document.getElementById("nav-bio").style.display = isP ? "none" : "flex";
+  document.getElementById("nav-resume").style.display = isP ? "none" : "flex";
   if (isP) {
     startTimer();
+    mkStartTimer();
   } else {
     clearInterval(carouselTimer);
+    mkStopTimer();
   }
 }
 
@@ -776,6 +794,122 @@ function onDocumentKeydownPhotoLightbox(e) {
   if (photoLightboxEl && photoLightboxEl.classList.contains("open")) closePhotoLightbox();
 }
 
+/* ══════════════════════════════════════════════════════════════
+   STACK EXPERIENCE — shatter the CRT, expand the layers, reassemble
+   ══════════════════════════════════════════════════════════════ */
+function initStackExperience() {
+  var experience = document.getElementById("eng-stack-experience");
+  var region = document.getElementById("stack-scroll-region");
+  var stage = document.getElementById("stack-sticky-stage");
+  if (!experience || !region || !stage) return;
+
+  var panels = Array.prototype.slice.call(
+    experience.querySelectorAll(".stack-layer-panel")
+  );
+  var dots = Array.prototype.slice.call(
+    experience.querySelectorAll(".stack-progress-dot")
+  );
+  // Phases: index 0 = boot, 1..6 = stack layers (Apps → Materials).
+  var totalPhases = panels.length;
+  if (totalPhases < 2) return;
+
+  var lastPhase = -1;
+
+  function smoothStep(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t * (3 - 2 * t);
+  }
+
+  function setPhase(idx) {
+    if (idx === lastPhase) return;
+    lastPhase = idx;
+    panels.forEach(function (p, i) {
+      p.classList.toggle("is-active", i === idx);
+    });
+    dots.forEach(function (d) {
+      var dIdx = parseInt(d.getAttribute("data-idx"), 10);
+      d.classList.toggle("is-active", dIdx === idx);
+    });
+    var active = panels[idx];
+    var domain = active ? active.getAttribute("data-domain") || "boot" : "boot";
+    experience.setAttribute("data-active-domain", domain);
+    experience.setAttribute("data-active-idx", String(idx));
+  }
+
+  function updateScroll() {
+    var rect = region.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var totalScroll = region.offsetHeight - vh;
+    var scrolledIn = totalScroll > 0 ? Math.max(0, -rect.top) : 0;
+    var progress = totalScroll > 0 ? Math.min(1, scrolledIn / totalScroll) : 0;
+
+    var phaseFloat = progress * totalPhases;
+    var phaseIdx = Math.min(totalPhases - 1, Math.floor(phaseFloat));
+    setPhase(phaseIdx);
+
+    // --zoom-progress hits 1 by the end of phase 0 (boot screen). After that
+    // the screen stays at full size while content cycles through the layers.
+    var zoomFloat = Math.min(1, phaseFloat);
+    var zoomP = smoothStep(zoomFloat);
+    experience.style.setProperty("--zoom-progress", zoomP.toFixed(4));
+    experience.style.setProperty("--stack-chrome", (1 - zoomP).toFixed(4));
+    // --stack-progress remains the overall scroll position (0..1) for
+    // anything that should depend on full-page progress.
+    experience.style.setProperty("--stack-progress", smoothStep(progress).toFixed(4));
+
+    // Hide the floating rail/reassemble until the user starts scrolling.
+    experience.setAttribute("data-mode", zoomFloat > 0.04 ? "stack" : "boot");
+  }
+
+  // rAF-throttled scroll handler.
+  var ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      updateScroll();
+      ticking = false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll, { passive: true });
+  updateScroll();
+
+  // Jump to a phase by clicking a progress dot.
+  function scrollToPhase(idx) {
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var totalScroll = region.offsetHeight - vh;
+    if (totalScroll <= 0) return;
+    // Sit ~10% into the phase so the panel is fully active.
+    var phaseProgress = (idx + 0.1) / totalPhases;
+    var targetWithinRegion = totalScroll * phaseProgress;
+    var regionTop = region.getBoundingClientRect().top + window.pageYOffset;
+    window.scrollTo({ top: regionTop + targetWithinRegion, behavior: "smooth" });
+  }
+
+  dots.forEach(function (d) {
+    d.addEventListener("click", function () {
+      var idx = parseInt(d.getAttribute("data-idx"), 10);
+      if (!isNaN(idx)) scrollToPhase(idx);
+    });
+  });
+
+  // CRT screen click on the boot panel: smooth-scroll to first layer (Apps).
+  var bootPanel = experience.querySelector('.stack-layer-panel[data-layer="boot"]');
+  if (bootPanel) {
+    bootPanel.style.cursor = "pointer";
+    bootPanel.addEventListener("click", function () { scrollToPhase(1); });
+  }
+
+  // Reassemble button: scroll back to the very top of the page.
+  var reset = document.getElementById("crt-reassemble");
+  if (reset) {
+    reset.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+}
+
 export function initApp() {
   window.showPage = showPage;
   window.goHome = goHome;
@@ -787,6 +921,7 @@ export function initApp() {
   buildSeriesGrid();
   buildGradGallery();
   buildHomePhotoCollage();
+  initStackExperience();
 
   document.getElementById("tog").addEventListener("keydown", function (e) {
     if (e.key === "Enter" || e.key === " ") {

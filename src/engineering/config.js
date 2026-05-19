@@ -12,6 +12,205 @@
 export const ENG_NAV = {
   backLabel: "Back",
   homeAriaLabel: "Home",
+  bioLabel: "Biography",
+  resumeLabel: "Resume",
+};
+
+/**
+ * The six layers of the computer-engineering "full stack".
+ * Each layer renders in the right-hand canvas with a CRT-chrome frame and
+ * domain-true illustration. Layers with `active: false` are grayed out.
+ *
+ * Ordinals: 1 = bottom of stack (Materials) ... 6 = top (Applications).
+ * Domain tag is used purely to pick the illustration in render.
+ */
+export const ENG_STACK = {
+  computer: {
+    label: "ETHAN-R 4.7",
+    promptHint: "CLICK TO BOOT",
+    bootLines: [
+      "ETHAN-R BIOS 4.7 — POST OK",
+      "MEM 640K · CPU OK · DISK OK",
+      "MOUNT /stack ............ OK",
+      "READY.",
+    ],
+  },
+  layerSectionTitle: "Layers",
+  layerSectionCount: "06 / 06",
+  layers: [
+    {
+      id: "applications",
+      ordinal: 6,
+      title: "Applications",
+      subtitle: "What people touch",
+      domain: "applications",
+      active: true,
+      summary:
+        "End-user systems built on top of every layer below — toys you can pick up, grid testbeds you can shake.",
+      projects: [
+        {
+          title: "Spin Master · BAIC test controllers",
+          meta: "Aug–Sep 2025 · Pleasanton, CA",
+          body:
+            "Built controllers and embedded prototypes used by design engineers to validate mechanical behavior in electronic toys. Trimmed BOM cost by simplifying designs.",
+          tags: ["Embedded", "Prototyping", "Cost engineering"],
+          link: { label: "Engineering detail", pageId: "page-sw" },
+        },
+        {
+          title: "RTDS power-grid testbed",
+          meta: "Jun–Aug 2025 · UC3M Madrid",
+          body:
+            "Real-time hardware-in-the-loop campaigns stressing the grid under fault scenarios. Compared grid-forming vs grid-following inverter behavior for stability.",
+          tags: ["RTDS", "RSCAD FX", "Power systems"],
+          link: { label: "Research detail", pageId: "page-re" },
+        },
+      ],
+    },
+    {
+      id: "software",
+      ordinal: 5,
+      title: "Software & Algorithms",
+      subtitle: "Code on top of architecture",
+      domain: "software",
+      active: true,
+      summary:
+        "Firmware, DSP, and signal-processing code that turns CPUs into something useful.",
+      projects: [
+        {
+          title: "Goleta Sound Machine",
+          meta: "Oct–Dec 2023 · Teensy 4",
+          body:
+            "Guitar tuner and real-time effects unit on Teensy. Frequency analysis on the audio path, LCD UI, and programmable effects chain.",
+          tags: ["Embedded C", "DSP", "Real-time"],
+          link: { label: "Software detail", pageId: "page-sw" },
+        },
+      ],
+    },
+    {
+      id: "architecture",
+      ordinal: 4,
+      title: "Architecture",
+      subtitle: "Microarchitecture & memory",
+      domain: "architecture",
+      active: true,
+      summary:
+        "How a CPU actually executes a program: pipelines, hazards, caches, branch prediction.",
+      projects: [
+        {
+          title: "RISC-V five-stage pipeline (Verilog)",
+          meta: "Jan–Mar 2026 · Course project",
+          body:
+            "RV32I subset (add, addi, sub, and, andi, or, slt, slti, lw, sw, beq, jal, lui) with a hazard-aware controller, branch predictor, and a critical-word-first / prefetch cache to cut runtime.",
+          tags: ["Verilog", "RV32I", "Cache", "Branch predictor"],
+          link: { label: "Architecture detail", pageId: "page-sw" },
+        },
+      ],
+    },
+    {
+      id: "circuits",
+      ordinal: 3,
+      title: "Circuits",
+      subtitle: "Gates, datapaths, timing",
+      domain: "circuits",
+      active: true,
+      summary:
+        "Where transistors become logic — standard cells laid out by hand, multi-bit datapaths timed to 500 MHz.",
+      projects: [
+        {
+          title: "16-bit parallel prefix adder",
+          meta: "Dec 2025 · Skywater 130 nm · 500 MHz",
+          body:
+            "Kogge–Stone style adder taped out at 500 MHz in Cadence Virtuoso with custom gate logic on the Skywater 130 nm PDK.",
+          tags: ["Virtuoso", "PPA", "130 nm", "500 MHz"],
+          link: { label: "Hardware detail", pageId: "page-hw" },
+        },
+        {
+          title: "CMOS standard-cell layout",
+          meta: "Sep–Dec 2025 · INV, NAND, NOR, MUX, XOR",
+          body:
+            "Hand-drawn schematic and layout for the canonical CMOS cell set; sign-off with DRC and LVS clean.",
+          tags: ["Layout", "DRC", "LVS"],
+          link: { label: "Hardware detail", pageId: "page-hw" },
+        },
+      ],
+    },
+    {
+      id: "devices",
+      ordinal: 2,
+      title: "Devices",
+      subtitle: "Transistors from a wafer",
+      domain: "devices",
+      active: true,
+      summary:
+        "An NMOS that actually switches, fabricated from raw silicon in the UCSB cleanroom.",
+      projects: [
+        {
+          title: "Fabricated NMOS + passives",
+          meta: "Jan–Mar 2026 · UCSB Engineering II cleanroom",
+          body:
+            "Full process flow: masking, photolithography, doping, etch, thermal oxide growth, and metal deposition — followed by electrical test of NMOS, resistor, and capacitor.",
+          tags: ["Cleanroom", "Photolithography", "Doping", "Electrical test"],
+          link: { label: "Hardware detail", pageId: "page-hw" },
+        },
+      ],
+    },
+    {
+      id: "materials",
+      ordinal: 1,
+      title: "Materials",
+      subtitle: "Atoms, lattices, transport",
+      domain: "materials",
+      active: true,
+      summary:
+        "The thing the whole stack is made of — modeled at first-principles to ask what comes after copper.",
+      projects: [
+        {
+          title: "Cu/Ru vs monolayer graphene interconnects",
+          meta: "Jan–Mar 2026 · Synopsys QuantumATK",
+          body:
+            "Resistivity models for Cu/Ru nanowires with temperature effects, plus graphene monolayer resistivity simulated in QuantumATK — benchmarked against conventional back-end-of-line stacks.",
+          tags: ["QuantumATK", "DFT-ish", "Transport modeling"],
+          link: { label: "Research detail", pageId: "page-re" },
+        },
+      ],
+    },
+  ],
+};
+
+export const ENG_BIOGRAPHY = {
+  eyebrow: "Biography",
+  name: "Ethan H Reeves",
+  tagline: "Building things across the full stack of computer engineering.",
+  avatarSrc: "",
+  avatarAlt: "Ethan H Reeves",
+  story: [
+    {
+      heading: "Where I'm coming from",
+      body:
+        "I'm a junior in Computer Engineering at UCSB, based out of Pleasanton, CA. I gravitate toward problems that touch more than one layer of the stack at once — the kind that need a circuit person to talk to a firmware person without losing the plot.",
+    },
+    {
+      heading: "What I've been working on",
+      body:
+        "Recent work has spanned cleanroom fabrication of a working NMOS, a 500 MHz parallel prefix adder in Cadence Virtuoso, a Verilog RISC-V pipeline with cache and branch prediction, and a summer of real-time grid testing on an RTDS simulator at UC3M Madrid. Earlier, I built a guitar tuner and effects unit on Teensy and spent a summer prototyping electronic toys at Spin Master.",
+    },
+    {
+      heading: "Outside of school",
+      body:
+        "President of UCSB Theta Tau, co-historian for TASA, and a fairly serious photographer (see the other side of this site). Off-screen: guitar, piano (Liszt and Debussy mostly), reading, soccer, surfing, swimming.",
+    },
+  ],
+  facts: [
+    { valueHtml: "06", label: "Projects shipped" },
+    { valueHtml: "02", label: "Industry / research" },
+    { valueHtml: "3.76", label: "GPA · College of Engineering" },
+    { valueHtml: '15<span>+</span>', label: "Tools & labs" },
+  ],
+  ctas: [
+    { label: "View resume", icon: "ti-file-cv", pageId: "page-resume" },
+    { label: "LinkedIn", icon: "ti-brand-linkedin", href: "https://linkedin.com/in/ethanhreeves" },
+    { label: "Email", icon: "ti-mail", href: "mailto:ethanhreeves@engineering.ucsb.edu" },
+  ],
 };
 
 export const ENG_NAV_THEMES = {
@@ -28,7 +227,7 @@ export const ENG_HOME = {
     { valueHtml: "3.76", label: "GPA" },
     { valueHtml: '15<span>+</span>', label: "Tools & labs" },
   ],
-  heroModeTag: "B.S. Electrical & Computer Engineering · UCSB",
+  heroModeTag: "B.S. Computer Engineering · UCSB",
   heroTitleHtml: "Building things<br>that <em>work.</em>",
   heroDesc:
     "VLSI and computer architecture, cleanroom fabrication, embedded systems, and power-grid research — from RTL to silicon.",
@@ -36,7 +235,7 @@ export const ENG_HOME = {
     avatarSrc: "",
     avatarAlt: "Ethan H Reeves",
     name: "Ethan H Reeves",
-    role: "Electrical & Computer Engineering · UCSB · Expected June 2027",
+    role: "Candidate for B.S. Computer Engineering · UCSB · Expected June 2027",
     body: "Based in Pleasanton, CA. Coursework spans high-speed IC design, VLSI, computer architecture, OS, and cleanroom fabrication. Research experience in Madrid on real-time grid testing (RTDS) and interconnect modeling.",
   },
   resumeButtonLabel: "View resume",

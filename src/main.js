@@ -12,10 +12,12 @@ import phoAlbums from "./photography/page-albums.html?raw";
 import phoGrad from "./photography/page-grad.html?raw";
 import phoContactGrad from "./photography/page-contact-grad.html?raw";
 import phoContactGeneral from "./photography/page-contact-general.html?raw";
+import phoBio from "./photography/page-bio.html?raw";
 import engPageSw from "./engineering/page-sw.html?raw";
 import engPageHw from "./engineering/page-hw.html?raw";
 import engPageRe from "./engineering/page-re.html?raw";
 import engPageResume from "./engineering/page-resume.html?raw";
+import engPageBiography from "./engineering/page-biography.html?raw";
 
 document.getElementById("app").innerHTML = [
   homeTop,
@@ -27,10 +29,12 @@ document.getElementById("app").innerHTML = [
   phoGrad,
   phoContactGrad,
   phoContactGeneral,
+  phoBio,
   engPageSw,
   engPageHw,
   engPageRe,
   engPageResume,
+  engPageBiography,
 ].join("");
 
 mountEngineeringFromConfig();

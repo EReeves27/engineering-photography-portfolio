@@ -73,45 +73,54 @@ function gradTeaserImageBlock() {
 
 function buildPhotoHomeInnerHtml() {
   const h = PHOTO_HOME;
-  const g = h.gradStrip;
+
+  // Pull Instagram href from general contact social links
+  var igHref = "https://instagram.com";
+  if (PHOTO_CONTACT_GENERAL.socialLinks) {
+    PHOTO_CONTACT_GENERAL.socialLinks.forEach(function (s) {
+      if (s.icon === "ti-brand-instagram") igHref = s.href;
+    });
+  }
 
   return (
-    // Immersive photo collage — populated by buildHomePhotoCollage() in app.js
-    '<div class="pho-imm-home">' +
-    '<div class="pho-imm-collage" id="pho-home-collage"></div>' +
+    '<div class="mk-layout">' +
 
-    // Albums CTA
-    '<div class="pho-albums-cta">' +
-    '<button class="pho-albums-cta-btn" onclick="showPage(\'page-albums\')">' +
-    '<i class="ti ti-layout-grid"></i> Browse all albums' +
-    '</button>' +
+    // ── Left sidebar ──────────────────────────────────────────
+    '<aside class="mk-sidebar">' +
+    '<div class="mk-logo">' + PHOTO_BRAND.logoHtml + '</div>' +
+    '<nav class="mk-nav">' +
+    '<div class="mk-nav-group">' +
+    '<button class="mk-nav-link mk-nav-link--active">Home</button>' +
+    '<button class="mk-nav-link" onclick="showPage(\'page-albums\')">Albums</button>' +
+    '<button class="mk-nav-link" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
+    '<button class="mk-nav-link" onclick="showPage(\'page-bio\')">Bio</button>' +
+    '</div>' +
+    '<div class="mk-nav-group">' +
+    '<a class="mk-nav-link" href="' + escapeAttr(igHref) + '" target="_blank" rel="noopener noreferrer">Instagram</a>' +
+    '<button class="mk-nav-link" onclick="showPage(\'page-contact-general\')">Contact</button>' +
+    '</div>' +
+    '</nav>' +
+    '</aside>' +
+
+    // ── Single photo viewer + prev/next ───────────────────────
+    '<div class="mk-main">' +
+    '<div class="mk-photo-wrap" id="mk-photo-wrap">' +
+    '<img class="mk-photo-img" id="mk-photo-img" src="" alt="" style="display:none;">' +
+    '<div class="mk-photo-placeholder" id="mk-photo-placeholder">' +
+    '<i class="ti ti-camera"></i>' +
+    '<span>Add photos to HOME_PHOTOS in config.js</span>' +
+    '</div>' +
+    '</div>' +
+    '<div class="mk-photo-nav">' +
+    '<button class="mk-ctrl-btn" id="mk-prev" onclick="mkPrev()">Prev</button>' +
+    '<span class="mk-ctrl-sep"> / </span>' +
+    '<button class="mk-ctrl-btn" id="mk-next" onclick="mkNext()">Next</button>' +
+    '</div>' +
     '</div>' +
 
-    // Grad strip
-    '<div class="pho-grad-hdr">' +
-    '<span class="sec-title" style="color:#9a8878;">' +
-    escapeHtml(g.sectionTitle) +
-    '</span><span style="font-family:\'DM Mono\',monospace;font-size:11.25px;color:#c8a97e;cursor:pointer;" onclick="showPage(\'page-grad\')">' +
-    escapeHtml(g.seeAllLabel) +
-    '</span></div>' +
-    '<div class="grad-preview fade-in" onclick="showPage(\'page-grad\')">' +
-    '<div class="grad-preview-img" id="grad-preview-img">' +
-    gradTeaserImageBlock() +
-    '</div>' +
-    '<div class="grad-preview-body">' +
-    '<div class="grad-preview-eyebrow">' +
-    escapeHtml(g.eyebrow) +
-    '</div><div class="grad-preview-title">' +
-    g.titleHtml +
-    '</div><div class="grad-preview-desc">' +
-    escapeHtml(g.desc) +
-    '</div><button class="grad-preview-cta" onclick="event.stopPropagation();showPage(\'page-grad\')">' +
-    '<i class="ti ti-school" style="font-size:16.25px;"></i> ' +
-    escapeHtml(g.ctaLabel) +
-    '</button></div></div>' +
     '</div>' +
 
-    // Hidden carousel DOM — kept for JS event wiring, never visible on photo home
+    // Hidden carousel DOM stubs — required for JS event wiring
     '<div id="carousel-section" style="display:none;">' +
     '<div class="wheel" id="wheel"><div class="slides-track" id="slides-track"></div></div>' +
     '<button id="warr-l"></button><button id="warr-r"></button>' +
@@ -333,6 +342,35 @@ function buildContactGeneralInnerHtml() {
   );
 }
 
+function buildBioPageInnerHtml() {
+  const b = PHOTO_HOME.bio;
+  const photos = b.photos || [];
+
+  // Build up to 3 side-by-side photo cells; pad with placeholders
+  var cells = [0, 1, 2].map(function (i) {
+    if (photos[i]) {
+      return (
+        '<div class="bio-pg-photo">' +
+        '<img src="' + escapeAttr(photos[i]) + '" alt="' + escapeHtml(b.name) + '">' +
+        '</div>'
+      );
+    }
+    return (
+      '<div class="bio-pg-photo bio-pg-photo--ph">' +
+      '<i class="ti ti-user"></i>' +
+      '</div>'
+    );
+  }).join('');
+
+  return (
+    '<div class="bio-pg-wrap">' +
+    '<div class="bio-pg-photos">' + cells + '</div>' +
+    '<h2 class="bio-pg-title">' + escapeHtml(b.aboutTitle || 'About Me') + '</h2>' +
+    '<div class="bio-pg-body">' + escapeHtml(b.body) + '</div>' +
+    '</div>'
+  );
+}
+
 /** Call after #app innerHTML is set; fills all photography views from config.js */
 export function mountPhotographyFromConfig() {
   var pp = document.getElementById("pp");
@@ -349,6 +387,9 @@ export function mountPhotographyFromConfig() {
 
   var gen = document.getElementById("page-contact-general");
   if (gen) gen.innerHTML = phoDetNav("page-home") + buildContactGeneralInnerHtml();
+
+  var bio = document.getElementById("page-bio");
+  if (bio) bio.innerHTML = phoDetNav("page-home") + buildBioPageInnerHtml();
 
   var series = document.getElementById("page-series-detail");
   if (series) {

@@ -28,6 +28,15 @@ export const PHOTO_HOME = {
     name: "Ethan Reeves",
     role: "Photographer",
     body: "Hello! I'm from the Bay Area and currently attending UCSB. *insert more here*",
+    /**
+     * Up to 3 photos shown side-by-side on the Bio page.
+     * Point to any file under public/ (e.g. "/photos/profile/…").
+     * Leave as [] to show placeholders.
+     */
+    photos: [
+      "/photos/profile/profile_pic.jpeg",
+    ],
+    aboutTitle: "About Me",
   },
   carouselSectionTitle: "Featured shots",
   gradStrip: {
@@ -232,12 +241,6 @@ export const PHOTO_CONTACT_GENERAL = {
       href: "https://instagram.com/yourhandle",
       title: "Instagram",
       subtitle: "@yourhandle",
-    },
-    {
-      icon: "ti-camera",
-      href: "https://vsco.co/yourprofile",
-      title: "VSCO",
-      subtitle: "vsco.co/yourprofile",
-    },
+    }
   ],
 };
