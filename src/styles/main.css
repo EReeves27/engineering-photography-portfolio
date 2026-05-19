@@ -2170,8 +2170,12 @@ a.res-dl { color: #0d0d1a; }
   50%      { transform: rotate(1.4deg); }
 }
 
-/* Lamp glow pulses softly */
-.crt-lamp-glow { animation: crt-lamp-pulse 3.6s ease-in-out infinite; transform-origin: 1340px 600px; transform-box: fill-box; }
+/* Lamp glow pulses softly — origin sits at the centre of the desk pool. */
+.crt-lamp-glow {
+  animation: crt-lamp-pulse 3.6s ease-in-out infinite;
+  transform-origin: 1050px 880px;
+  transform-box: view-box;
+}
 @keyframes crt-lamp-pulse {
   0%, 100% { opacity: .85; transform: scale(1); }
   50%      { opacity: 1;   transform: scale(1.04); }
@@ -2192,23 +2196,30 @@ a.res-dl { color: #0d0d1a; }
   50%      { transform: scaleY(1.0); }
 }
 
-/* Cat breathes (subtle vertical scale) */
-.crt-cat { animation: crt-cat-breath 4s ease-in-out infinite; transform-origin: 20px 20px; transform-box: fill-box; }
+/* Cat breathes — origin at bottom-centre so the body rises from the paws.
+   Note: the SVG positional translate lives on .crt-cat-anchor (the parent),
+   so it's safe to put `transform` on .crt-cat without losing position. */
+.crt-cat {
+  animation: crt-cat-breath 4s ease-in-out infinite;
+  transform-origin: 50% 100%;
+  transform-box: fill-box;
+}
 @keyframes crt-cat-breath {
   0%, 100% { transform: scaleY(1.0); }
   50%      { transform: scaleY(1.03); }
 }
 
-/* Cat tail occasionally flicks */
+/* Cat tail occasionally flicks. The tail group lives inside a wrapper
+   <g transform="translate(105, 10)"> so (0,0) IS the tail base — we can
+   just rotate around the default origin without any coord juggling. */
 .crt-cat-tail {
-  transform-origin: 90px 20px;
-  transform-box: fill-box;
+  transform-origin: 0 0;
   animation: crt-cat-tail-flick 9s ease-in-out infinite;
 }
 @keyframes crt-cat-tail-flick {
   0%, 80%, 100% { transform: rotate(0deg); }
-  85%           { transform: rotate(-6deg); }
-  92%           { transform: rotate(4deg); }
+  85%           { transform: rotate(-5deg); }
+  92%           { transform: rotate(3deg); }
 }
 
 /* "z z z" sleep glyphs float up and fade */

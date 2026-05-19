@@ -27,6 +27,8 @@ export function crtRoomSceneSvg() {
       window() +
       wallDecor() +
       desk() +
+      // Contact shadows sit on the desk, beneath every object.
+      itemShadows() +
       speaker() +
       lampGlow() +
       tower() +
@@ -100,6 +102,21 @@ function defs() {
         '<stop offset="0%" stop-color="#ffb35a" stop-opacity=".35"/>' +
         '<stop offset="100%" stop-color="#ffb35a" stop-opacity="0"/>' +
       '</radialGradient>' +
+      // Clip path for window interior — keeps clouds / sun / ocean inside the frame
+      '<clipPath id="rg-window-clip">' +
+        '<rect x="130" y="130" width="420" height="490"/>' +
+      '</clipPath>' +
+      // Soft drop-shadow under desk items
+      '<radialGradient id="rg-shadow" cx="50%" cy="50%" r="50%">' +
+        '<stop offset="0%" stop-color="#000" stop-opacity=".55"/>' +
+        '<stop offset="100%" stop-color="#000" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      // Wall vertical gradient — slightly darker at top, lighter near desk
+      '<linearGradient id="rg-wall-vignette" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%"  stop-color="#000" stop-opacity=".5"/>' +
+        '<stop offset="40%" stop-color="#000" stop-opacity="0"/>' +
+        '<stop offset="100%" stop-color="#000" stop-opacity=".25"/>' +
+      '</linearGradient>' +
     '</defs>'
   );
 }
@@ -119,7 +136,10 @@ function backdrop() {
       '</g>' +
       // Vignette at top (ceiling falls into shadow)
       '<rect x="0" y="0" width="1920" height="180" fill="url(#rg-wall)" opacity=".6"/>' +
-      // Baseboard between wall and desk
+      // Wall vignette gradient — adds depth without a hard line
+      '<rect x="0" y="0" width="1920" height="780" fill="url(#rg-wall-vignette)"/>' +
+      // Baseboard between wall and desk (slight crown molding feel)
+      '<rect x="0" y="768" width="1920" height="4"  fill="#3a2418"/>' +
       '<rect x="0" y="772" width="1920" height="12" fill="#15100a"/>' +
     '</g>'
   );
@@ -127,46 +147,52 @@ function backdrop() {
 
 /* ── Window with beach/sunset view ────────────────────────── */
 function window() {
-  // Window frame at x=120..560, y=120..620
+  // Window frame at x=120..560, y=120..620. Everything that lives
+  // INSIDE the glass goes inside the clipped <g> so animated clouds
+  // and sun-pulse can't escape into the wall.
   return (
     '<g class="crt-room-decor crt-window">' +
       // Outer dark frame
       '<rect x="106" y="106" width="468" height="528" fill="#0c0805" rx="4"/>' +
       // Inner sash frame
       '<rect x="120" y="120" width="440" height="500" fill="#0e0a06" rx="2"/>' +
-      // Sky
-      '<rect x="130" y="130" width="420" height="320" fill="url(#rg-sunset)"/>' +
-      // Sun glow + disk (low on horizon)
-      '<circle class="crt-sun-glow" cx="340" cy="430" r="120" fill="url(#rg-sun)" opacity=".75"/>' +
-      '<ellipse cx="340" cy="430" rx="60" ry="38" fill="#fff8dc" opacity=".95"/>' +
-      // Distant cloud silhouettes (animated drift via CSS)
-      '<g class="crt-clouds" opacity=".55">' +
-        '<ellipse class="crt-cloud crt-cloud--a" cx="200" cy="220" rx="60" ry="9" fill="#4a2238"/>' +
-        '<ellipse class="crt-cloud crt-cloud--b" cx="420" cy="180" rx="80" ry="11" fill="#3a1830"/>' +
-        '<ellipse class="crt-cloud crt-cloud--c" cx="320" cy="260" rx="50" ry="7" fill="#5a2840"/>' +
-      '</g>' +
-      // Sun reflection rays
-      '<g stroke="#fff8dc" stroke-width=".6" opacity=".4">' +
-        '<line x1="340" y1="430" x2="180" y2="430"/>' +
-        '<line x1="340" y1="430" x2="500" y2="430"/>' +
-      '</g>' +
-      // Ocean
-      '<rect x="130" y="450" width="420" height="120" fill="url(#rg-ocean)"/>' +
-      // Sun reflection on ocean (vertical streak)
-      '<g opacity=".7">' +
-        '<rect x="328" y="450" width="24" height="120" fill="#ffb35a" opacity=".3"/>' +
-        '<rect x="332" y="460" width="16" height="100" fill="#fff8dc" opacity=".25"/>' +
-        // Sparkle dashes
-        '<g class="crt-sparkle">' +
-          '<rect x="318" y="478" width="44" height="2" fill="#fff8dc" opacity=".6"/>' +
-          '<rect x="324" y="498" width="32" height="2" fill="#fff8dc" opacity=".5"/>' +
-          '<rect x="320" y="518" width="40" height="2" fill="#fff8dc" opacity=".55"/>' +
-          '<rect x="328" y="540" width="24" height="2" fill="#fff8dc" opacity=".4"/>' +
+
+      // --- Everything inside the glass is clipped to the window interior ---
+      '<g clip-path="url(#rg-window-clip)">' +
+        // Sky
+        '<rect x="130" y="130" width="420" height="320" fill="url(#rg-sunset)"/>' +
+        // Sun glow + disk (low on horizon)
+        '<circle class="crt-sun-glow" cx="340" cy="430" r="120" fill="url(#rg-sun)" opacity=".75"/>' +
+        '<ellipse cx="340" cy="430" rx="60" ry="38" fill="#fff8dc" opacity=".95"/>' +
+        // Distant cloud silhouettes (animated drift via CSS — now clipped)
+        '<g class="crt-clouds" opacity=".55">' +
+          '<ellipse class="crt-cloud crt-cloud--a" cx="200" cy="220" rx="60" ry="9" fill="#4a2238"/>' +
+          '<ellipse class="crt-cloud crt-cloud--b" cx="420" cy="180" rx="80" ry="11" fill="#3a1830"/>' +
+          '<ellipse class="crt-cloud crt-cloud--c" cx="320" cy="260" rx="50" ry="7" fill="#5a2840"/>' +
         '</g>' +
+        // Sun reflection rays
+        '<g stroke="#fff8dc" stroke-width=".6" opacity=".4">' +
+          '<line x1="340" y1="430" x2="180" y2="430"/>' +
+          '<line x1="340" y1="430" x2="500" y2="430"/>' +
+        '</g>' +
+        // Ocean
+        '<rect x="130" y="450" width="420" height="120" fill="url(#rg-ocean)"/>' +
+        // Sun reflection streak on ocean
+        '<g opacity=".7">' +
+          '<rect x="328" y="450" width="24" height="120" fill="#ffb35a" opacity=".3"/>' +
+          '<rect x="332" y="460" width="16" height="100" fill="#fff8dc" opacity=".25"/>' +
+          '<g class="crt-sparkle">' +
+            '<rect x="318" y="478" width="44" height="2" fill="#fff8dc" opacity=".6"/>' +
+            '<rect x="324" y="498" width="32" height="2" fill="#fff8dc" opacity=".5"/>' +
+            '<rect x="320" y="518" width="40" height="2" fill="#fff8dc" opacity=".55"/>' +
+            '<rect x="328" y="540" width="24" height="2" fill="#fff8dc" opacity=".4"/>' +
+          '</g>' +
+        '</g>' +
+        // Beach sand strip at the bottom
+        '<rect x="130" y="570" width="420" height="50" fill="#5a3a20"/>' +
       '</g>' +
-      // Beach sand strip at the bottom
-      '<rect x="130" y="570" width="420" height="50" fill="#5a3a20"/>' +
-      // Window cross (mullion: one vertical + one horizontal)
+
+      // Mullions (drawn AFTER glass so they sit on top of the clouds/sun)
       '<rect x="338" y="120" width="6" height="500" fill="#1a120c"/>' +
       '<rect x="120" y="368" width="440" height="6" fill="#1a120c"/>' +
       // Windowsill
@@ -300,18 +326,52 @@ function desk() {
     '<g>' +
       // Desk surface (extends across full width)
       '<rect x="0" y="780" width="1920" height="300" fill="url(#rg-desk)"/>' +
-      // Front edge of desk (darker band)
-      '<rect x="0" y="780" width="1920" height="14" fill="#3a1f0e"/>' +
-      // Wood grain lines
+      // Back edge of desk — slight shadow where wall meets the desk surface
+      '<rect x="0" y="780" width="1920" height="6" fill="#1a0c06" opacity=".7"/>' +
+      // Long ambient cast shadow under the wall (depth cue)
+      '<rect x="0" y="786" width="1920" height="14" fill="#1a0c06" opacity=".35"/>' +
+      // Wood grain lines on the desk top
       '<g stroke="#3a1f0e" stroke-width="1" opacity=".35">' +
         '<line x1="0" y1="820" x2="1920" y2="822"/>' +
         '<line x1="0" y1="880" x2="1920" y2="876"/>' +
         '<line x1="0" y1="940" x2="1920" y2="945"/>' +
-        '<line x1="0" y1="1000" x2="1920" y2="995"/>' +
-        '<line x1="0" y1="1050" x2="1920" y2="1055"/>' +
+        '<line x1="0" y1="990" x2="1920" y2="995"/>' +
       '</g>' +
-      // Warm desk pool from lamp (large soft ellipse near the monitor)
-      '<ellipse cx="1320" cy="900" rx="500" ry="160" fill="url(#rg-desk-glow)"/>' +
+      // Visible front edge of the desk top (thin highlight + dark stripe to
+      // suggest the tabletop\'s thickness — without it the desk reads as floor).
+      '<rect x="0" y="1010" width="1920" height="2"  fill="#7a4524" opacity=".7"/>' +
+      '<rect x="0" y="1012" width="1920" height="14" fill="#1a0c06"/>' +
+      // Below the desk — darker "floor / under-desk" zone
+      '<rect x="0" y="1026" width="1920" height="54" fill="#0c0604"/>' +
+      // Warm desk pool from lamp (large soft ellipse on the desk surface)
+      '<ellipse cx="1100" cy="930" rx="540" ry="180" fill="url(#rg-desk-glow)"/>' +
+    '</g>'
+  );
+}
+
+/* ── Contact shadows under every object that sits on the desk ─
+   Drawn AFTER the desk so they sit on the surface, and BEFORE
+   the items so the items render on top of their own shadows.
+   ───────────────────────────────────────────────────────── */
+function itemShadows() {
+  return (
+    '<g class="crt-shadows" opacity=".7">' +
+      // Speaker (left of monitor)
+      '<ellipse cx="445"  cy="785" rx="100" ry="9"  fill="#000" opacity=".55"/>' +
+      // Monitor stand
+      '<ellipse cx="960"  cy="775" rx="190" ry="11" fill="#000" opacity=".5"/>' +
+      // Lamp base
+      '<ellipse cx="1380" cy="828" rx="68"  ry="9"  fill="#000" opacity=".55"/>' +
+      // Tower
+      '<ellipse cx="1580" cy="838" rx="92"  ry="10" fill="#000" opacity=".55"/>' +
+      // Keyboard
+      '<ellipse cx="960"  cy="958" rx="290" ry="10" fill="#000" opacity=".45"/>' +
+      // Mouse
+      '<ellipse cx="1350" cy="912" rx="44"  ry="7"  fill="#000" opacity=".45"/>' +
+      // Mug
+      '<ellipse cx="1480" cy="876" rx="34"  ry="7"  fill="#000" opacity=".5"/>' +
+      // Cat
+      '<ellipse cx="580"  cy="916" rx="125" ry="10" fill="#000" opacity=".45"/>' +
     '</g>'
   );
 }
@@ -346,12 +406,21 @@ function speaker() {
       '<circle cx="85" cy="160" r="50" fill="#0a0604"/>' +
       '<circle cx="85" cy="160" r="42" fill="none" stroke="#3a2418" stroke-width="1"/>' +
       '<circle cx="85" cy="160" r="14" fill="#3a2418"/>' +
-      // Equalizer indicator bars (animated)
-      '<g class="crt-eq" transform="translate(120, 90)">' +
-        '<rect class="crt-eq-bar crt-eq-bar--1" x="0"  y="0" width="6" height="20" fill="#5dcaa5"/>' +
-        '<rect class="crt-eq-bar crt-eq-bar--2" x="10" y="0" width="6" height="20" fill="#d49a3a"/>' +
-        '<rect class="crt-eq-bar crt-eq-bar--3" x="20" y="0" width="6" height="20" fill="#5dcaa5"/>' +
-        '<rect class="crt-eq-bar crt-eq-bar--4" x="30" y="0" width="6" height="20" fill="#d49a3a"/>' +
+      // LED level meter — bars sit inside a small dark display housing so
+      // they read as a screen mounted on the speaker, not floating shapes.
+      '<g transform="translate(110, 100)">' +
+        // Display housing (outer + inner glass)
+        '<rect x="0"  y="0"  width="52" height="36" rx="3" fill="#050302" stroke="#3a2418" stroke-width="1"/>' +
+        '<rect x="3"  y="3"  width="46" height="30" rx="2" fill="#0d0805"/>' +
+        // METER label above bars
+        '<text x="26" y="-4" text-anchor="middle" font-family="DM Mono, monospace" font-size="6" fill="#5a3a20" letter-spacing="1.5">VU</text>' +
+        // The bars themselves, anchored to the bottom of the inner glass
+        '<g class="crt-eq" transform="translate(10, 8)">' +
+          '<rect class="crt-eq-bar crt-eq-bar--1" x="0"  y="0" width="6" height="24" fill="#5dcaa5"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--2" x="9"  y="0" width="6" height="24" fill="#d49a3a"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--3" x="18" y="0" width="6" height="24" fill="#5dcaa5"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--4" x="27" y="0" width="6" height="24" fill="#d49a3a"/>' +
+        '</g>' +
       '</g>' +
       // Brand text
       '<text x="20" y="232" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="2">VINTAGE</text>' +
@@ -361,10 +430,16 @@ function speaker() {
 
 /* ── Lamp ──────────────────────────────────────────────────── */
 function lampGlow() {
-  // Soft amber glow projected onto the wall/desk by the lamp
+  // Two glows: one at the shade (the bulb itself, small + intense) and
+  // a larger pool on the desk where the cone of light actually falls.
+  // The shade sits at world (1270, 470) tilted down-left; the pool sits
+  // on the desk surface in front of the monitor.
   return (
     '<g class="crt-lamp-glow">' +
-      '<ellipse cx="1340" cy="600" rx="380" ry="280" fill="url(#rg-lamp)"/>' +
+      // Wide warm pool on the desk
+      '<ellipse cx="1050" cy="880" rx="500" ry="190" fill="url(#rg-lamp)"/>' +
+      // Hot bulb glow at the shade opening
+      '<ellipse class="crt-bulb-glow" cx="1200" cy="510" rx="120" ry="70" fill="url(#rg-lamp)" opacity=".85"/>' +
     '</g>'
   );
 }
@@ -374,18 +449,29 @@ function lampChrome() {
   // tower. The arm rises up and arches LEFT so the shade hangs above-right of
   // the monitor (it no longer crosses the screen).
   return (
-    '<g class="crt-room-decor" transform="translate(1380, 780)">' +
-      // Round weighted base
-      '<ellipse cx="0" cy="0" rx="55" ry="14" fill="#1a120c"/>' +
-      '<ellipse cx="0" cy="-4" rx="50" ry="11" fill="#2a1f17"/>' +
-      // Short neck riser
-      '<rect x="-4" y="-8" width="8" height="40" fill="#1a120c"/>' +
-      // Articulated arm: rises and arches up-and-left (toward viewer/monitor)
-      '<line x1="0"   y1="-48"  x2="-50"  y2="-180" stroke="#1a120c" stroke-width="8" stroke-linecap="round"/>' +
+    // Lamp base sits on the desk: center at world y=812 → base ellipse
+    // spans world y=798..826 (entirely on the desk surface y>780).
+    '<g class="crt-room-decor" transform="translate(1380, 812)">' +
+      // Soft contact shadow on the desk beneath the base
+      '<ellipse cx="0" cy="14" rx="62" ry="7" fill="#000" opacity=".4"/>' +
+      // Round weighted base (back rim slightly lighter for a 3D feel)
+      '<ellipse cx="0" cy="0"  rx="55" ry="14" fill="#1a120c"/>' +
+      '<ellipse cx="0" cy="-3" rx="50" ry="11" fill="#2a1f17"/>' +
+      '<ellipse cx="0" cy="-6" rx="42" ry="7"  fill="#3a2a1f"/>' +
+      // Pivot ball on top of the base where the stem attaches
+      '<circle cx="0" cy="-12" r="8" fill="#1a120c"/>' +
+      // Stem riser — rises FROM the pivot ball UP TO the arm start at y=-46
+      '<rect x="-4" y="-46" width="8" height="38" fill="#1a120c"/>' +
+      // Stem highlight (subtle 3D cylinder feel)
+      '<rect x="-1" y="-46" width="2" height="38" fill="#3a2a1f" opacity=".55"/>' +
+      // Top knuckle joint where the stem meets the arm
+      '<circle cx="0" cy="-46" r="7" fill="#2a1f17"/>' +
+      // Articulated arm: starts AT the top knuckle, rises up-and-left
+      '<line x1="0"   y1="-46"  x2="-50"  y2="-180" stroke="#1a120c" stroke-width="8" stroke-linecap="round"/>' +
       '<line x1="-50" y1="-180" x2="-110" y2="-310" stroke="#1a120c" stroke-width="8" stroke-linecap="round"/>' +
       // Elbow joint
       '<circle cx="-50" cy="-180" r="9" fill="#2a1f17"/>' +
-      // Lampshade (cone, tilted to point down-and-left toward the desk pool).
+      // Lampshade (cone, tilted down-and-left toward the desk pool)
       '<g transform="translate(-110, -310) rotate(35)">' +
         '<path d="M-44 -8 L44 -8 L60 60 L-60 60 Z" fill="#7a3a1a"/>' +
         '<path d="M-44 -8 L44 -8 L42 0 L-42 0 Z" fill="#5a2812"/>' +
@@ -474,12 +560,17 @@ function peripherals() {
         // Key matrix (simplified rows)
         keyboardKeys() +
       '</g>' +
-      // Mouse + cord
+      // Mouse + cord — cord arcs up and right to plug into the tower base.
       '<g transform="translate(1270, 880)">' +
+        // Mouse body + button-divider line
         '<ellipse cx="0" cy="0" rx="38" ry="26" fill="url(#rg-beige)"/>' +
-        '<line x1="0" y1="-26" x2="0" y2="-10" stroke="#3a2418" stroke-width="1.4"/>' +
-        // Cord curving back to keyboard
-        '<path d="M0 -26 Q-30 -50 -80 -50" stroke="#3a2418" stroke-width="1.6" fill="none"/>' +
+        '<line x1="-20" y1="-22" x2="-20" y2="0" stroke="#a48553" stroke-width=".8" opacity=".55"/>' +
+        // Cable strain-relief stub on the mouse
+        '<rect x="-3" y="-30" width="6" height="8" rx="1" fill="#3a2418"/>' +
+        // Cord: gentle S-curve up and to the right, terminating at the
+        // bottom-left corner of the tower (world ~(1500, 800), which is
+        // (230, -80) relative to the mouse origin).
+        '<path d="M0 -30 Q70 -55 150 -60 Q210 -65 230 -80" stroke="#3a2418" stroke-width="2" fill="none" stroke-linecap="round"/>' +
       '</g>' +
     '</g>'
   );
@@ -513,51 +604,49 @@ function keyboardKeys() {
 /* ── Cat (sleeping, curled on desk) ───────────────────────── */
 function cat() {
   // Snowshoe Siamese: cream-white body, dark brown mask/ears/tail tip.
-  // Positioned on the desk between the speaker area and keyboard, sized
-  // generously so it reads as a real desk-sized cat.
+  // Positioned on the desk between the speaker area and keyboard. The
+  // positional translate lives on an OUTER <g>; the CSS breathing
+  // animation lives on the INNER <g.crt-cat>. If we put both on the
+  // same element, the CSS `transform` would replace the SVG `transform`
+  // attribute and the cat would jump to viewBox (0,0).
   return (
-    '<g class="crt-cat" transform="translate(580, 860)">' +
-      // Tail (drawn FIRST so the body sits on top of its base join).
-      '<g class="crt-cat-tail">' +
-        '<path d="M105 10 Q175 0 170 -55 Q165 -100 115 -88" stroke="#3a2418" stroke-width="22" fill="none" stroke-linecap="round"/>' +
-        // Darker tail tip
-        '<circle cx="115" cy="-88" r="13" fill="#1a0e08"/>' +
-      '</g>' +
-      // Body — cream/white curled crescent
-      '<path d="M-95 5 Q-118 -85 5 -100 Q120 -100 125 10 Q115 55 5 55 Q-105 55 -95 5 Z" fill="#f1e4cc"/>' +
-      // Subtle warmer shading under the back
-      '<path d="M-90 5 Q-110 -75 5 -92 Q60 -90 95 -55 Q65 -25 5 -25 Q-70 -25 -90 5 Z" fill="#e0d0b2" opacity=".55"/>' +
-      // Dark brown back stripe / saddle (siamese darker back)
-      '<path d="M-40 -85 Q5 -100 70 -75 Q40 -55 5 -50 Q-30 -55 -40 -85 Z" fill="#5a3a22" opacity=".55"/>' +
-      // Front paws peeking out (white)
-      '<ellipse cx="-30" cy="48" rx="18" ry="8" fill="#f1e4cc"/>' +
-      '<ellipse cx="10"  cy="50" rx="18" ry="8" fill="#f1e4cc"/>' +
+    '<g class="crt-cat-anchor" transform="translate(580, 860)">' +
+    '<g class="crt-cat">' +
+      // Body — warm brown back (seal-point brown).
+      '<path d="M-95 5 Q-118 -85 5 -100 Q120 -100 125 10 Q115 55 5 55 Q-105 55 -95 5 Z" fill="#6a4220"/>' +
+      // Darker brown saddle along the back
+      '<path d="M-50 -88 Q5 -100 75 -82 Q50 -55 5 -52 Q-35 -55 -50 -88 Z" fill="#4a2a14" opacity=".75"/>' +
+      // Cream chest / belly peeking forward
+      '<path d="M-50 22 Q-30 55 25 55 Q60 55 60 30 Q40 18 0 18 Q-40 18 -50 22 Z" fill="#e8d4ac"/>' +
+      // Front paws (cream/white) tucked under
+      '<ellipse cx="-30" cy="50" rx="18" ry="8" fill="#f1e4cc"/>' +
+      '<ellipse cx="10"  cy="52" rx="18" ry="8" fill="#f1e4cc"/>' +
       // Paw toe lines
       '<g stroke="#c8b89a" stroke-width=".8" opacity=".7">' +
-        '<line x1="-36" y1="45" x2="-36" y2="52"/>' +
-        '<line x1="-30" y1="44" x2="-30" y2="52"/>' +
-        '<line x1="-24" y1="45" x2="-24" y2="52"/>' +
-        '<line x1="4"  y1="47" x2="4"  y2="54"/>' +
-        '<line x1="10" y1="46" x2="10" y2="54"/>' +
-        '<line x1="16" y1="47" x2="16" y2="54"/>' +
+        '<line x1="-36" y1="47" x2="-36" y2="54"/>' +
+        '<line x1="-30" y1="46" x2="-30" y2="54"/>' +
+        '<line x1="-24" y1="47" x2="-24" y2="54"/>' +
+        '<line x1="4"  y1="49" x2="4"  y2="56"/>' +
+        '<line x1="10" y1="48" x2="10" y2="56"/>' +
+        '<line x1="16" y1="49" x2="16" y2="56"/>' +
       '</g>' +
-      // Head tucked toward chest, slightly left of center
+      // Head tucked toward chest
       '<g transform="translate(-60, -25)">' +
-        // Cream chin / underchin
-        '<ellipse cx="0" cy="14" rx="32" ry="16" fill="#f1e4cc"/>' +
+        // Brown lower face (chin area)
+        '<ellipse cx="0" cy="14" rx="32" ry="16" fill="#6a4220"/>' +
         // Dark brown face mask (top half of head)
         '<path d="M-32 -2 Q-30 -28 0 -32 Q30 -28 32 -2 Q26 14 0 14 Q-26 14 -32 -2 Z" fill="#3a2418"/>' +
-        // Lighter brown forehead highlight
+        // Subtle forehead highlight
         '<path d="M-22 -8 Q0 -22 22 -8 Q12 -4 0 -4 Q-12 -4 -22 -8 Z" fill="#4a2e1a" opacity=".7"/>' +
-        // Ears (dark brown triangles)
+        // Ears (very dark brown)
         '<path d="M-28 -16 L-36 -42 L-12 -28 Z" fill="#2a1810"/>' +
         '<path d="M28 -16 L36 -42 L12 -28 Z" fill="#2a1810"/>' +
-        // Inner ear (warm pink)
+        // Inner ear pink
         '<path d="M-26 -20 L-30 -34 L-18 -28 Z" fill="#a8755a"/>' +
         '<path d="M26 -20 L30 -34 L18 -28 Z" fill="#a8755a"/>' +
-        // Cream muzzle
-        '<ellipse cx="0" cy="9" rx="15" ry="9" fill="#f5ecd6"/>' +
-        // Pink nose (small triangle)
+        // Cream muzzle (the snowshoe\'s white mask)
+        '<ellipse cx="0" cy="8" rx="14" ry="8" fill="#f1e4cc"/>' +
+        // Pink nose
         '<path d="M-3.5 5 L3.5 5 L0 10 Z" fill="#2a1408"/>' +
         // Closed eye slits (sleeping)
         '<path class="crt-cat-eye" d="M-15 -3 Q-10 0 -5 -3" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
@@ -572,13 +661,24 @@ function cat() {
           '<line x1="32"  y1="14" x2="12"  y2="12"/>' +
         '</g>' +
       '</g>' +
+      // Tail — wrapped in a positional <g> so CSS rotate pivots cleanly
+      // from (0,0) at the tail base. Path uses LOCAL coords inside that
+      // wrapper. Drawn LAST so the tail sits visually on top of the body.
+      '<g transform="translate(105, 10)">' +
+        '<g class="crt-cat-tail">' +
+          '<path d="M0 0 Q70 -10 65 -65 Q60 -110 10 -98" stroke="#4a2a14" stroke-width="22" fill="none" stroke-linecap="round"/>' +
+          // Darker tip
+          '<circle cx="10" cy="-98" r="13" fill="#1a0e08"/>' +
+        '</g>' +
+      '</g>' +
       // Sleepy "z" glyphs floating upward
       '<g class="crt-cat-zzz" font-family="DM Mono, monospace" fill="#d49a3a" opacity=".85">' +
         '<text class="crt-zzz crt-zzz--1" x="-20" y="-110" font-size="22">z</text>' +
         '<text class="crt-zzz crt-zzz--2" x="2"   y="-128" font-size="17">z</text>' +
         '<text class="crt-zzz crt-zzz--3" x="22"  y="-144" font-size="13">z</text>' +
       '</g>' +
-    '</g>'
+    '</g>' +  // close .crt-cat (animation wrapper)
+    '</g>'   // close .crt-cat-anchor (positional wrapper)
   );
 }
 
