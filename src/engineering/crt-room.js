@@ -92,11 +92,27 @@ function defs() {
         '<stop offset="60%" stop-color="#ffd07a"/>' +
         '<stop offset="100%" stop-color="#ff8a48" stop-opacity="0"/>' +
       '</radialGradient>' +
-      // Cat orange
+      // Cat orange (legacy — kept for any other warm-orange use)
       '<linearGradient id="rg-cat" x1="0" y1="0" x2="0" y2="1">' +
         '<stop offset="0%" stop-color="#d97a35"/>' +
         '<stop offset="100%" stop-color="#8a4519"/>' +
       '</linearGradient>' +
+      // === SleepingCat gradients (warm seal-point body / saddle / face mask) ===
+      '<radialGradient id="sc-bodyGrad" cx="50%" cy="30%" r="70%">' +
+        '<stop offset="0%"   stop-color="#fbf4e6"/>' +
+        '<stop offset="55%"  stop-color="#f1e6d3"/>' +
+        '<stop offset="100%" stop-color="#d9c4a3"/>' +
+      '</radialGradient>' +
+      '<radialGradient id="sc-saddleGrad" cx="50%" cy="40%" r="65%">' +
+        '<stop offset="0%"   stop-color="#7a5236" stop-opacity="0.95"/>' +
+        '<stop offset="60%"  stop-color="#5a3a26" stop-opacity="0.7"/>' +
+        '<stop offset="100%" stop-color="#5a3a26" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      '<radialGradient id="sc-maskGrad" cx="50%" cy="50%" r="55%">' +
+        '<stop offset="0%"   stop-color="#3a2418"/>' +
+        '<stop offset="70%"  stop-color="#3a2418"/>' +
+        '<stop offset="100%" stop-color="#5a3a26" stop-opacity="0.4"/>' +
+      '</radialGradient>' +
       // Reflection on desk (warm pool from lamp)
       '<radialGradient id="rg-desk-glow" cx="50%" cy="50%" r="50%">' +
         '<stop offset="0%" stop-color="#ffb35a" stop-opacity=".35"/>' +
@@ -370,8 +386,8 @@ function itemShadows() {
       '<ellipse cx="1350" cy="912" rx="44"  ry="7"  fill="#000" opacity=".45"/>' +
       // Mug
       '<ellipse cx="1480" cy="876" rx="34"  ry="7"  fill="#000" opacity=".5"/>' +
-      // Cat
-      '<ellipse cx="580"  cy="916" rx="125" ry="10" fill="#000" opacity=".45"/>' +
+      // Cat — curled (footprint at world x≈516..714, paws at y≈895)
+      '<ellipse cx="615"  cy="905" rx="110" ry="9" fill="#000" opacity=".45"/>' +
     '</g>'
   );
 }
@@ -410,20 +426,20 @@ function speaker() {
       // they read as a screen mounted on the speaker, not floating shapes.
       '<g transform="translate(110, 100)">' +
         // Display housing (outer + inner glass)
-        '<rect x="0"  y="0"  width="52" height="36" rx="3" fill="#050302" stroke="#3a2418" stroke-width="1"/>' +
-        '<rect x="3"  y="3"  width="46" height="30" rx="2" fill="#0d0805"/>' +
+        '<rect x="0"  y="-25"  width="52" height="36" rx="3" fill="#050302" stroke="#3a2418" stroke-width="1"/>' +
+        '<rect x="3"  y="-22"  width="46" height="30" rx="2" fill="#0d0805"/>' +
         // METER label above bars
-        '<text x="26" y="-4" text-anchor="middle" font-family="DM Mono, monospace" font-size="6" fill="#5a3a20" letter-spacing="1.5">VU</text>' +
+        '<text x="26" y="-29" text-anchor="middle" font-family="DM Mono, monospace" font-size="6" fill="#5a3a20" letter-spacing="1.5">VU</text>' +
         // The bars themselves, anchored to the bottom of the inner glass
         '<g class="crt-eq" transform="translate(10, 8)">' +
-          '<rect class="crt-eq-bar crt-eq-bar--1" x="0"  y="0" width="6" height="24" fill="#5dcaa5"/>' +
-          '<rect class="crt-eq-bar crt-eq-bar--2" x="9"  y="0" width="6" height="24" fill="#d49a3a"/>' +
-          '<rect class="crt-eq-bar crt-eq-bar--3" x="18" y="0" width="6" height="24" fill="#5dcaa5"/>' +
-          '<rect class="crt-eq-bar crt-eq-bar--4" x="27" y="0" width="6" height="24" fill="#d49a3a"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--1" x="0"  y="-25" width="6" height="24" fill="#5dcaa5"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--2" x="9"  y="-25" width="6" height="24" fill="#d49a3a"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--3" x="18" y="-25" width="6" height="24" fill="#5dcaa5"/>' +
+          '<rect class="crt-eq-bar crt-eq-bar--4" x="27" y="-25" width="6" height="24" fill="#d49a3a"/>' +
         '</g>' +
       '</g>' +
       // Brand text
-      '<text x="20" y="232" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="2">VINTAGE</text>' +
+      '<text x="20" y="232" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="2">HAN INC.</text>' +
     '</g>'
   );
 }
@@ -508,7 +524,7 @@ function tower() {
       '</g>' +
       // Stylized brand label
       '<rect x="20" y="120" width="120" height="20" fill="none" stroke="#3a2418" stroke-width=".8"/>' +
-      '<text x="80" y="134" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#3a2418" letter-spacing="3">ETHAN-R 4.7</text>' +
+      '<text x="80" y="134" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#3a2418" letter-spacing="3">Han-Reeves</text>' +
       // Power button
       '<circle cx="130" cy="260" r="10" fill="#3a2418"/>' +
       '<circle cx="130" cy="260" r="7" fill="url(#rg-beige)"/>' +
@@ -533,7 +549,7 @@ function monitorFrame() {
       '<rect x="800" y="754" width="320" height="14" fill="#7a5e2e" rx="3"/>' +
       '<rect x="804" y="766" width="312" height="6" fill="#3a2812"/>' +
       // Stand neck (between bezel bottom and stand base)
-      '<rect x="930" y="710" width="60" height="14" fill="#c2a474"/>' +
+      '<rect x="930" y="701" width="60" height="14" fill="#c2a474"/>' +
       // Monitor bezel — re-centered so its center matches the screen rect (960, 540).
       // Outer bezel: 412 × 320 → x=754..1166, y=380..700.
       '<rect x="754" y="380" width="412" height="320" fill="url(#rg-beige)" rx="22"/>' +
@@ -542,7 +558,7 @@ function monitorFrame() {
       // Glossy highlight along the top of the bezel
       '<rect x="760" y="386" width="400" height="4" fill="#fff" opacity=".3" rx="2"/>' +
       // Bezel logo (just above the bezel bottom edge)
-      '<text x="960" y="694" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="3">ETHAN-R</text>' +
+      '<text x="960" y="694" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="3">ADell</text>' +
       // Power LED on bezel
       '<circle class="crt-led" cx="1100" cy="690" r="3" fill="#8be07f"/>' +
     '</g>'
@@ -603,84 +619,115 @@ function keyboardKeys() {
 
 /* ── Cat (sleeping, curled on desk) ───────────────────────── */
 function cat() {
-  // Snowshoe Siamese: cream-white body, dark brown mask/ears/tail tip.
-  // Positioned on the desk between the speaker area and keyboard. The
-  // positional translate lives on an OUTER <g>; the CSS breathing
-  // animation lives on the INNER <g.crt-cat>. If we put both on the
-  // same element, the CSS `transform` would replace the SVG `transform`
-  // attribute and the cat would jump to viewBox (0,0).
+  // SleepingCat — curled snowshoe Siamese on the desk. The illustration is
+  // authored in its own (800 × 520) native coordinate space; we wrap it in
+  // a translate+scale so it sits on our desk between the speaker and the
+  // keyboard. Native cat center (400, 340) → our viewport (597, 863).
+  //
+  // Skipped from the original SleepingCat module: the desk surface, the
+  // cat bed/cushion, the cast shadow filter, and the coffee mug — those
+  // already exist in our scene.
   return (
-    '<g class="crt-cat-anchor" transform="translate(580, 860)">' +
-    '<g class="crt-cat">' +
-      // Body — warm brown back (seal-point brown).
-      '<path d="M-95 5 Q-118 -85 5 -100 Q120 -100 125 10 Q115 55 5 55 Q-105 55 -95 5 Z" fill="#6a4220"/>' +
-      // Darker brown saddle along the back
-      '<path d="M-50 -88 Q5 -100 75 -82 Q50 -55 5 -52 Q-35 -55 -50 -88 Z" fill="#4a2a14" opacity=".75"/>' +
-      // Cream chest / belly peeking forward
-      '<path d="M-50 22 Q-30 55 25 55 Q60 55 60 30 Q40 18 0 18 Q-40 18 -50 22 Z" fill="#e8d4ac"/>' +
-      // Front paws (cream/white) tucked under
-      '<ellipse cx="-30" cy="50" rx="18" ry="8" fill="#f1e4cc"/>' +
-      '<ellipse cx="10"  cy="52" rx="18" ry="8" fill="#f1e4cc"/>' +
-      // Paw toe lines
-      '<g stroke="#c8b89a" stroke-width=".8" opacity=".7">' +
-        '<line x1="-36" y1="47" x2="-36" y2="54"/>' +
-        '<line x1="-30" y1="46" x2="-30" y2="54"/>' +
-        '<line x1="-24" y1="47" x2="-24" y2="54"/>' +
-        '<line x1="4"  y1="49" x2="4"  y2="56"/>' +
-        '<line x1="10" y1="48" x2="10" y2="56"/>' +
-        '<line x1="16" y1="49" x2="16" y2="56"/>' +
-      '</g>' +
-      // Head tucked toward chest
-      '<g transform="translate(-60, -25)">' +
-        // Brown lower face (chin area)
-        '<ellipse cx="0" cy="14" rx="32" ry="16" fill="#6a4220"/>' +
-        // Dark brown face mask (top half of head)
-        '<path d="M-32 -2 Q-30 -28 0 -32 Q30 -28 32 -2 Q26 14 0 14 Q-26 14 -32 -2 Z" fill="#3a2418"/>' +
-        // Subtle forehead highlight
-        '<path d="M-22 -8 Q0 -22 22 -8 Q12 -4 0 -4 Q-12 -4 -22 -8 Z" fill="#4a2e1a" opacity=".7"/>' +
-        // Ears (very dark brown)
-        '<path d="M-28 -16 L-36 -42 L-12 -28 Z" fill="#2a1810"/>' +
-        '<path d="M28 -16 L36 -42 L12 -28 Z" fill="#2a1810"/>' +
-        // Inner ear pink
-        '<path d="M-26 -20 L-30 -34 L-18 -28 Z" fill="#a8755a"/>' +
-        '<path d="M26 -20 L30 -34 L18 -28 Z" fill="#a8755a"/>' +
-        // Cream muzzle (the snowshoe\'s white mask)
-        '<ellipse cx="0" cy="8" rx="14" ry="8" fill="#f1e4cc"/>' +
-        // Pink nose
-        '<path d="M-3.5 5 L3.5 5 L0 10 Z" fill="#2a1408"/>' +
-        // Closed eye slits (sleeping)
-        '<path class="crt-cat-eye" d="M-15 -3 Q-10 0 -5 -3" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-        '<path class="crt-cat-eye" d="M5 -3 Q10 0 15 -3" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-        // Whiskers
-        '<g stroke="#fff" stroke-width="1" opacity=".9">' +
-          '<line x1="-32" y1="6"  x2="-12" y2="8"/>' +
-          '<line x1="-32" y1="10" x2="-12" y2="10"/>' +
-          '<line x1="-32" y1="14" x2="-12" y2="12"/>' +
-          '<line x1="32"  y1="6"  x2="12"  y2="8"/>' +
-          '<line x1="32"  y1="10" x2="12"  y2="10"/>' +
-          '<line x1="32"  y1="14" x2="12"  y2="12"/>' +
+    '<g class="crt-cat-wrap" transform="translate(417, 710) scale(0.45)">' +
+      '<g class="sc-breathe">' +
+        // ── TAIL: dark seal-point, curled around the back ──
+        '<path d="M 580 340 C 640 320, 660 290, 630 260 C 600 235, 550 240, 520 270 C 495 295, 490 320, 510 340 Z" fill="#5a3a26"/>' +
+        '<path d="M 580 340 C 640 320, 660 290, 630 260 C 600 235, 550 240, 520 270" fill="none" stroke="#3a2418" stroke-width="2" opacity="0.5"/>' +
+        '<ellipse cx="625" cy="262" rx="22" ry="14" fill="#3a2418" transform="rotate(-25 625 262)"/>' +
+
+        // ── MAIN BODY: large curled-up oval ("loaf-curl" silhouette) ──
+        '<path d="M 220 360 C 200 290, 240 230, 320 215 C 410 200, 510 215, 580 250 C 640 280, 650 340, 620 380 C 580 410, 480 410, 380 405 C 290 400, 235 395, 220 360 Z" fill="url(#sc-bodyGrad)"/>' +
+
+        // ── SADDLE: brown back across the spine ──
+        '<path d="M 280 240 C 360 215, 470 218, 555 250 C 600 270, 615 310, 595 350 C 555 375, 470 380, 380 372 C 320 365, 285 340, 280 300 Z" fill="url(#sc-saddleGrad)"/>' +
+
+        // ── Belly / chest shadow curve ──
+        '<path d="M 240 360 C 280 395, 380 410, 470 405 C 540 400, 595 385, 615 365" fill="none" stroke="#d9c4a3" stroke-width="6" opacity="0.5" stroke-linecap="round"/>' +
+
+        // ── Hind-leg / hip curve hint on the right side ──
+        '<path d="M 560 270 C 615 280, 640 320, 625 365" fill="none" stroke="#5a3a26" stroke-width="3" opacity="0.35" stroke-linecap="round"/>' +
+
+        // ── FRONT PAWS: white, tucked under chin, peeking out at the front ──
+        '<g>' +
+          // Left front paw
+          '<ellipse cx="305" cy="385" rx="42" ry="22" fill="#fdfaf2"/>' +
+          '<ellipse cx="305" cy="385" rx="42" ry="22" fill="#e8e0cf" opacity="0.25"/>' +
+          '<path d="M 285 388 Q 290 395 295 388" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
+          '<path d="M 300 390 Q 305 397 310 390" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
+          '<path d="M 315 388 Q 320 395 325 388" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
+          // Right front paw (slightly behind)
+          '<ellipse cx="358" cy="392" rx="38" ry="20" fill="#fdfaf2"/>' +
+          '<ellipse cx="358" cy="392" rx="38" ry="20" fill="#e8e0cf" opacity="0.2"/>' +
+          '<path d="M 342 395 Q 347 401 352 395" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
+          '<path d="M 356 396 Q 361 402 366 396" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
+          '<path d="M 370 395 Q 375 401 380 395" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
         '</g>' +
-      '</g>' +
-      // Tail — wrapped in a positional <g> so CSS rotate pivots cleanly
-      // from (0,0) at the tail base. Path uses LOCAL coords inside that
-      // wrapper. Drawn LAST so the tail sits visually on top of the body.
-      '<g transform="translate(105, 10)">' +
-        '<g class="crt-cat-tail">' +
-          '<path d="M0 0 Q70 -10 65 -65 Q60 -110 10 -98" stroke="#4a2a14" stroke-width="22" fill="none" stroke-linecap="round"/>' +
-          // Darker tip
-          '<circle cx="10" cy="-98" r="13" fill="#1a0e08"/>' +
+
+        // ── WHITE CHEST BIB peeking between paws and chin ──
+        '<path d="M 305 370 C 320 360, 360 358, 380 368 C 380 385, 330 388, 305 380 Z" fill="#fdfaf2"/>' +
+
+        // ── HEAD (tucked down, resting on / near paws) ──
+        '<g>' +
+          // Head base shape (cream sides showing under mask)
+          '<ellipse cx="310" cy="335" rx="78" ry="62" fill="url(#sc-bodyGrad)"/>' +
+          // Dark seal-point face mask
+          '<path d="M 250 305 C 250 270, 285 250, 320 250 C 360 250, 385 275, 385 310 C 385 335, 370 350, 345 355 C 320 358, 285 355, 265 345 C 250 335, 245 320, 250 305 Z" fill="url(#sc-maskGrad)"/>' +
+          // White inverted-V blaze down the muzzle
+          '<path d="M 305 320 C 310 330, 318 340, 322 355 C 326 365, 330 372, 332 378 C 328 380, 318 380, 310 378 C 305 372, 300 360, 298 350 C 295 340, 298 328, 305 320 Z" fill="#fdfaf2"/>' +
+          // Chin
+          '<ellipse cx="325" cy="370" rx="28" ry="14" fill="#fdfaf2"/>' +
+          // Left ear (with twitch animation)
+          '<g class="sc-ear-twitch">' +
+            '<path d="M 258 295 L 248 250 L 285 275 Z" fill="#3a2418"/>' +
+            '<path d="M 262 285 L 258 262 L 278 277 Z" fill="#c98a7a" opacity="0.6"/>' +
+          '</g>' +
+          // Right ear
+          '<path d="M 365 290 L 380 248 L 348 270 Z" fill="#3a2418"/>' +
+          '<path d="M 363 282 L 372 258 L 354 272 Z" fill="#c98a7a" opacity="0.6"/>' +
+          // Closed eyes — left
+          '<path d="M 278 318 Q 288 314 298 318" fill="none" stroke="#1a0e08" stroke-width="2" stroke-linecap="round"/>' +
+          '<path d="M 278 318 Q 288 322 298 320" fill="none" stroke="#5a3a26" stroke-width="1" stroke-linecap="round" opacity="0.7"/>' +
+          '<path d="M 297 317 L 302 315" stroke="#1a0e08" stroke-width="1" stroke-linecap="round"/>' +
+          // Closed eyes — right
+          '<path d="M 338 318 Q 348 314 358 318" fill="none" stroke="#1a0e08" stroke-width="2" stroke-linecap="round"/>' +
+          '<path d="M 338 318 Q 348 322 358 320" fill="none" stroke="#5a3a26" stroke-width="1" stroke-linecap="round" opacity="0.7"/>' +
+          '<path d="M 339 317 L 334 315" stroke="#1a0e08" stroke-width="1" stroke-linecap="round"/>' +
+          // Nose (slightly heart-shaped) + highlight
+          '<path d="M 318 348 C 314 348, 312 351, 314 354 C 316 357, 320 358, 322 357 C 326 358, 330 357, 332 354 C 334 351, 332 348, 328 348 C 325 346, 321 346, 318 348 Z" fill="#1a0e08"/>' +
+          '<ellipse cx="320" cy="350" rx="2" ry="1.2" fill="#fff" opacity="0.4"/>' +
+          // Relaxed mouth
+          '<path d="M 323 358 Q 323 366 318 368" fill="none" stroke="#3a1a10" stroke-width="1.2" stroke-linecap="round"/>' +
+          '<path d="M 323 358 Q 323 366 328 368" fill="none" stroke="#3a1a10" stroke-width="1.2" stroke-linecap="round"/>' +
+          // Whiskers
+          '<g class="sc-whisker">' +
+            '<path d="M 295 355 Q 270 358 245 360"/>' +
+            '<path d="M 298 360 Q 270 365 248 370"/>' +
+            '<path d="M 300 365 Q 275 372 255 378"/>' +
+            '<path d="M 345 355 Q 370 357 395 358"/>' +
+            '<path d="M 343 360 Q 370 363 393 367"/>' +
+            '<path d="M 341 365 Q 365 370 385 375"/>' +
+          '</g>' +
+          // Cheek shading
+          '<ellipse cx="285" cy="355" rx="18" ry="8" fill="#e8e0cf" opacity="0.3"/>' +
+          '<ellipse cx="355" cy="355" rx="18" ry="8" fill="#e8e0cf" opacity="0.3"/>' +
         '</g>' +
-      '</g>' +
-      // Sleepy "z" glyphs floating upward
-      '<g class="crt-cat-zzz" font-family="DM Mono, monospace" fill="#d49a3a" opacity=".85">' +
-        '<text class="crt-zzz crt-zzz--1" x="-20" y="-110" font-size="22">z</text>' +
-        '<text class="crt-zzz crt-zzz--2" x="2"   y="-128" font-size="17">z</text>' +
-        '<text class="crt-zzz crt-zzz--3" x="22"  y="-144" font-size="13">z</text>' +
-      '</g>' +
-    '</g>' +  // close .crt-cat (animation wrapper)
-    '</g>'   // close .crt-cat-anchor (positional wrapper)
+
+        // ── Top-of-back warm rim highlight ──
+        '<path d="M 310 230 C 400 213, 490 215, 555 240" fill="none" stroke="#fbf4e6" stroke-width="6" opacity="0.55" stroke-linecap="round"/>' +
+
+        // ── A few stray fur tufts along the saddle edge ──
+        '<g stroke="#5a3a26" stroke-width="0.8" fill="none" opacity="0.5">' +
+          '<path d="M 350 218 l 2 -6"/>' +
+          '<path d="M 380 215 l 1 -7"/>' +
+          '<path d="M 420 214 l 2 -6"/>' +
+          '<path d="M 470 218 l 1 -7"/>' +
+          '<path d="M 510 225 l 3 -5"/>' +
+        '</g>' +
+      '</g>' + // close .sc-breathe
+    '</g>'   // close .crt-cat-wrap
   );
 }
+
 
 /* ── Coffee mug with rising steam ─────────────────────────── */
 function mug() {

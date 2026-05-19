@@ -2196,44 +2196,37 @@ a.res-dl { color: #0d0d1a; }
   50%      { transform: scaleY(1.0); }
 }
 
-/* Cat breathes — origin at bottom-centre so the body rises from the paws.
-   Note: the SVG positional translate lives on .crt-cat-anchor (the parent),
-   so it's safe to put `transform` on .crt-cat without losing position. */
-.crt-cat {
-  animation: crt-cat-breath 4s ease-in-out infinite;
-  transform-origin: 50% 100%;
-  transform-box: fill-box;
+/* ── SleepingCat animations ──────────────────────────────────
+   The cat illustration lives inside <g.crt-cat-wrap> which applies
+   `transform="translate(417, 710) scale(0.45)"`. The cat's NATIVE
+   body-centre (400, 340) therefore ends up at viewport (597, 863);
+   the left-ear pivot (322, 282) ends up at viewport (562, 837).
+   Transform-origins below are pinned to those viewport coords so
+   the animations pivot from the right point. */
+.sc-breathe {
+  transform-origin: 597px 863px;
+  animation: sc-breathe 4.2s ease-in-out infinite;
 }
-@keyframes crt-cat-breath {
-  0%, 100% { transform: scaleY(1.0); }
-  50%      { transform: scaleY(1.03); }
+@keyframes sc-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.012, 1.018); }
 }
-
-/* Cat tail occasionally flicks. The tail group lives inside a wrapper
-   <g transform="translate(105, 10)"> so (0,0) IS the tail base — we can
-   just rotate around the default origin without any coord juggling. */
-.crt-cat-tail {
-  transform-origin: 0 0;
-  animation: crt-cat-tail-flick 9s ease-in-out infinite;
+.sc-ear-twitch {
+  transform-origin: 562px 837px;
+  animation: sc-ear 7s ease-in-out infinite;
 }
-@keyframes crt-cat-tail-flick {
-  0%, 80%, 100% { transform: rotate(0deg); }
-  85%           { transform: rotate(-5deg); }
-  92%           { transform: rotate(3deg); }
+@keyframes sc-ear {
+  0%, 92%, 100% { transform: rotate(0deg); }
+  94%           { transform: rotate(-6deg); }
+  96%           { transform: rotate(2deg); }
+  98%           { transform: rotate(-3deg); }
 }
-
-/* "z z z" sleep glyphs float up and fade */
-.crt-zzz {
-  animation: crt-zzz-float 4s ease-out infinite;
-  transform-box: fill-box;
-}
-.crt-zzz--1 { animation-delay: 0s; }
-.crt-zzz--2 { animation-delay: 1.3s; }
-.crt-zzz--3 { animation-delay: 2.6s; }
-@keyframes crt-zzz-float {
-  0%   { opacity: 0; transform: translateY(0); }
-  25%  { opacity: .9; }
-  100% { opacity: 0; transform: translateY(-30px); }
+.sc-whisker {
+  stroke: #fbf4e6;
+  stroke-width: 1.1;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.85;
 }
 
 /* Mug steam curls upward */
