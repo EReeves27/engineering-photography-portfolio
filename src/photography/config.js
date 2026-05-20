@@ -162,9 +162,9 @@ export const PHOTO_CONTACT_GENERAL = {
   socialLinks: [
     {
       icon: "ti-brand-instagram",
-      href: "https://instagram.com/yourhandle",
+      href: "https://www.instagram.com/ethan_r.photo/",
       title: "Instagram",
-      subtitle: "@yourhandle",
+      subtitle: "@ethan_r.photo",
     }
   ],
 };

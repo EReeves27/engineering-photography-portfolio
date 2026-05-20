@@ -1,6 +1,5 @@
 import {
   PHOTO_BRAND,
-  PHOTO_NAV,
   PHOTO_HOME,
   PHOTO_GRAD_PAGE,
   PHOTO_CONTACT_GRAD,
@@ -21,25 +20,64 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
-function phoDetNav(backPageId) {
-  const nl = PHOTO_NAV;
-  const logo = PHOTO_BRAND.logoHtml;
+function photoInstagramHref() {
+  var igHref = "https://instagram.com";
+  if (PHOTO_CONTACT_GENERAL.socialLinks) {
+    PHOTO_CONTACT_GENERAL.socialLinks.forEach(function (s) {
+      if (s.icon === "ti-brand-instagram") igHref = s.href;
+    });
+  }
+  return igHref;
+}
+
+/** Left sidebar — same on every photography view. */
+function buildPhotoSidebar(activePageId) {
+  var igHref = photoInstagramHref();
+
+  function activeClass(pageId) {
+    return activePageId === pageId ? " mk-nav-link--active" : "";
+  }
+
+  var contactActive =
+    activePageId === "page-contact-general" || activePageId === "page-contact-grad"
+      ? " mk-nav-link--active"
+      : "";
+
   return (
-    '<div class="det-nav">' +
-    '<div class="det-nav-actions">' +
-    '<button type="button" class="pho-back" onclick="showPage(\'' +
-    escapeAttr(backPageId) +
-    "')\"><i class=\"ti ti-arrow-left\"></i>" +
-    escapeHtml(nl.backLabel) +
-    '</button>' +
-    '<button type="button" class="home-btn" onclick="goHome()" aria-label="' +
-    escapeAttr(nl.homeAriaLabel) +
-    '"><i class="ti ti-home"></i></button>' +
+    '<aside class="mk-sidebar">' +
+    '<div class="mk-logo">' +
+    PHOTO_BRAND.logoHtml +
     "</div>" +
-    '<div class="det-logo" style="color:#1c1410;">' +
-    logo +
+    '<nav class="mk-nav">' +
+    '<div class="mk-nav-group">' +
+    '<button type="button" class="mk-nav-link' +
+    activeClass("page-home") +
+    '" onclick="goHome()">Home</button>' +
+    '<button type="button" class="mk-nav-link' +
+    activeClass("page-grad") +
+    '" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
+    '<button type="button" class="mk-nav-link' +
+    activeClass("page-bio") +
+    '" onclick="showPage(\'page-bio\')">Bio</button>' +
+    '<a class="mk-nav-link" href="' +
+    escapeAttr(igHref) +
+    '" target="_blank" rel="noopener noreferrer">Instagram</a>' +
+    '<button type="button" class="mk-nav-link' +
+    contactActive +
+    '" onclick="showPage(\'page-contact-general\')">Contact</button>' +
     "</div>" +
-    "</div>"
+    "</nav>" +
+    "</aside>"
+  );
+}
+
+function wrapPhotoPage(activePageId, mainHtml) {
+  return (
+    '<div class="mk-layout pho-page-layout">' +
+    buildPhotoSidebar(activePageId) +
+    '<div class="mk-main mk-page-main">' +
+    mainHtml +
+    "</div></div>"
   );
 }
 
@@ -73,41 +111,9 @@ function gradTeaserImageBlock() {
 }
 
 function buildPhotoHomeInnerHtml() {
-  const h = PHOTO_HOME;
-
-  // Pull Instagram href from general contact social links
-  var igHref = "https://instagram.com";
-  if (PHOTO_CONTACT_GENERAL.socialLinks) {
-    PHOTO_CONTACT_GENERAL.socialLinks.forEach(function (s) {
-      if (s.icon === "ti-brand-instagram") igHref = s.href;
-    });
-  }
-
-  return (
-    '<div class="mk-layout">' +
-
-    // ── Left sidebar ──────────────────────────────────────────
-    '<aside class="mk-sidebar">' +
-    '<div class="mk-logo">' + PHOTO_BRAND.logoHtml + '</div>' +
-    '<nav class="mk-nav">' +
-    '<div class="mk-nav-group">' +
-    '<button class="mk-nav-link mk-nav-link--active">Home</button>' +
-    '<button class="mk-nav-link" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
-    '<button class="mk-nav-link" onclick="showPage(\'page-bio\')">Bio</button>' +
-    '</div>' +
-    '<div class="mk-nav-group">' +
-    '<a class="mk-nav-link" href="' + escapeAttr(igHref) + '" target="_blank" rel="noopener noreferrer">Instagram</a>' +
-    '<button class="mk-nav-link" onclick="showPage(\'page-contact-general\')">Contact</button>' +
-    '</div>' +
-    '</nav>' +
-    '</aside>' +
-
-    // ── Scroll waterfall gallery (public/photos/home-photos/) ───
-    '<div class="mk-main">' +
-    '<div class="mk-waterfall" id="mk-waterfall" aria-label="Photography gallery"></div>' +
-    '</div>' +
-
-    '</div>'
+  return wrapPhotoPage(
+    "page-home",
+    '<div class="mk-waterfall" id="mk-waterfall" aria-label="Photography gallery"></div>'
   );
 }
 
@@ -343,15 +349,15 @@ export function mountPhotographyFromConfig() {
   if (pp) pp.innerHTML = buildPhotoHomeInnerHtml();
 
   var grad = document.getElementById("page-grad");
-  if (grad) grad.innerHTML = phoDetNav("page-home") + buildGradPageInnerHtml();
+  if (grad) grad.innerHTML = wrapPhotoPage("page-grad", buildGradPageInnerHtml());
 
   var cg = document.getElementById("page-contact-grad");
-  if (cg) cg.innerHTML = phoDetNav("page-grad") + buildContactGradInnerHtml();
+  if (cg) cg.innerHTML = wrapPhotoPage("page-contact-grad", buildContactGradInnerHtml());
 
   var gen = document.getElementById("page-contact-general");
-  if (gen) gen.innerHTML = phoDetNav("page-home") + buildContactGeneralInnerHtml();
+  if (gen) gen.innerHTML = wrapPhotoPage("page-contact-general", buildContactGeneralInnerHtml());
 
   var bio = document.getElementById("page-bio");
-  if (bio) bio.innerHTML = phoDetNav("page-home") + buildBioPageInnerHtml();
+  if (bio) bio.innerHTML = wrapPhotoPage("page-bio", buildBioPageInnerHtml());
 
 }

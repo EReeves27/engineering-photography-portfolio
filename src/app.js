@@ -92,6 +92,188 @@ function buildAdaptiveGrid(container, folder, filenames, fallbackCount) {
    HOME WATERFALL — scroll gallery from public/photos/home-photos/
 ══════════════════════════════════════════════════════════════ */
 var mkWaterfallObserver = null;
+var mkWaterfallMetaCache = null;
+var mkWaterfallResizeBound = false;
+var WATERFALL_PACK_ATTEMPTS = 50;
+
+function waterfallColCount() {
+  var w = window.innerWidth || 800;
+  if (w >= 1080) return 3;
+  if (w >= 720) return 2;
+  return 1;
+}
+
+/** Relative row height when item spans `span` columns (aspect ratio preserved). */
+function waterfallItemHeight(meta, span) {
+  return span / (meta.w / meta.h);
+}
+
+function waterfallPackScore(heights) {
+  var max = heights[0];
+  var min = heights[0];
+  for (var i = 1; i < heights.length; i++) {
+    if (heights[i] > max) max = heights[i];
+    if (heights[i] < min) min = heights[i];
+  }
+  return max - min;
+}
+
+function placeWaterfallInColumns(heights, cols, meta) {
+  var landscape = meta.w >= meta.h;
+  var span = landscape && cols >= 2 ? 2 : 1;
+  var h = waterfallItemHeight(meta, span);
+
+  if (span === 1) {
+    var col = 0;
+    for (var i = 1; i < cols; i++) {
+      if (heights[i] < heights[col]) col = i;
+    }
+    heights[col] += h;
+    return;
+  }
+
+  if (cols === 2) {
+    var rowBase = Math.max(heights[0], heights[1]);
+    heights[0] = rowBase + h;
+    heights[1] = rowBase + h;
+    return;
+  }
+
+  var base01 = Math.max(heights[0], heights[1]);
+  var base12 = Math.max(heights[1], heights[2]);
+  var next01 = base01 + h;
+  var next12 = base12 + h;
+  if (next01 <= next12) {
+    heights[0] = next01;
+    heights[1] = next01;
+  } else {
+    heights[1] = next12;
+    heights[2] = next12;
+  }
+}
+
+/** Random order, many attempts — pick packing with the least ragged column bottoms. */
+function packWaterfallOrder(metas, cols) {
+  if (cols <= 1) return shuffleArray(metas);
+
+  var best = null;
+  var bestScore = Infinity;
+
+  for (var attempt = 0; attempt < WATERFALL_PACK_ATTEMPTS; attempt++) {
+    var order = shuffleArray(metas);
+    var heights = [];
+    for (var c = 0; c < cols; c++) heights.push(0);
+
+    for (var i = 0; i < order.length; i++) {
+      placeWaterfallInColumns(heights, cols, order[i]);
+    }
+
+    var score = waterfallPackScore(heights);
+    if (score < bestScore) {
+      bestScore = score;
+      best = order;
+    }
+  }
+
+  return best || metas;
+}
+
+function bindHomeWaterfallResize() {
+  if (mkWaterfallResizeBound) return;
+  mkWaterfallResizeBound = true;
+  var timer = null;
+  window.addEventListener("resize", function () {
+    if (!mkWaterfallMetaCache) return;
+    var grid = document.getElementById("mk-waterfall");
+    if (!grid) return;
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      renderHomeWaterfall(grid, mkWaterfallMetaCache.items);
+    }, 220);
+  });
+}
+
+function renderHomeWaterfall(grid, metas) {
+  var cols = waterfallColCount();
+  var ordered = packWaterfallOrder(metas, cols);
+
+  if (mkWaterfallObserver) {
+    mkWaterfallObserver.disconnect();
+    mkWaterfallObserver = null;
+  }
+
+  grid.innerHTML = "";
+
+  ordered.forEach(function (meta, i) {
+    var item = document.createElement("div");
+    item.className = "mk-waterfall-item";
+    if (meta.w >= meta.h && cols >= 2) {
+      item.classList.add("mk-waterfall-item--landscape");
+    }
+
+    var img = document.createElement("img");
+    img.src = meta.src;
+    img.alt = meta.alt || "";
+    img.loading = i < 3 ? "eager" : "lazy";
+    img.decoding = "async";
+    img.width = meta.w;
+    img.height = meta.h;
+    item.appendChild(img);
+    grid.appendChild(item);
+  });
+
+  initHomeWaterfallReveal(grid);
+}
+
+function loadHomeWaterfallMetas(files, folder, done) {
+  var cacheKey = folder + "|" + files.join(",");
+  if (mkWaterfallMetaCache && mkWaterfallMetaCache.key === cacheKey) {
+    done(mkWaterfallMetaCache.items);
+    return;
+  }
+
+  if (!files.length) {
+    done([]);
+    return;
+  }
+
+  var metas = [];
+  var pending = files.length;
+
+  files.forEach(function (name) {
+    var src = assetUrl(folder + name);
+    var img = new Image();
+    var settled = false;
+
+    function finish(w, h) {
+      if (settled) return;
+      settled = true;
+      metas.push({
+        name: name,
+        src: src,
+        alt: "",
+        w: w || 3,
+        h: h || 4,
+      });
+      pending -= 1;
+      if (pending === 0) {
+        mkWaterfallMetaCache = { key: cacheKey, items: metas };
+        done(metas);
+      }
+    }
+
+    img.onload = function () {
+      finish(img.naturalWidth, img.naturalHeight);
+    };
+    img.onerror = function () {
+      finish(3, 4);
+    };
+    img.src = src;
+    if (img.complete && img.naturalWidth) {
+      finish(img.naturalWidth, img.naturalHeight);
+    }
+  });
+}
 
 function initHomeWaterfallReveal(container) {
   if (mkWaterfallObserver) {
@@ -136,24 +318,17 @@ function buildHomeWaterfall() {
   grid.innerHTML = "";
 
   if (!files.length) {
+    mkWaterfallMetaCache = null;
     grid.innerHTML =
       '<p class="mk-waterfall-empty">Add images to <code>public/photos/home-photos/</code></p>';
     return;
   }
 
-  files.forEach(function (name, i) {
-    var item = document.createElement("div");
-    item.className = "mk-waterfall-item";
-    var img = document.createElement("img");
-    img.src = assetUrl(folder + name);
-    img.alt = "";
-    img.loading = i < 3 ? "eager" : "lazy";
-    img.decoding = "async";
-    item.appendChild(img);
-    grid.appendChild(item);
-  });
+  bindHomeWaterfallResize();
 
-  initHomeWaterfallReveal(grid);
+  loadHomeWaterfallMetas(files, folder, function (metas) {
+    renderHomeWaterfall(grid, metas);
+  });
 }
 
 function shuffleArray(arr) {
@@ -391,16 +566,51 @@ function sw() {
   document.getElementById("nav-resume").style.display = isP ? "none" : "flex";
 }
 
+var PHOTO_PAGE_IDS = {
+  "page-home": true,
+  "page-grad": true,
+  "page-bio": true,
+  "page-contact-grad": true,
+  "page-contact-general": true,
+};
+
+function isPhotoPageId(pageId) {
+  return !!(pageId && PHOTO_PAGE_IDS[pageId]);
+}
+
 function showPage(id, scrollSmooth) {
-  document.querySelectorAll(".page").forEach(function (p) {
-    p.classList.remove("active");
-  });
-  document.getElementById(id).classList.add("active");
+  var next = document.getElementById(id);
+  if (!next) return;
+
+  var current = document.querySelector(".page.active");
+  if (current === next) return;
+
+  var usePhotoFade =
+    isPhotoPageId(id) && (!current || isPhotoPageId(current.id));
+
+  if (usePhotoFade) {
+    next.classList.add("active");
+    document.querySelectorAll(".page").forEach(function (p) {
+      if (p !== next && isPhotoPageId(p.id) && p.id !== "page-home") {
+        p.classList.remove("active");
+      }
+    });
+    if (id !== "page-home") {
+      document.getElementById("page-home")?.classList.remove("active");
+    }
+  } else {
+    document.querySelectorAll(".page").forEach(function (p) {
+      p.classList.remove("active");
+    });
+    next.classList.add("active");
+  }
+
   if (scrollSmooth) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else {
     window.scrollTo(0, 0);
   }
+
   if (id === "page-grad") {
     var gg = document.getElementById("grad-gallery");
     if (gg && gg._photoJgLayout) {
