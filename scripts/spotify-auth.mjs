@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * One-time Spotify login → prints refresh token for Cloudflare Worker secrets.
+ * Uses Authorization Code flow (client secret on token exchange), matching the Worker.
  *
  * Prerequisites:
  * - Spotify app redirect URI: http://127.0.0.1:8788/callback
@@ -15,7 +16,7 @@ import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { randomBytes, createHash } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -51,10 +52,6 @@ function base64Url(buf) {
     .replace(/=+$/, "");
 }
 
-function pkceChallenge(verifier) {
-  return base64Url(createHash("sha256").update(verifier).digest());
-}
-
 loadEnvFile();
 
 const clientId = process.env.SPOTIFY_CLIENT_ID;
@@ -68,8 +65,6 @@ if (!clientId || !clientSecret) {
 }
 
 const state = base64Url(randomBytes(16));
-const codeVerifier = base64Url(randomBytes(32));
-const codeChallenge = pkceChallenge(codeVerifier);
 
 const authUrl = new URL("https://accounts.spotify.com/authorize");
 authUrl.searchParams.set("client_id", clientId);
@@ -77,8 +72,6 @@ authUrl.searchParams.set("response_type", "code");
 authUrl.searchParams.set("redirect_uri", REDIRECT_URI);
 authUrl.searchParams.set("scope", SCOPE);
 authUrl.searchParams.set("state", state);
-authUrl.searchParams.set("code_challenge_method", "S256");
-authUrl.searchParams.set("code_challenge", codeChallenge);
 authUrl.searchParams.set("prompt", "consent");
 
 function html(body) {
@@ -124,15 +117,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
     const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${basic}`,
+      },
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
         redirect_uri: REDIRECT_URI,
-        client_id: clientId,
-        code_verifier: codeVerifier,
       }),
     });
     const tokens = await tokenRes.json();

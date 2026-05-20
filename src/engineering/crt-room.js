@@ -538,12 +538,10 @@ function vinylWallSlot(slot, index) {
   const clipId = "crt-vinyl-clip-" + index;
 
   let sleeveSvg =
-    '<rect class="crt-vinyl-art-slot" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" fill="#1c1c22" stroke="#0a0a0e" stroke-width="1" rx="1"/>' +
-    '<rect x="' + (coverX + 4) + '" y="' + (coverY + 4) + '" width="' + (cover - 8) + '" height="' + (cover - 8) + '" fill="#2a2a34" rx=".5"/>';
+    '<rect class="crt-vinyl-art-slot" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" fill="none" stroke="none"/>';
   if (href) {
     sleeveSvg =
       '<defs><clipPath id="' + clipId + '"><rect x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" rx="1"/></clipPath></defs>' +
-      '<rect x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" fill="#1c1c22" rx="1"/>' +
       '<image class="crt-vinyl-cover" href="' + escapeSvgAttr(href) + '" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#' + clipId + ')"/>';
   }
 
@@ -552,7 +550,9 @@ function vinylWallSlot(slot, index) {
       '<rect x="2" y="3" width="' + frameW + '" height="' + frameH + '" fill="#000" opacity=".35" rx="2"/>' +
       '<rect x="0" y="0" width="' + frameW + '" height="' + frameH + '" fill="#2a1810" rx="2"/>' +
       '<rect x="4" y="4" width="' + (frameW - 8) + '" height="' + (frameH - 8) + '" fill="#3a2418" rx="1"/>' +
+      '<g class="crt-vinyl-sleeve">' +
       sleeveSvg +
+      "</g>" +
       '<rect x="' + (pad - 1) + '" y="' + lipY + '" width="' + (cover + 2) + '" height="6" fill="#4a3020" rx=".5"/>' +
       '<rect x="' + coverX + '" y="' + (lipY + 6) + '" width="' + cover + '" height="4" fill="#120a06" opacity=".7" rx=".5"/>' +
     "</g>"

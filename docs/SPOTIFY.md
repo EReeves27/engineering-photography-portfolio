@@ -38,6 +38,8 @@ npx wrangler secret put SPOTIFY_REFRESH_TOKEN
 npm run deploy
 ```
 
+The Worker stores a **rotated** refresh token in Cloudflare KV when Spotify issues a new one (so you do not need to update the secret every time).
+
 Note the URL, e.g. `https://eng-spotify-vinyl.<subdomain>.workers.dev/recent`.
 
 Test:
@@ -79,3 +81,8 @@ Switch to engineering home; vinyl covers should fill after a short fetch. If the
 | `502` / missing secrets | Run the three `wrangler secret put` commands |
 | No refresh token from auth | Re-run `npm run spotify:auth`; ensure redirect URI matches exactly |
 | Empty `tracks` | Play something on Spotify, wait a moment, reload |
+| `Refresh token revoked` / `invalid_grant` | Re-run `npm run spotify:auth`, then `npx wrangler secret put SPOTIFY_REFRESH_TOKEN`, then `npm run deploy` in `spotify-worker/`. Do not reset the Client Secret in the Spotify Dashboard unless you also re-auth. If it keeps happening, clear stale KV: `npx wrangler kv key delete --binding=SPOTIFY_KV refresh_token` (Worker falls back to the secret). |
+
+### Why tokens were revoking
+
+The auth script used **PKCE** (no client secret on token exchange) while the Worker refreshed with **Basic auth + client secret**. That mismatch can break refreshes and look like a revoked token. Auth now uses the standard Authorization Code flow (same as the Worker). After pulling this fix, **get a new refresh token once** with `npm run spotify:auth`.

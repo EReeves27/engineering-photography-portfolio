@@ -2,12 +2,14 @@
  * Spotify proxy for portfolio vinyl covers.
  * GET /recent → { tracks: [{ coverUrl, name, artist }] } (newest first, up to 5)
  *
- * Secrets (wrangler secret put): SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN
+ * Secrets: SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN
+ * KV (optional): stores rotated refresh_token when Spotify issues a new one
  */
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_RECENT_URL =
   "https://api.spotify.com/v1/me/player/recently-played?limit=5";
+const KV_REFRESH_KEY = "refresh_token";
 
 function parseAllowedOrigins(env) {
   const raw = env.ALLOWED_ORIGINS || "";
@@ -43,10 +45,29 @@ function jsonResponse(body, status, extraHeaders) {
   });
 }
 
+async function getRefreshToken(env) {
+  if (env.SPOTIFY_KV) {
+    const fromKv = await env.SPOTIFY_KV.get(KV_REFRESH_KEY);
+    if (fromKv) return fromKv;
+  }
+  return env.SPOTIFY_REFRESH_TOKEN;
+}
+
+async function saveRefreshToken(env, refreshToken) {
+  if (!refreshToken) return;
+  if (env.SPOTIFY_KV) {
+    await env.SPOTIFY_KV.put(KV_REFRESH_KEY, refreshToken);
+  }
+}
+
+/**
+ * Refresh access token. Uses Authorization Code style (Basic auth) to match
+ * `npm run spotify:auth`. Persists a new refresh_token to KV when Spotify rotates it.
+ */
 async function refreshAccessToken(env) {
   const clientId = env.SPOTIFY_CLIENT_ID;
   const clientSecret = env.SPOTIFY_CLIENT_SECRET;
-  const refreshToken = env.SPOTIFY_REFRESH_TOKEN;
+  const refreshToken = await getRefreshToken(env);
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Missing Spotify secrets on Worker");
   }
@@ -66,15 +87,20 @@ async function refreshAccessToken(env) {
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error_description || data.error || "Token refresh failed");
+    const msg = data.error_description || data.error || "Token refresh failed";
+    throw new Error(msg);
   }
+
+  if (data.refresh_token) {
+    await saveRefreshToken(env, data.refresh_token);
+  }
+
   return data.access_token;
 }
 
 function pickCoverUrl(album) {
   const images = album?.images || [];
   if (images.length === 0) return "";
-  // Prefer ~300px tile; fall back to largest.
   return images[1]?.url || images[0]?.url || "";
 }
 

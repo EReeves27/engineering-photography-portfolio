@@ -46,12 +46,16 @@ function applyVinylCovers(tracks) {
     const coverUrl = track?.coverUrl ? String(track.coverUrl).trim() : "";
     if (!coverUrl) continue;
 
-    const placeholder = slot.querySelector(".crt-vinyl-art-slot");
-    if (!placeholder) continue;
+    const sleeve = slot.querySelector(".crt-vinyl-sleeve");
+    if (!sleeve) continue;
 
-    const x = placeholder.getAttribute("x");
-    const y = placeholder.getAttribute("y");
-    const size = placeholder.getAttribute("width");
+    const anchor = sleeve.querySelector(".crt-vinyl-art-slot");
+    const ref = anchor || sleeve.querySelector("image.crt-vinyl-cover");
+    if (!ref) continue;
+
+    const x = ref.getAttribute("x");
+    const y = ref.getAttribute("y");
+    const size = ref.getAttribute("width");
     const clipId = "crt-vinyl-live-clip-" + i;
 
     let defs = svg.querySelector("defs.crt-vinyl-live-defs");
@@ -75,12 +79,16 @@ function applyVinylCovers(tracks) {
       defs.appendChild(clip);
     }
 
-    let img = slot.querySelector("image.crt-vinyl-cover");
+    if (anchor) {
+      anchor.remove();
+    }
+
+    let img = sleeve.querySelector("image.crt-vinyl-cover");
     if (!img) {
       img = document.createElementNS("http://www.w3.org/2000/svg", "image");
       img.setAttribute("class", "crt-vinyl-cover");
       img.setAttribute("preserveAspectRatio", "xMidYMid slice");
-      slot.insertBefore(img, placeholder.nextSibling);
+      sleeve.appendChild(img);
     }
 
     img.setAttribute("href", coverUrl);
