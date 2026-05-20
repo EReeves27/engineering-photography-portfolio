@@ -72,8 +72,8 @@ const LAMP = {
   bulbRy: 70,
 };
 const KEYBOARD = { cx: 960, cy: 897, w: 520, h: 120 };
-const MOUSE = { cx: 1270, cy: 895 };
-const MUG = { cx: 1480, cy: 870 };
+const MOUSE = { cx: 1270, cy: 895, ry: 26 };
+const MUG = { cx: 1480, cy: 870, h: 60, footLocalY: 10 };
 const CAT = {
   cx: 550,
   cy: 883,
@@ -167,17 +167,74 @@ function escapeSvgText(s) {
   return escapeSvgAttr(s);
 }
 
-/** Contact-shadow ellipses (cx/cy = center on the desk). */
-const ITEM_SHADOWS = [
-  { cx: SPEAKER.cx, cy: 785, rx: 100, ry: 9 },
-  { cx: MONITOR.cx, cy: 815, rx: 190, ry: 11 },
-  { cx: LAMP.baseCx, cy: 828, rx: 68, ry: 9 },
-  { cx: TOWER.cx, cy: 838, rx: 92, ry: 10 },
-  { cx: KEYBOARD.cx, cy: 958, rx: 290, ry: 10 },
-  { cx: MOUSE.cx, cy: 912, rx: 44, ry: 7 },
-  { cx: MUG.cx, cy: 878, rx: 34, ry: 7 },
-  { cx: CAT.cx, cy: 918, rx: 150, ry: 9 },
-];
+/**
+ * Local Y of the cat's desk-contact point inside the scaled SVG (see cat()).
+ * Shadow tracks CAT.cx / CAT.cy / CAT.scale / CAT.nativeAnchorY.
+ */
+const CAT_DESK_FOOT_LOCAL_Y = 392;
+
+/** Bottom edge for props placed with gAtCenterTopLeft (center cy, height h). */
+function objectBottomY(cy, h) {
+  return cy + h / 2;
+}
+
+/**
+ * Desk contact shadows — recomputed from the layout constants above.
+ * Nudge LAYOUT.offsetX/Y or any object's cx/cy/size and its shadow follows.
+ */
+function buildItemShadows() {
+  const m = MONITOR;
+  return [
+    {
+      cx: SPEAKER.cx,
+      cy: objectBottomY(SPEAKER.cy, SPEAKER.h) + 5,
+      rx: SPEAKER.w * 0.59,
+      ry: 9,
+    },
+    {
+      cx: m.cx,
+      cy: m.cy + m.bezelOuterH / 2 + 55,
+      rx: m.bezelOuterW * 0.46,
+      ry: 11,
+    },
+    {
+      cx: LAMP.baseCx,
+      cy: LAMP.baseCy + 11,
+      rx: 68,
+      ry: 10,
+    },
+    {
+      cx: TOWER.cx,
+      cy: objectBottomY(TOWER.cy, TOWER.h) + 8,
+      rx: TOWER.w * 0.58,
+      ry: 10,
+    },
+    {
+      cx: KEYBOARD.cx,
+      cy: objectBottomY(KEYBOARD.cy, KEYBOARD.h) + 1,
+      rx: KEYBOARD.w * 0.56,
+      ry: 10,
+    },
+    {
+      cx: MOUSE.cx,
+      cy: MOUSE.cy + MOUSE.ry - 9,
+      rx: 44,
+      ry: 7,
+    },
+    {
+      cx: MUG.cx,
+      cy: MUG.cy + MUG.footLocalY,
+      rx: 34,
+      ry: 7,
+    },
+    {
+      cx: CAT.cx,
+      cy: CAT.cy + (CAT_DESK_FOOT_LOCAL_Y - CAT.nativeAnchorY) * CAT.scale,
+      rx: 150,
+      ry: 9,
+    },
+  ];
+}
 
 /** Re-export layout knobs for other modules (e.g. CSS screen alignment). */
 export const CRT_ROOM_LAYOUT = {
@@ -711,7 +768,7 @@ function desk() {
    ───────────────────────────────────────────────────────── */
 function itemShadows() {
   let shadows = '<g class="crt-shadows" opacity=".7">';
-  ITEM_SHADOWS.forEach(function (s) {
+  buildItemShadows().forEach(function (s) {
     shadows += ellipseAt(s.cx, s.cy, s.rx, s.ry, 'fill="#000" opacity=".5"');
   });
   shadows += "</g>";
@@ -787,7 +844,7 @@ function lampGlow() {
 function lampChrome() {
   return gAtCenter(LAMP.baseCx, LAMP.baseCy, "crt-room-decor",
       // Soft contact shadow on the desk beneath the base
-      '<ellipse cx="0" cy="14" rx="62" ry="7" fill="#000" opacity=".4"/>' +
+      '<ellipse cx="0" cy="5" rx="62" ry="15" fill="#000" opacity=".4"/>' +
       // Round weighted base (back rim slightly lighter for a 3D feel)
       '<ellipse cx="0" cy="0"  rx="55" ry="14" fill="#1a120c"/>' +
       '<ellipse cx="0" cy="-3" rx="50" ry="11" fill="#2a1f17"/>' +
@@ -937,7 +994,7 @@ function peripherals() {
     keyboardKeys();
   const mouseInner =
     '<ellipse cx="0" cy="0" rx="38" ry="26" fill="url(#rg-beige)"/>' +
-    '<line x1="-20" y1="-22" x2="-20" y2="0" stroke="#a48553" stroke-width=".8" opacity=".55"/>' +
+    '<line x1="0" y1="-22" x2="0" y2="0" stroke="#a48553" stroke-width=".8" opacity=".55"/>' +
     '<rect x="-3" y="-30" width="6" height="8" rx="1" fill="#3a2418"/>' +
     '<path d="M0 -30 Q70 -55 150 -60 Q210 -65 ' +
     towerPlugX +
