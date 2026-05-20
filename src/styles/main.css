@@ -1126,7 +1126,7 @@ a.res-dl { color: #0d0d1a; }
 .crt-zoom-screen {
   position: absolute;
   z-index: 5;
-  left: calc(49.5vw + (var(--crt-monitor-cx) - var(--crt-vb-cx)) * var(--crt-slice-scale));
+  left: calc(50vw + (var(--crt-monitor-cx) - var(--crt-vb-cx)) * var(--crt-slice-scale));
   top: calc(50vh + (var(--crt-monitor-cy) - var(--crt-vb-cy)) * var(--crt-slice-scale));
   --screen-w0: max(
     calc(var(--crt-screen-w) * 100vw / var(--crt-vb-w)),
