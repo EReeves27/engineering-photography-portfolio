@@ -35,3 +35,5 @@ npm run preview
 Open the URL `preview` prints (assets use the same base path).
 
 For day-to-day dev with hot reload, `npm run dev` still works at `http://localhost:5173/`.
+
+Photo and PDF paths in config use `/photos/…` and `/file.pdf`; the app prefixes them with the Vite `base` via `assetUrl()` in [`src/asset-url.js`](../src/asset-url.js).

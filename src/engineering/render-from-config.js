@@ -10,6 +10,7 @@ import {
   ENG_RESUME,
 } from "./config.js";
 import { applyCrtRoomLayoutVars, crtRoomSceneSvg } from "./crt-room.js";
+import { assetUrl } from "../asset-url.js";
 
 function escapeHtml(s) {
   if (s == null || s === "") return "";
@@ -71,7 +72,7 @@ function thumbInner(card) {
   if (card.thumbnailSrc) {
     return (
       '<img src="' +
-      escapeAttr(card.thumbnailSrc) +
+      escapeAttr(assetUrl(card.thumbnailSrc)) +
       '" alt="' +
       escapeAttr(card.thumbnailAlt || card.title) +
       '" style="width:100%;height:100%;object-fit:cover;">'
@@ -357,7 +358,7 @@ function buildEngHomeInnerHtml() {
 function buildBiographyInnerHtml() {
   const b = ENG_BIOGRAPHY;
   var avatar = b.avatarSrc
-    ? '<img class="bio-page-avatar-img" src="' + escapeAttr(b.avatarSrc) + '" alt="' + escapeAttr(b.avatarAlt || "") + '">'
+    ? '<img class="bio-page-avatar-img" src="' + escapeAttr(assetUrl(b.avatarSrc)) + '" alt="' + escapeAttr(b.avatarAlt || "") + '">'
     : '<div class="bio-page-avatar-placeholder"><i class="ti ti-user"></i></div>';
 
   var story = b.story
@@ -449,7 +450,7 @@ function schematicBlock(s) {
   if (s.kind === "img" && s.src) {
     return (
       '<div class="schematic"><img src="' +
-      escapeAttr(s.src) +
+      escapeAttr(assetUrl(s.src)) +
       '" alt="' +
       escapeAttr(s.alt || "") +
       '" style="max-width:100%;max-height:200px;object-fit:contain;border-radius:8px;"></div>'
@@ -766,7 +767,7 @@ function buildResumeInnerHtml() {
   var dl =
     r.pdfHref ?
       '<a class="res-dl" href="' +
-      escapeAttr(r.pdfHref) +
+      escapeAttr(assetUrl(r.pdfHref)) +
       '" download target="_blank" rel="noopener noreferrer"><i class="ti ti-download"></i> ' +
       escapeHtml(r.downloadLabel) +
       "</a>"

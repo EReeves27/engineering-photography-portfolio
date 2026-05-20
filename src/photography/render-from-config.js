@@ -6,6 +6,7 @@ import {
   PHOTO_CONTACT_GRAD,
   PHOTO_CONTACT_GENERAL,
 } from "./config.js";
+import { assetUrl } from "../asset-url.js";
 
 function escapeHtml(s) {
   if (s == null || s === "") return "";
@@ -47,7 +48,7 @@ function gradTeaserImageBlock() {
   if (g.teaserImageSrc) {
     return (
       '<img src="' +
-      escapeAttr(g.teaserImageSrc) +
+      escapeAttr(assetUrl(g.teaserImageSrc)) +
       '" alt="' +
       escapeAttr(g.teaserImageAlt) +
       '" style="width:100%;height:100%;object-fit:cover;">'
@@ -351,7 +352,7 @@ function buildBioPageInnerHtml() {
     if (photos[i]) {
       return (
         '<div class="bio-pg-photo">' +
-        '<img src="' + escapeAttr(photos[i]) + '" alt="' + escapeHtml(b.name) + '">' +
+        '<img src="' + escapeAttr(assetUrl(photos[i])) + '" alt="' + escapeHtml(b.name) + '">' +
         '</div>'
       );
     }

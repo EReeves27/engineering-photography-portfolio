@@ -1,5 +1,6 @@
 import { CAROUSEL_PHOTOS, SERIES, GRAD_PHOTOS, HOME_PHOTOS, PHOTO_HOME } from "./photography/config.js";
 import { applyCrtRoomLayoutVars } from "./engineering/crt-room.js";
+import { assetUrl } from "./asset-url.js";
 import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
 
 /** Last segment of `folder` (e.g. `/photos/san-sebastian/` → `san-sebastian`). */
@@ -66,7 +67,7 @@ function buildAdaptiveGrid(container, folder, filenames, fallbackCount) {
   var cells = [];
 
   filenames.forEach(function (filename, idx) {
-    var src = folder + filename;
+    var src = assetUrl(folder + filename);
     var cell = document.createElement("div");
     cell.className = "ag-cell";
     cells.push(cell);
@@ -130,7 +131,7 @@ function buildCarousel() {
       var slide = document.createElement("div");
       slide.className = "c-slide";
       var img = document.createElement("img");
-      img.src = p.src;
+      img.src = assetUrl(p.src);
       img.alt = p.caption || "";
       slide.appendChild(img);
       if (p.caption) {
@@ -211,7 +212,7 @@ function buildSeriesCard(s, idx, grid) {
   if (coverBase) {
     mediaHtml =
       '<div class="pho-ser-card-media">' +
-      '<img class="pho-ser-card-img" src="' + s.folder + coverBase + '" alt="' + s.title + '" loading="lazy">' +
+      '<img class="pho-ser-card-img" src="' + assetUrl(s.folder + coverBase) + '" alt="' + s.title + '" loading="lazy">' +
       "</div>";
   } else {
     mediaHtml =
@@ -343,13 +344,13 @@ function mkNext() { mkShowPhoto(mkIdx + 1); mkStartTimer(); }
 function buildHomePhotoCollage() {
   // Collect photo list
   var photos = HOME_PHOTOS && HOME_PHOTOS.length > 0
-    ? HOME_PHOTOS.map(function (p) { return { src: p.src, alt: p.alt || "" }; })
+    ? HOME_PHOTOS.map(function (p) { return { src: assetUrl(p.src), alt: p.alt || "" }; })
     : (function () {
         var picks = [];
         SERIES.forEach(function (s) {
           var imgs = resolvedSeriesImages(s);
           var cover = seriesCardCoverBasename(s, imgs);
-          if (cover) picks.push({ src: s.folder + cover, alt: s.title });
+          if (cover) picks.push({ src: assetUrl(s.folder + cover), alt: s.title });
         });
         return picks;
       })();
@@ -625,7 +626,7 @@ function mountCollagePhotoGallery(grid, folder, filenames, opts) {
   }
 
   filenames.forEach(function (filename) {
-    var src = folder + filename;
+    var src = assetUrl(folder + filename);
     var im = new Image();
     im.onload = function () {
       items.push({ src: src, w: im.naturalWidth, h: im.naturalHeight });
