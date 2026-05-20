@@ -8,10 +8,13 @@ The site is built with Vite and deployed automatically from `main` via GitHub Ac
    - **Source:** GitHub Actions (not “Deploy from a branch”).
 
 2. **Optional — Spotify vinyl on production**  
-   **Settings → Secrets and variables → Actions → Variables**  
-   Add:
-   - Name: `VITE_SPOTIFY_RECENT_URL`  
-   - Value: `https://eng-spotify-vinyl.<your-subdomain>.workers.dev/recent`
+   Repo **Settings → Secrets and variables → Actions** (the top “Actions” row, **not** Settings → Environments).
+
+   Add **either** a **Secret** or **Variable** (both work):
+   - Name: `VITE_SPOTIFY_RECENT_URL`
+   - Value: `https://eng-spotify-vinyl.ethanhreeves.workers.dev/recent` (optional; already default in config)
+
+   Then **Actions → Deploy GitHub Pages → Run workflow** so the site rebuilds with that URL.
 
 3. **Cloudflare Worker CORS** (`spotify-worker/wrangler.toml`) must include:
    - `https://ereeves27.github.io` (no `/engineering-photography-portfolio` path)  

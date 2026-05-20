@@ -584,10 +584,13 @@ export const ENG_RESUME = {
 
 /**
  * Live vinyl cover art from Spotify (via Cloudflare Worker).
- * Set VITE_SPOTIFY_RECENT_URL in .env — see docs/SPOTIFY.md.
+ * Public Worker URL (not secret). Override with VITE_SPOTIFY_RECENT_URL at build if needed.
  */
+const SPOTIFY_WORKER_RECENT_URL =
+  "https://eng-spotify-vinyl.ethanhreeves.workers.dev/recent";
+
 export const ENG_SPOTIFY = {
-  recentUrl: import.meta.env.VITE_SPOTIFY_RECENT_URL || "",
+  recentUrl: import.meta.env.VITE_SPOTIFY_RECENT_URL || SPOTIFY_WORKER_RECENT_URL,
   /** Re-fetch interval (ms); 0 = only on load */
   refreshMs: 5 * 60 * 1000,
 };

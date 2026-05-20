@@ -1,7 +1,8 @@
 # Build Vite app and deploy dist/ to GitHub Pages.
 # Repo Settings → Pages → Source: "GitHub Actions"
-# Optional: Settings → Secrets and variables → Actions → Variable
-#   VITE_SPOTIFY_RECENT_URL = https://eng-spotify-vinyl.<subdomain>.workers.dev/recent
+# Optional: Settings → Secrets and variables → Actions (repo level, not Environments)
+#   Secret or Variable: VITE_SPOTIFY_RECENT_URL
+#   Value: https://eng-spotify-vinyl.ethanhreeves.workers.dev/recent
 
 name: Deploy GitHub Pages
 
@@ -38,7 +39,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SPOTIFY_RECENT_URL: ${{ vars.VITE_SPOTIFY_RECENT_URL }}
+          VITE_SPOTIFY_RECENT_URL: ${{ secrets.VITE_SPOTIFY_RECENT_URL || vars.VITE_SPOTIFY_RECENT_URL }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -84,6 +84,7 @@ function applyVinylCovers(tracks) {
     }
 
     img.setAttribute("href", coverUrl);
+    img.setAttributeNS("http://www.w3.org/1999/xlink", "href", coverUrl);
     img.setAttribute("x", x);
     img.setAttribute("y", y);
     img.setAttribute("width", size);
