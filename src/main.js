@@ -2,6 +2,7 @@ import "./styles/main.css";
 import { initApp } from "./app.js";
 import { mountPhotographyFromConfig } from "./photography/render-from-config.js";
 import { mountEngineeringFromConfig } from "./engineering/render-from-config.js";
+import { initSpotifyVinyl } from "./engineering/spotify-vinyl.js";
 
 import homeTop from "./shared/home-top.html?raw";
 import homeClose from "./shared/home-close.html?raw";
@@ -39,4 +40,5 @@ document.getElementById("app").innerHTML = [
 
 mountEngineeringFromConfig();
 mountPhotographyFromConfig();
+initSpotifyVinyl();
 initApp();

@@ -7,10 +7,291 @@
  *  so it scales naturally with the room when the camera flies in.
  *
  *  Coordinate system: 1920 × 1080 viewBox. The monitor screen center sits at
- *  viewBox (960, 540) so xMidYMid-slice rendering keeps it in the viewport
+ *  MONITOR.cx / MONITOR.cy so xMidYMid-slice rendering keeps it in the viewport
  *  center regardless of viewport aspect ratio.
  * =============================================================================
  */
+
+const VIEW = { w: 1920, h: 1080 };
+
+/**
+ * Global nudge for every anchored prop (desk items + wall decor). Change only
+ * offsetX / offsetY to move the whole cluster together.
+ */
+const LAYOUT = {
+  offsetX: 0,
+  offsetY: 0,
+};
+
+const DESK = {
+  surfaceY: 780,
+  glowCx: 1100,
+  glowCy: 930,
+  glowRx: 540,
+  glowRy: 180,
+};
+
+/** Interactive screen + bezel; HTML overlay aligns to this center. */
+const MONITOR = {
+  cx: 960,
+  cy: 600,
+  screenW: 340,
+  screenH: 250,
+  bezelOuterW: 412,
+  bezelOuterH: 320,
+  bezelInnerW: 360,
+  bezelInnerH: 268,
+  standNeckW: 60,
+  standNeckH: 14,
+};
+
+const WINDOW = {
+  cx: 340,
+  cy: 370,
+  outerW: 468,
+  outerH: 528,
+  innerW: 440,
+  innerH: 500,
+  glassW: 420,
+  glassH: 490,
+  sillW: 480,
+};
+
+const SPEAKER = { cx: 535, cy: 660, w: 170, h: 240 };
+const TOWER = { cx: 1580, cy: 685, w: 160, h: 290 };
+const LAMP = {
+  baseCx: 1380,
+  baseCy: 812,
+  poolCx: 1050,
+  poolCy: 880,
+  poolRx: 500,
+  poolRy: 190,
+  bulbCx: 1200,
+  bulbCy: 510,
+  bulbRx: 120,
+  bulbRy: 70,
+};
+const KEYBOARD = { cx: 960, cy: 897, w: 520, h: 120 };
+const MOUSE = { cx: 1270, cy: 895 };
+const MUG = { cx: 1480, cy: 870 };
+const CAT = {
+  cx: 550,
+  cy: 883,
+  scale: 0.55,
+  nativeAnchorX: 400,
+  nativeAnchorY: 340,
+};
+
+const WALL_SHELF = { cx: 1260, cy: 567, w: 1120, h: 14 };
+
+/** Spine labels for books — edit here or set BOOKS[i].title after load. */
+const BOOK_PLACEHOLDER_TITLES = [
+  "If Cats Disappeared from the World",
+  "Filler",
+  "Filler",
+  "Filler",
+  "Filler",
+  "Filler",
+  "Filler",
+  "Filler",
+  "Filler",
+  "The Three-Body Problem",
+  "hmm what is this??",
+  "The Dark Forest",
+  "Death's End",
+  "Dark Matter",
+  "Pines",
+  "Wayward",
+  "The Last Town",
+  "Crazy Rich Asians",
+  "Project Hail Mary",
+  "The Martian",
+  "Ready Player One",
+  "Starter Villain"
+];
+
+function buildShelfBooks(shelf) {
+  const books = [];
+  const left = shelf.cx - shelf.w / 2 + 14;
+  const right = shelf.cx + shelf.w / 2 - 14;
+  const colors = [
+    "#6b3a2a", "#2a4a6a", "#3d5c3a", "#5a3a6a", "#7a4a2a",
+    "#2a5a5a", "#4a3a2a", "#3a3a5a", "#6a4a3a", "#2a3a4a",
+    "#5c4030", "#3a5268", "#4a5c38", "#6a3a50",
+  ];
+  let x = left;
+  let i = 0;
+  while (x < right - 8) {
+    const spineW = 45 + (i * 3) % 6;
+    const h = 150 + (i * 5) % 10;
+    books.push({
+      x: x + spineW * 0.5,
+      spineW,
+      h,
+      color: colors[i % colors.length],
+      title: BOOK_PLACEHOLDER_TITLES[i % BOOK_PLACEHOLDER_TITLES.length],
+    });
+    x += spineW + 2 + (i % 3);
+    i += 1;
+  }
+  return books;
+}
+
+/**
+ * Books on the wall shelf — spines face the viewer (toward the room).
+ * `x` = horizontal center of the spine along the shelf (viewBox coords).
+ */
+const BOOKS = buildShelfBooks(WALL_SHELF);
+
+/**
+ * Vinyl cubbies — single top row; cover art is a perfect square (`size` × `size`).
+ * Live covers: Spotify via initSpotifyVinyl() (see docs/SPOTIFY.md).
+ * Static fallback: set `imageHref`, e.g. "/images/vinyl/my-album.jpg" (under `public/`).
+ */
+const VINYL_WALL = [
+  { cx: 720, cy: 200, size: 180, imageHref: "" },
+  { cx: 950, cy: 200, size: 180, imageHref: "" },
+  { cx: 1180, cy: 200, size: 180, imageHref: "" },
+  { cx: 1410, cy: 200, size: 180, imageHref: "" },
+  { cx: 1640, cy: 200, size: 180, imageHref: "" },
+];
+
+function escapeSvgAttr(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
+}
+
+function escapeSvgText(s) {
+  return escapeSvgAttr(s);
+}
+
+/** Contact-shadow ellipses (cx/cy = center on the desk). */
+const ITEM_SHADOWS = [
+  { cx: SPEAKER.cx, cy: 785, rx: 100, ry: 9 },
+  { cx: MONITOR.cx, cy: 815, rx: 190, ry: 11 },
+  { cx: LAMP.baseCx, cy: 828, rx: 68, ry: 9 },
+  { cx: TOWER.cx, cy: 838, rx: 92, ry: 10 },
+  { cx: KEYBOARD.cx, cy: 958, rx: 290, ry: 10 },
+  { cx: MOUSE.cx, cy: 912, rx: 44, ry: 7 },
+  { cx: MUG.cx, cy: 878, rx: 34, ry: 7 },
+  { cx: CAT.cx, cy: 918, rx: 150, ry: 9 },
+];
+
+/** Re-export layout knobs for other modules (e.g. CSS screen alignment). */
+export const CRT_ROOM_LAYOUT = {
+  LAYOUT,
+  VIEW,
+  MONITOR,
+  DESK,
+  WALL_SHELF,
+  BOOKS,
+  VINYL_WALL,
+};
+
+/**
+ * Push monitor screen geometry into CSS custom properties so `.crt-zoom-screen`
+ * tracks MONITOR.cx/cy + screen size under xMidYMid slice (same math as the SVG).
+ * @param {HTMLElement} root — typically `#eng-stack-experience`
+ */
+export function applyCrtRoomLayoutVars(root) {
+  if (!root) return;
+  var m = MONITOR;
+  var vbCx = VIEW.w / 2;
+  var vbCy = VIEW.h / 2;
+  root.style.setProperty("--crt-vb-w", String(VIEW.w));
+  root.style.setProperty("--crt-vb-h", String(VIEW.h));
+  root.style.setProperty("--crt-vb-cx", String(vbCx));
+  root.style.setProperty("--crt-vb-cy", String(vbCy));
+  root.style.setProperty("--crt-monitor-cx", String(worldX(m.cx)));
+  root.style.setProperty("--crt-monitor-cy", String(worldY(m.cy)));
+  root.style.setProperty("--crt-screen-w", String(m.screenW));
+  root.style.setProperty("--crt-screen-h", String(m.screenH));
+}
+
+function worldX(x) {
+  return x + LAYOUT.offsetX;
+}
+
+function worldY(y) {
+  return y + LAYOUT.offsetY;
+}
+
+function gAtCenter(cx, cy, className, content) {
+  const cls = className ? ' class="' + className + '"' : "";
+  return (
+    "<g" +
+    cls +
+    ' transform="translate(' +
+    worldX(cx) +
+    "," +
+    worldY(cy) +
+    ')">' +
+    content +
+    "</g>"
+  );
+}
+
+/** Local origin at top-left of a w×h box centered on (cx, cy). */
+function gAtCenterTopLeft(cx, cy, w, h, className, content) {
+  const cls = className ? ' class="' + className + '"' : "";
+  const x = worldX(cx) - w / 2;
+  const y = worldY(cy) - h / 2;
+  return (
+    "<g" +
+    cls +
+    ' transform="translate(' +
+    x +
+    "," +
+    y +
+    ')">' +
+    content +
+    "</g>"
+  );
+}
+
+function rectFromCenter(cx, cy, w, h, extraAttrs) {
+  return (
+    '<rect x="' +
+    (worldX(cx) - w / 2) +
+    '" y="' +
+    (worldY(cy) - h / 2) +
+    '" width="' +
+    w +
+    '" height="' +
+    h +
+    '" ' +
+    (extraAttrs || "") +
+    "/>"
+  );
+}
+
+function ellipseAt(cx, cy, rx, ry, extraAttrs) {
+  return (
+    '<ellipse cx="' +
+    worldX(cx) +
+    '" cy="' +
+    worldY(cy) +
+    '" rx="' +
+    rx +
+    '" ry="' +
+    ry +
+    '" ' +
+    (extraAttrs || "") +
+    "/>"
+  );
+}
+
+function monitorScreenRect(extraAttrs) {
+  return rectFromCenter(
+    MONITOR.cx,
+    MONITOR.cy,
+    MONITOR.screenW,
+    MONITOR.screenH,
+    extraAttrs || 'class="crt-monitor-screen-bg" fill="#0a1a08"'
+  );
+}
 
 /**
  * Build the SVG room scene. The decorative monitor "screen" inside the SVG
@@ -35,7 +316,7 @@ export function crtRoomSceneSvg() {
       monitorFrame() +
       // Decorative dark green screen inside the monitor — the HTML overlay
       // will sit precisely on top of this rectangle at zoom=0 and grow from it.
-      '<rect class="crt-monitor-screen-bg" x="800" y="420" width="320" height="240" fill="#0a1a08"/>' +
+      monitorScreenRect() +
       peripherals() +
       cat() +
       mug() +
@@ -118,10 +399,18 @@ function defs() {
         '<stop offset="0%" stop-color="#ffb35a" stop-opacity=".35"/>' +
         '<stop offset="100%" stop-color="#ffb35a" stop-opacity="0"/>' +
       '</radialGradient>' +
-      // Clip path for window interior — keeps clouds / sun / ocean inside the frame
+      // Clip path for window interior — tracks WINDOW layout + LAYOUT offset
       '<clipPath id="rg-window-clip">' +
-        '<rect x="130" y="130" width="420" height="490"/>' +
-      '</clipPath>' +
+        '<rect x="' +
+        (worldX(WINDOW.cx) - WINDOW.glassW / 2) +
+        '" y="' +
+        (worldY(WINDOW.cy) - WINDOW.glassH / 2) +
+        '" width="' +
+        WINDOW.glassW +
+        '" height="' +
+        WINDOW.glassH +
+        '"/>' +
+      "</clipPath>" +
       // Soft drop-shadow under desk items
       '<radialGradient id="rg-shadow" cx="50%" cy="50%" r="50%">' +
         '<stop offset="0%" stop-color="#000" stop-opacity=".55"/>' +
@@ -163,176 +452,228 @@ function backdrop() {
 
 /* ── Window with beach/sunset view ────────────────────────── */
 function window() {
-  // Window frame at x=120..560, y=120..620. Everything that lives
-  // INSIDE the glass goes inside the clipped <g> so animated clouds
-  // and sun-pulse can't escape into the wall.
+  const w = WINDOW;
+  const glassX = worldX(w.cx) - w.glassW / 2;
+  const glassY = worldY(w.cy) - w.glassH / 2;
+  const sunCx = w.glassW / 2;
+  const sunCy = 300;
   return (
     '<g class="crt-room-decor crt-window">' +
-      // Outer dark frame
-      '<rect x="106" y="106" width="468" height="528" fill="#0c0805" rx="4"/>' +
-      // Inner sash frame
-      '<rect x="120" y="120" width="440" height="500" fill="#0e0a06" rx="2"/>' +
-
-      // --- Everything inside the glass is clipped to the window interior ---
+      rectFromCenter(w.cx, w.cy, w.outerW, w.outerH, 'fill="#0c0805" rx="4"') +
+      rectFromCenter(w.cx, w.cy, w.innerW, w.innerH, 'fill="#0e0a06" rx="2"') +
       '<g clip-path="url(#rg-window-clip)">' +
-        // Sky
-        '<rect x="130" y="130" width="420" height="320" fill="url(#rg-sunset)"/>' +
-        // Sun glow + disk (low on horizon)
-        '<circle class="crt-sun-glow" cx="340" cy="430" r="120" fill="url(#rg-sun)" opacity=".75"/>' +
-        '<ellipse cx="340" cy="430" rx="60" ry="38" fill="#fff8dc" opacity=".95"/>' +
-        // Distant cloud silhouettes (animated drift via CSS — now clipped)
-        '<g class="crt-clouds" opacity=".55">' +
-          '<ellipse class="crt-cloud crt-cloud--a" cx="200" cy="220" rx="60" ry="9" fill="#4a2238"/>' +
-          '<ellipse class="crt-cloud crt-cloud--b" cx="420" cy="180" rx="80" ry="11" fill="#3a1830"/>' +
-          '<ellipse class="crt-cloud crt-cloud--c" cx="320" cy="260" rx="50" ry="7" fill="#5a2840"/>' +
-        '</g>' +
-        // Sun reflection rays
-        '<g stroke="#fff8dc" stroke-width=".6" opacity=".4">' +
-          '<line x1="340" y1="430" x2="180" y2="430"/>' +
-          '<line x1="340" y1="430" x2="500" y2="430"/>' +
-        '</g>' +
-        // Ocean
-        '<rect x="130" y="450" width="420" height="120" fill="url(#rg-ocean)"/>' +
-        // Sun reflection streak on ocean
-        '<g opacity=".7">' +
-          '<rect x="328" y="450" width="24" height="120" fill="#ffb35a" opacity=".3"/>' +
-          '<rect x="332" y="460" width="16" height="100" fill="#fff8dc" opacity=".25"/>' +
-          '<g class="crt-sparkle">' +
-            '<rect x="318" y="478" width="44" height="2" fill="#fff8dc" opacity=".6"/>' +
-            '<rect x="324" y="498" width="32" height="2" fill="#fff8dc" opacity=".5"/>' +
-            '<rect x="320" y="518" width="40" height="2" fill="#fff8dc" opacity=".55"/>' +
-            '<rect x="328" y="540" width="24" height="2" fill="#fff8dc" opacity=".4"/>' +
-          '</g>' +
-        '</g>' +
-        // Beach sand strip at the bottom
-        '<rect x="130" y="570" width="420" height="50" fill="#5a3a20"/>' +
-      '</g>' +
-
-      // Mullions (drawn AFTER glass so they sit on top of the clouds/sun)
-      '<rect x="338" y="120" width="6" height="500" fill="#1a120c"/>' +
-      '<rect x="120" y="368" width="440" height="6" fill="#1a120c"/>' +
-      // Windowsill
-      '<rect x="100" y="620" width="480" height="14" fill="#3a2418"/>' +
-      '<rect x="100" y="630" width="480" height="6" fill="#1a100a"/>' +
-    '</g>'
+        '<g transform="translate(' + glassX + "," + glassY + ')">' +
+          '<rect x="0" y="0" width="' + w.glassW + '" height="320" fill="url(#rg-sunset)"/>' +
+          '<circle class="crt-sun-glow" cx="' + sunCx + '" cy="' + sunCy + '" r="120" fill="url(#rg-sun)" opacity=".75"/>' +
+          '<ellipse cx="' + sunCx + '" cy="' + sunCy + '" rx="60" ry="38" fill="#fff8dc" opacity=".95"/>' +
+          '<g class="crt-clouds" opacity=".55">' +
+            '<ellipse class="crt-cloud crt-cloud--a" cx="70" cy="90" rx="60" ry="9" fill="#4a2238"/>' +
+            '<ellipse class="crt-cloud crt-cloud--b" cx="290" cy="50" rx="80" ry="11" fill="#3a1830"/>' +
+            '<ellipse class="crt-cloud crt-cloud--c" cx="190" cy="130" rx="50" ry="7" fill="#5a2840"/>' +
+          "</g>" +
+          '<g stroke="#fff8dc" stroke-width=".6" opacity=".4">' +
+            '<line x1="' + sunCx + '" y1="' + sunCy + '" x2="' + (sunCx - 160) + '" y2="' + sunCy + '"/>' +
+            '<line x1="' + sunCx + '" y1="' + sunCy + '" x2="' + (sunCx + 160) + '" y2="' + sunCy + '"/>' +
+          "</g>" +
+          '<rect x="0" y="320" width="' + w.glassW + '" height="120" fill="url(#rg-ocean)"/>' +
+          '<g opacity=".7">' +
+            '<rect x="' + (sunCx - 12) + '" y="320" width="24" height="120" fill="#ffb35a" opacity=".3"/>' +
+            '<rect x="' + (sunCx - 8) + '" y="330" width="16" height="100" fill="#fff8dc" opacity=".25"/>' +
+            '<g class="crt-sparkle">' +
+              '<rect x="' + (sunCx - 22) + '" y="348" width="44" height="2" fill="#fff8dc" opacity=".6"/>' +
+              '<rect x="' + (sunCx - 16) + '" y="368" width="32" height="2" fill="#fff8dc" opacity=".5"/>' +
+              '<rect x="' + (sunCx - 20) + '" y="388" width="40" height="2" fill="#fff8dc" opacity=".55"/>' +
+              '<rect x="' + (sunCx - 12) + '" y="410" width="24" height="2" fill="#fff8dc" opacity=".4"/>' +
+            "</g>" +
+          "</g>" +
+          '<rect x="0" y="440" width="' + w.glassW + '" height="50" fill="#5a3a20"/>' +
+        "</g>" +
+      "</g>" +
+      '<rect x="' + (worldX(w.cx) - 2) + '" y="' + (worldY(w.cy) - w.innerH / 2) + '" width="6" height="' + w.innerH + '" fill="#1a120c"/>' +
+      '<rect x="' + (worldX(w.cx) - w.innerW / 2) + '" y="' + (worldY(w.cy) + 248 - w.innerH / 2) + '" width="' + w.innerW + '" height="6" fill="#1a120c"/>' +
+      rectFromCenter(w.cx, w.cy + 262, w.sillW, 14, 'fill="#3a2418"') +
+      rectFromCenter(w.cx, w.cy + 269, w.sillW, 6, 'fill="#1a100a"') +
+    "</g>"
   );
 }
 
-/* ── Wall decor: poster grid + shelf with cassettes ───────── */
+/* ── Wall decor: vinyl cubbies + bookshelf ─────────────────── */
 function wallDecor() {
-  // Posters on the right side of the wall (right of monitor's wall area)
-  const posters = [
-    // Row 1
-    { x: 700, y: 110, w: 130, h: 180, bg: '#9c3a4a', label: 'NMOS' },
-    { x: 850, y: 100, w: 150, h: 200, bg: '#2a4a8a', label: 'RISC-V' },
-    { x: 1020, y: 120, w: 140, h: 180, bg: '#c8783a', label: 'K-MAP' },
-    { x: 1180, y: 90, w: 150, h: 210, bg: '#3a8a4a', label: 'SKY130' },
-    { x: 1350, y: 110, w: 130, h: 180, bg: '#6a4a8a', label: 'VERILOG' },
-    { x: 1500, y: 100, w: 150, h: 200, bg: '#c83a6a', label: 'CMOS' },
-    { x: 1670, y: 120, w: 140, h: 180, bg: '#5a8a8a', label: 'PIPELINE' },
-    // Row 2 (offset slightly)
-    { x: 720, y: 320, w: 140, h: 170, bg: '#3a2a5a', label: 'SYNTH 84' },
-    { x: 880, y: 330, w: 130, h: 160, bg: '#aa5a2a', label: 'ARCADE' },
-    { x: 1030, y: 320, w: 150, h: 170, bg: '#2a6a6a', label: 'GRID' },
-    { x: 1200, y: 330, w: 140, h: 160, bg: '#8a3a3a', label: 'NEON' },
-    { x: 1360, y: 320, w: 140, h: 170, bg: '#5a3a8a', label: 'COSMOS' },
-    { x: 1520, y: 330, w: 150, h: 160, bg: '#3a8a6a', label: 'WAVE' },
-    { x: 1690, y: 320, w: 130, h: 170, bg: '#aa6a3a', label: 'GEO' },
-  ];
+  let vinylSvg = "";
+  VINYL_WALL.forEach(function (slot, i) {
+    vinylSvg += vinylWallSlot(slot, i);
+  });
 
-  let postersSvg = '';
-  posters.forEach((p, i) => {
-    postersSvg += (
-      '<g class="crt-poster" transform="translate(' + p.x + ',' + p.y + ')">' +
-        // Drop shadow
-        '<rect x="2" y="3" width="' + p.w + '" height="' + p.h + '" fill="#000" opacity=".4" rx="2"/>' +
-        // Poster body
-        '<rect x="0" y="0" width="' + p.w + '" height="' + p.h + '" fill="' + p.bg + '" rx="2"/>' +
-        // Inner border
-        '<rect x="6" y="6" width="' + (p.w - 12) + '" height="' + (p.h - 12) + '" fill="none" stroke="#000" stroke-width=".8" opacity=".35"/>' +
-        // Poster artwork (simple decorative shapes — alternating styles for variety)
-        posterArt(p, i) +
-        // Label
-        '<rect x="6" y="' + (p.h - 28) + '" width="' + (p.w - 12) + '" height="22" fill="#000" opacity=".55"/>' +
-        '<text x="' + (p.w / 2) + '" y="' + (p.h - 13) + '" text-anchor="middle" font-family="DM Mono, monospace" font-size="11" fill="#fff" letter-spacing="2">' + p.label + '</text>' +
-      '</g>'
-    );
+  const shelf = WALL_SHELF;
+  const shelfTopY = shelf.cy - shelf.h / 2;
+  let booksSvg = "";
+  BOOKS.forEach(function (book) {
+    booksSvg += bookSpine(book, shelfTopY);
   });
 
   return (
     '<g class="crt-room-decor">' +
-      postersSvg +
-      // Shelf well below the lower poster row (posters end at y≈490; the
-      // shelf sits at y=560 so the cassettes don't overlap the posters).
-      '<rect x="700" y="560" width="1120" height="14" fill="#3a2418"/>' +
-      '<rect x="700" y="572" width="1120" height="4" fill="#1a100a"/>' +
-      // Shelf bracket shadows
-      '<rect x="700" y="558" width="1120" height="3" fill="#5a3a20"/>' +
-      // Cassettes sit on the shelf (bottom of each cassette stack = shelf top y=560)
-      cassettes(720,  560) +
-      cassettes(950,  560) +
-      cassettes(1180, 560) +
-      cassettes(1410, 560) +
-      cassettes(1640, 560) +
-    '</g>'
+      vinylSvg +
+      rectFromCenter(shelf.cx, shelf.cy, shelf.w, shelf.h, 'fill="#3a2418"') +
+      rectFromCenter(shelf.cx, shelf.cy + 12, shelf.w, 4, 'fill="#1a100a"') +
+      rectFromCenter(shelf.cx, shelf.cy - 2, shelf.w, 3, 'fill="#5a3a20"') +
+      booksSvg +
+    "</g>"
   );
 }
 
-function posterArt(p, i) {
-  const cx = p.w / 2;
-  const cy = (p.h - 30) / 2 + 4;
-  const accent = '#fff';
-  // Three styles cycled
-  const style = i % 3;
-  if (style === 0) {
-    // Grid / pipeline style
-    return (
-      '<g stroke="' + accent + '" stroke-width="1.2" fill="none" opacity=".85">' +
-        '<rect x="' + (cx - 30) + '" y="' + (cy - 18) + '" width="20" height="20" rx="1"/>' +
-        '<rect x="' + (cx - 4) + '" y="' + (cy - 18) + '" width="20" height="20" rx="1"/>' +
-        '<rect x="' + (cx + 22) + '" y="' + (cy - 18) + '" width="20" height="20" rx="1"/>' +
-        '<line x1="' + (cx - 10) + '" y1="' + (cy - 8) + '" x2="' + (cx - 4) + '" y2="' + (cy - 8) + '"/>' +
-        '<line x1="' + (cx + 16) + '" y1="' + (cy - 8) + '" x2="' + (cx + 22) + '" y2="' + (cy - 8) + '"/>' +
-      '</g>'
-    );
+/** Wall cubby with a square record sleeve (cover via VINYL_WALL[].imageHref). */
+function vinylWallSlot(slot, index) {
+  const cover = slot.size;
+  const pad = 8;
+  const lipH = 10;
+  const frameW = cover + pad * 2;
+  const frameH = cover + pad * 2 + lipH;
+  const px = worldX(slot.cx) - frameW / 2;
+  const py = worldY(slot.cy) - frameH / 2;
+  const coverX = pad;
+  const coverY = pad;
+  const lipY = coverY + cover;
+  const href = slot.imageHref ? String(slot.imageHref).trim() : "";
+  const clipId = "crt-vinyl-clip-" + index;
+
+  let sleeveSvg =
+    '<rect class="crt-vinyl-art-slot" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" fill="#1c1c22" stroke="#0a0a0e" stroke-width="1" rx="1"/>' +
+    '<rect x="' + (coverX + 4) + '" y="' + (coverY + 4) + '" width="' + (cover - 8) + '" height="' + (cover - 8) + '" fill="#2a2a34" rx=".5"/>';
+  if (href) {
+    sleeveSvg =
+      '<defs><clipPath id="' + clipId + '"><rect x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" rx="1"/></clipPath></defs>' +
+      '<rect x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" fill="#1c1c22" rx="1"/>' +
+      '<image class="crt-vinyl-cover" href="' + escapeSvgAttr(href) + '" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#' + clipId + ')"/>';
   }
-  if (style === 1) {
-    // Synthwave sun + grid
-    return (
-      '<g fill="' + accent + '" opacity=".88">' +
-        '<circle cx="' + cx + '" cy="' + (cy - 4) + '" r="20"/>' +
-        '<rect x="' + (cx - 22) + '" y="' + (cy - 6) + '" width="44" height="2"/>' +
-        '<rect x="' + (cx - 22) + '" y="' + (cy - 1) + '" width="44" height="2"/>' +
-        '<rect x="' + (cx - 22) + '" y="' + (cy + 4) + '" width="44" height="2"/>' +
-        '<rect x="' + (cx - 22) + '" y="' + (cy + 9) + '" width="44" height="2"/>' +
-      '</g>'
-    );
-  }
-  // style 2: gate / waveform abstract
+
   return (
-    '<g stroke="' + accent + '" stroke-width="1.4" fill="none" opacity=".88" stroke-linecap="round">' +
-      '<path d="M' + (cx - 28) + ' ' + cy + ' h12 v-10 h10 v10 h-10 v10 h-10 z"/>' +
-      '<path d="M' + (cx - 6) + ' ' + cy + ' q8 -12 16 0 q8 12 16 0"/>' +
-    '</g>'
+    '<g class="crt-vinyl-slot" data-vinyl-idx="' + index + '" transform="translate(' + px + "," + py + ')">' +
+      '<rect x="2" y="3" width="' + frameW + '" height="' + frameH + '" fill="#000" opacity=".35" rx="2"/>' +
+      '<rect x="0" y="0" width="' + frameW + '" height="' + frameH + '" fill="#2a1810" rx="2"/>' +
+      '<rect x="4" y="4" width="' + (frameW - 8) + '" height="' + (frameH - 8) + '" fill="#3a2418" rx="1"/>' +
+      sleeveSvg +
+      '<rect x="' + (pad - 1) + '" y="' + lipY + '" width="' + (cover + 2) + '" height="6" fill="#4a3020" rx=".5"/>' +
+      '<rect x="' + coverX + '" y="' + (lipY + 6) + '" width="' + cover + '" height="4" fill="#120a06" opacity=".7" rx=".5"/>' +
+    "</g>"
   );
 }
 
-function cassettes(x, y) {
+/** Spine label font size from binding width (not shortened for long titles). */
+function spineFontSize(spineW) {
+  return Math.min(11, Math.max(8, spineW * 0.42));
+}
+
+/** Approximate horizontal text width before −90° rotation (≈ length along the spine). */
+function spineTextWidth(str, fontSize) {
+  return String(str).length * (fontSize * 0.62 + 0.35);
+}
+
+/** Break a title into lines that fit along the spine height; split long words if needed. */
+function wrapSpineTitle(title, spineH, fontSize) {
+  const maxLinePx = Math.max(fontSize * 2, spineH - 8);
+  const words = title.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = "";
+
+  function pushLine(line) {
+    if (line) lines.push(line);
+  }
+
+  function pushWord(word) {
+    if (spineTextWidth(word, fontSize) <= maxLinePx) {
+      pushLine(word);
+      return;
+    }
+    let chunk = "";
+    for (let i = 0; i < word.length; i += 1) {
+      const next = chunk + word[i];
+      if (spineTextWidth(next, fontSize) <= maxLinePx) {
+        chunk = next;
+      } else {
+        pushLine(chunk);
+        chunk = word[i];
+      }
+    }
+    pushLine(chunk);
+  }
+
+  words.forEach(function (word) {
+    const test = current ? current + " " + word : word;
+    if (spineTextWidth(test, fontSize) <= maxLinePx) {
+      current = test;
+    } else {
+      if (current) pushLine(current);
+      current = "";
+      if (spineTextWidth(word, fontSize) <= maxLinePx) {
+        current = word;
+      } else {
+        pushWord(word);
+      }
+    }
+  });
+  if (current) pushLine(current);
+  return lines;
+}
+
+/** SVG for spine title: wraps along the spine and stacks extra lines in columns. */
+function spineLabelSvg(x, spineTopY, spineW, spineH, title) {
+  const fontSize = spineFontSize(spineW);
+  const lines = wrapSpineTitle(title, spineH, fontSize);
+  if (lines.length === 0) return "";
+
+  const colStep = fontSize + 3;
+  const maxCols = Math.max(
+    1,
+    Math.min(lines.length, Math.floor((spineW - 2) / colStep))
+  );
+  const cols = [];
+  let c = 0;
+  for (let i = 0; i < maxCols; i += 1) cols.push([]);
+  lines.forEach(function (line) {
+    cols[c].push(line);
+    c = (c + 1) % maxCols;
+  });
+
+  const lineGap = 2;
+  const spineBottom = spineTopY + spineH;
+  const pad = 4;
+  let out = "";
+
+  for (let col = 0; col < maxCols; col += 1) {
+    const colLines = cols[col];
+    if (colLines.length === 0) continue;
+    const xCol =
+      x - ((maxCols - 1) * colStep) / 2 + col * colStep;
+    let cursor = spineBottom - pad;
+    colLines.forEach(function (line) {
+      const lw = spineTextWidth(line, fontSize);
+      const lineY = cursor - lw / 2;
+      cursor -= lw + lineGap;
+      out +=
+        '<text x="' + xCol + '" y="' + lineY + '" transform="rotate(-90 ' + xCol + " " + lineY + ')" text-anchor="middle" font-family="DM Mono, monospace" font-size="' + fontSize + '" fill="rgba(255,255,255,.88)" letter-spacing=".35">' +
+        escapeSvgText(line) +
+        "</text>";
+    });
+  }
+  return out;
+}
+
+/** Upright book with spine toward the viewer; optional spine title. */
+function bookSpine(book, shelfTopY) {
+  const x = worldX(book.x);
+  const w = book.spineW;
+  const h = book.h;
+  const y = worldY(shelfTopY) - h;
+  const title = book.title != null ? String(book.title).trim() : "";
+  const labelSvg = title ? spineLabelSvg(x, y, w, h, title) : "";
   return (
-    '<g transform="translate(' + x + ',' + y + ')">' +
-      // 3 cassettes stacked
-      '<rect x="0"  y="-22" width="80" height="22" fill="#2a1f17" rx="1"/>' +
-      '<rect x="6"  y="-18" width="68" height="14" fill="#d8a86c" rx="1"/>' +
-      '<rect x="20" y="-15" width="40" height="8" fill="#3a2418" rx=".5"/>' +
-
-      '<rect x="0"  y="-44" width="80" height="22" fill="#2a1f17" rx="1"/>' +
-      '<rect x="6"  y="-40" width="68" height="14" fill="#c89858" rx="1"/>' +
-      '<rect x="20" y="-37" width="40" height="8" fill="#3a2418" rx=".5"/>' +
-
-      '<rect x="0"  y="-66" width="80" height="22" fill="#2a1f17" rx="1"/>' +
-      '<rect x="6"  y="-62" width="68" height="14" fill="#e0b878" rx="1"/>' +
-      '<rect x="20" y="-59" width="40" height="8" fill="#3a2418" rx=".5"/>' +
-    '</g>'
+    '<g class="crt-book">' +
+      '<rect x="' + (x - w / 2) + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + book.color + '" rx=".5"/>' +
+      '<rect x="' + (x - w / 2 + 1) + '" y="' + y + '" width="1.5" height="' + h + '" fill="rgba(255,255,255,.14)"/>' +
+      '<rect x="' + (x - w / 2) + '" y="' + (y - 2) + '" width="' + w + '" height="2" fill="#e6dcc8" rx=".3"/>' +
+      labelSvg +
+    "</g>"
   );
 }
 
@@ -359,8 +700,7 @@ function desk() {
       '<rect x="0" y="1012" width="1920" height="14" fill="#1a0c06"/>' +
       // Below the desk — darker "floor / under-desk" zone
       '<rect x="0" y="1026" width="1920" height="54" fill="#0c0604"/>' +
-      // Warm desk pool from lamp (large soft ellipse on the desk surface)
-      '<ellipse cx="1100" cy="930" rx="540" ry="180" fill="url(#rg-desk-glow)"/>' +
+      ellipseAt(DESK.glowCx, DESK.glowCy, DESK.glowRx, DESK.glowRy, 'fill="url(#rg-desk-glow)"') +
     '</g>'
   );
 }
@@ -370,32 +710,17 @@ function desk() {
    the items so the items render on top of their own shadows.
    ───────────────────────────────────────────────────────── */
 function itemShadows() {
-  return (
-    '<g class="crt-shadows" opacity=".7">' +
-      // Speaker (left of monitor)
-      '<ellipse cx="445"  cy="785" rx="100" ry="9"  fill="#000" opacity=".55"/>' +
-      // Monitor stand
-      '<ellipse cx="960"  cy="775" rx="190" ry="11" fill="#000" opacity=".5"/>' +
-      // Lamp base
-      '<ellipse cx="1380" cy="828" rx="68"  ry="9"  fill="#000" opacity=".55"/>' +
-      // Tower
-      '<ellipse cx="1580" cy="838" rx="92"  ry="10" fill="#000" opacity=".55"/>' +
-      // Keyboard
-      '<ellipse cx="960"  cy="958" rx="290" ry="10" fill="#000" opacity=".45"/>' +
-      // Mouse
-      '<ellipse cx="1350" cy="912" rx="44"  ry="7"  fill="#000" opacity=".45"/>' +
-      // Mug
-      '<ellipse cx="1480" cy="876" rx="34"  ry="7"  fill="#000" opacity=".5"/>' +
-      // Cat — curled (footprint at world x≈516..714, paws at y≈895)
-      '<ellipse cx="615"  cy="905" rx="110" ry="9" fill="#000" opacity=".45"/>' +
-    '</g>'
-  );
+  let shadows = '<g class="crt-shadows" opacity=".7">';
+  ITEM_SHADOWS.forEach(function (s) {
+    shadows += ellipseAt(s.cx, s.cy, s.rx, s.ry, 'fill="#000" opacity=".5"');
+  });
+  shadows += "</g>";
+  return shadows;
 }
 
 /* ── Speaker (left of monitor) + plant on top ────────────── */
 function speaker() {
-  return (
-    '<g class="crt-room-decor" transform="translate(360, 540)">' +
+  return gAtCenterTopLeft(SPEAKER.cx, SPEAKER.cy, SPEAKER.w, SPEAKER.h, "crt-room-decor",
       // Plant pot (sitting on top of the speaker — speaker top is at local y=0,
       // pot is 60 tall so we translate up by -60 to seat it on the speaker).
       '<g transform="translate(-12, -60)">' +
@@ -412,16 +737,14 @@ function speaker() {
         '</g>' +
       '</g>' +
       // Speaker body (3D-ish with subtle shading)
-      '<rect x="0" y="0" width="170" height="240" fill="#1a120c" rx="3"/>' +
-      '<rect x="2" y="2" width="166" height="236" fill="#241812" rx="2"/>' +
-      // Tweeter (top circle)
-      '<circle cx="85" cy="50" r="22" fill="#0a0604"/>' +
-      '<circle cx="85" cy="50" r="18" fill="none" stroke="#3a2418" stroke-width="1"/>' +
-      '<circle cx="85" cy="50" r="6" fill="#3a2418"/>' +
-      // Woofer (bottom circle)
-      '<circle cx="85" cy="160" r="50" fill="#0a0604"/>' +
-      '<circle cx="85" cy="160" r="42" fill="none" stroke="#3a2418" stroke-width="1"/>' +
-      '<circle cx="85" cy="160" r="14" fill="#3a2418"/>' +
+      '<rect x="0" y="0" width="' + SPEAKER.w + '" height="' + SPEAKER.h + '" fill="#1a120c" rx="3"/>' +
+      '<rect x="2" y="2" width="' + (SPEAKER.w - 4) + '" height="' + (SPEAKER.h - 4) + '" fill="#241812" rx="2"/>' +
+      '<circle cx="' + (SPEAKER.w / 2) + '" cy="50" r="22" fill="#0a0604"/>' +
+      '<circle cx="' + (SPEAKER.w / 2) + '" cy="50" r="18" fill="none" stroke="#3a2418" stroke-width="1"/>' +
+      '<circle cx="' + (SPEAKER.w / 2) + '" cy="50" r="6" fill="#3a2418"/>' +
+      '<circle cx="' + (SPEAKER.w / 2) + '" cy="160" r="50" fill="#0a0604"/>' +
+      '<circle cx="' + (SPEAKER.w / 2) + '" cy="160" r="42" fill="none" stroke="#3a2418" stroke-width="1"/>' +
+      '<circle cx="' + (SPEAKER.w / 2) + '" cy="160" r="14" fill="#3a2418"/>' +
       // LED level meter — bars sit inside a small dark display housing so
       // they read as a screen mounted on the speaker, not floating shapes.
       '<g transform="translate(110, 100)">' +
@@ -439,35 +762,30 @@ function speaker() {
         '</g>' +
       '</g>' +
       // Brand text
-      '<text x="20" y="232" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="2">HAN INC.</text>' +
-    '</g>'
+      '<text x="20" y="232" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="2">HAN INC.</text>'
   );
 }
 
 /* ── Lamp ──────────────────────────────────────────────────── */
 function lampGlow() {
-  // Two glows: one at the shade (the bulb itself, small + intense) and
-  // a larger pool on the desk where the cone of light actually falls.
-  // The shade sits at world (1270, 470) tilted down-left; the pool sits
-  // on the desk surface in front of the monitor.
   return (
     '<g class="crt-lamp-glow">' +
-      // Wide warm pool on the desk
-      '<ellipse cx="1050" cy="880" rx="500" ry="190" fill="url(#rg-lamp)"/>' +
-      // Hot bulb glow at the shade opening
-      '<ellipse class="crt-bulb-glow" cx="1200" cy="510" rx="120" ry="70" fill="url(#rg-lamp)" opacity=".85"/>' +
-    '</g>'
+      ellipseAt(LAMP.poolCx, LAMP.poolCy, LAMP.poolRx, LAMP.poolRy, 'fill="url(#rg-lamp)"') +
+      '<ellipse class="crt-bulb-glow" cx="' +
+      worldX(LAMP.bulbCx) +
+      '" cy="' +
+      worldY(LAMP.bulbCy) +
+      '" rx="' +
+      LAMP.bulbRx +
+      '" ry="' +
+      LAMP.bulbRy +
+      '" fill="url(#rg-lamp)" opacity=".85"/>' +
+    "</g>"
   );
 }
 
 function lampChrome() {
-  // Lamp now sits on the right side of the desk, between the monitor and the
-  // tower. The arm rises up and arches LEFT so the shade hangs above-right of
-  // the monitor (it no longer crosses the screen).
-  return (
-    // Lamp base sits on the desk: center at world y=812 → base ellipse
-    // spans world y=798..826 (entirely on the desk surface y>780).
-    '<g class="crt-room-decor" transform="translate(1380, 812)">' +
+  return gAtCenter(LAMP.baseCx, LAMP.baseCy, "crt-room-decor",
       // Soft contact shadow on the desk beneath the base
       '<ellipse cx="0" cy="14" rx="62" ry="7" fill="#000" opacity=".4"/>' +
       // Round weighted base (back rim slightly lighter for a 3D feel)
@@ -493,20 +811,18 @@ function lampChrome() {
         '<path d="M-44 -8 L44 -8 L42 0 L-42 0 Z" fill="#5a2812"/>' +
         // Bulb glow strip seen from below the shade
         '<rect x="-55" y="58" width="110" height="5" fill="#fff6c8" opacity=".9"/>' +
-      '</g>' +
-    '</g>'
+      "</g>"
   );
 }
 
 /* ── Computer tower (far right on desk) ───────────────────── */
 function tower() {
-  return (
-    '<g class="crt-room-decor" transform="translate(1500, 540)">' +
-      // Main body
-      '<rect x="0" y="0" width="160" height="290" fill="url(#rg-beige)" rx="3"/>' +
-      // Inset shading lines for depth
-      '<rect x="0" y="0" width="2" height="290" fill="#fff" opacity=".25"/>' +
-      '<rect x="158" y="0" width="2" height="290" fill="#000" opacity=".15"/>' +
+  const tw = TOWER.w;
+  const th = TOWER.h;
+  return gAtCenterTopLeft(TOWER.cx, TOWER.cy, tw, th, "crt-room-decor",
+      '<rect x="0" y="0" width="' + tw + '" height="' + th + '" fill="url(#rg-beige)" rx="3"/>' +
+      '<rect x="0" y="0" width="2" height="' + th + '" fill="#fff" opacity=".25"/>' +
+      '<rect x="' + (tw - 2) + '" y="0" width="2" height="' + th + '" fill="#000" opacity=".15"/>' +
       // 5.25" drive bay
       '<rect x="20" y="22" width="120" height="18" fill="#0c0805" rx="1"/>' +
       '<rect x="24" y="26" width="100" height="10" fill="#1a120c"/>' +
@@ -526,69 +842,113 @@ function tower() {
       '<rect x="20" y="120" width="120" height="20" fill="none" stroke="#3a2418" stroke-width=".8"/>' +
       '<text x="80" y="134" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#3a2418" letter-spacing="3">Han-Reeves</text>' +
       // Power button
-      '<circle cx="130" cy="260" r="10" fill="#3a2418"/>' +
-      '<circle cx="130" cy="260" r="7" fill="url(#rg-beige)"/>' +
-      // Power LED
-      '<circle class="crt-led" cx="30" cy="260" r="3.5" fill="#8be07f" opacity=".9"/>' +
-      '<text x="42" y="263" font-family="DM Mono, monospace" font-size="8" fill="#3a2418">PWR</text>' +
-    '</g>'
+      '<circle cx="' + (tw - 30) + '" cy="' + (th - 30) + '" r="10" fill="#3a2418"/>' +
+      '<circle cx="' + (tw - 30) + '" cy="' + (th - 30) + '" r="7" fill="url(#rg-beige)"/>' +
+      '<circle class="crt-led" cx="30" cy="' + (th - 30) + '" r="3.5" fill="#8be07f" opacity=".9"/>' +
+      '<text x="42" y="' + (th - 27) + '" font-family="DM Mono, monospace" font-size="8" fill="#3a2418">PWR</text>'
   );
 }
 
-/* ── Monitor frame around the screen ───────────────────────
-   Screen rectangle (the live HTML overlay coincides with this):
-     x=800..1120, y=420..660  →  320 × 240, center (960, 540)
-   The bezel + inner ring are sized so the screen sits centered
-   inside them (with 26px of bezel padding all around).
-   ──────────────────────────────────────────────────────── */
+/* ── Monitor frame around the screen (all geometry from MONITOR center) ─ */
 function monitorFrame() {
+  const m = MONITOR;
+  const mx = worldX(m.cx);
+  const my = worldY(m.cy);
+  const bezelBottom = my + m.bezelOuterH / 2;
   return (
     '<g class="crt-monitor-decor">' +
-      // Stand base (trapezoid + plate) — sits below the new bezel bottom (y=716)
-      '<path d="M860 716 L1060 716 L1080 754 L840 754 Z" fill="#a48553"/>' +
-      '<rect x="800" y="754" width="320" height="14" fill="#7a5e2e" rx="3"/>' +
-      '<rect x="804" y="766" width="312" height="6" fill="#3a2812"/>' +
-      // Stand neck (between bezel bottom and stand base)
-      '<rect x="930" y="701" width="60" height="14" fill="#c2a474"/>' +
-      // Monitor bezel — re-centered so its center matches the screen rect (960, 540).
-      // Outer bezel: 412 × 320 → x=754..1166, y=380..700.
-      '<rect x="754" y="380" width="412" height="320" fill="url(#rg-beige)" rx="22"/>' +
-      // Inner deep bezel ring (cavity around the screen) — 360 × 268, centered.
-      '<rect x="780" y="406" width="360" height="268" fill="#1a120c" rx="14"/>' +
-      // Glossy highlight along the top of the bezel
-      '<rect x="760" y="386" width="400" height="4" fill="#fff" opacity=".3" rx="2"/>' +
-      // Bezel logo (just above the bezel bottom edge)
-      '<text x="960" y="694" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="3">ADell</text>' +
-      // Power LED on bezel
-      '<circle class="crt-led" cx="1100" cy="690" r="3" fill="#8be07f"/>' +
-    '</g>'
+      '<path d="M' +
+      (mx - 100) +
+      " " +
+      bezelBottom +
+      " L" +
+      (mx + 100) +
+      " " +
+      bezelBottom +
+      " L" +
+      (mx + 120) +
+      " " +
+      (bezelBottom + 38) +
+      " L" +
+      (mx - 120) +
+      " " +
+      (bezelBottom + 38) +
+      ' Z" fill="#a48553"/>' +
+      '<rect x="' +
+      (mx - m.screenW / 2) +
+      '" y="' +
+      (bezelBottom + 38) +
+      '" width="' +
+      m.screenW +
+      '" height="14" fill="#7a5e2e" rx="3"/>' +
+      '<rect x="' +
+      (mx - m.screenW / 2 + 4) +
+      '" y="' +
+      (bezelBottom + 50) +
+      '" width="' +
+      (m.screenW - 8) +
+      '" height="6" fill="#3a2812"/>' +
+      '<rect x="' +
+      (mx - m.standNeckW / 2) +
+      '" y="' +
+      (bezelBottom - 15) +
+      '" width="' +
+      m.standNeckW +
+      '" height="' +
+      m.standNeckH +
+      '" fill="#c2a474"/>' +
+      rectFromCenter(m.cx, m.cy, m.bezelOuterW, m.bezelOuterH, 'fill="url(#rg-beige)" rx="22"') +
+      rectFromCenter(m.cx, m.cy, m.bezelInnerW, m.bezelInnerH, 'fill="#1a120c" rx="14"') +
+      '<rect x="' +
+      (mx - m.bezelOuterW / 2 + 6) +
+      '" y="' +
+      (my - m.bezelOuterH / 2 + 6) +
+      '" width="' +
+      (m.bezelOuterW - 12) +
+      '" height="4" fill="#fff" opacity=".3" rx="2"/>' +
+      '<text x="' +
+      mx +
+      '" y="' +
+      (bezelBottom - 6) +
+      '" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="3">ADell</text>' +
+      '<circle class="crt-led" cx="' +
+      (mx + m.bezelOuterW / 2 - 54) +
+      '" cy="' +
+      (bezelBottom - 10) +
+      '" r="3" fill="#8be07f"/>' +
+    "</g>"
   );
 }
 
 /* ── Keyboard + mouse ─────────────────────────────────────── */
 function peripherals() {
+  const k = KEYBOARD;
+  const towerPlugX = worldX(TOWER.cx) - TOWER.w / 2 - worldX(MOUSE.cx);
+  const towerPlugY = worldY(DESK.surfaceY + 20) - worldY(MOUSE.cy);
+  const keyboardInner =
+    '<rect x="0" y="0" width="' +
+    k.w +
+    '" height="' +
+    k.h +
+    '" fill="url(#rg-beige)" rx="6"/>' +
+    '<rect x="0" y="0" width="' +
+    k.w +
+    '" height="3" fill="#fff" opacity=".25" rx="2"/>' +
+    keyboardKeys();
+  const mouseInner =
+    '<ellipse cx="0" cy="0" rx="38" ry="26" fill="url(#rg-beige)"/>' +
+    '<line x1="-20" y1="-22" x2="-20" y2="0" stroke="#a48553" stroke-width=".8" opacity=".55"/>' +
+    '<rect x="-3" y="-30" width="6" height="8" rx="1" fill="#3a2418"/>' +
+    '<path d="M0 -30 Q70 -55 150 -60 Q210 -65 ' +
+    towerPlugX +
+    " " +
+    towerPlugY +
+    '" stroke="#3a2418" stroke-width="2" fill="none" stroke-linecap="round"/>';
   return (
     '<g class="crt-room-decor">' +
-      // Keyboard body
-      '<g transform="translate(700, 830)">' +
-        '<rect x="0" y="0" width="520" height="120" fill="url(#rg-beige)" rx="6"/>' +
-        '<rect x="0" y="0" width="520" height="3" fill="#fff" opacity=".25" rx="2"/>' +
-        // Key matrix (simplified rows)
-        keyboardKeys() +
-      '</g>' +
-      // Mouse + cord — cord arcs up and right to plug into the tower base.
-      '<g transform="translate(1270, 880)">' +
-        // Mouse body + button-divider line
-        '<ellipse cx="0" cy="0" rx="38" ry="26" fill="url(#rg-beige)"/>' +
-        '<line x1="-20" y1="-22" x2="-20" y2="0" stroke="#a48553" stroke-width=".8" opacity=".55"/>' +
-        // Cable strain-relief stub on the mouse
-        '<rect x="-3" y="-30" width="6" height="8" rx="1" fill="#3a2418"/>' +
-        // Cord: gentle S-curve up and to the right, terminating at the
-        // bottom-left corner of the tower (world ~(1500, 800), which is
-        // (230, -80) relative to the mouse origin).
-        '<path d="M0 -30 Q70 -55 150 -60 Q210 -65 230 -80" stroke="#3a2418" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '</g>' +
-    '</g>'
+    gAtCenterTopLeft(k.cx, k.cy, k.w, k.h, "crt-room-decor", keyboardInner) +
+    gAtCenter(MOUSE.cx, MOUSE.cy, "crt-room-decor", mouseInner) +
+    "</g>"
   );
 }
 
@@ -619,16 +979,11 @@ function keyboardKeys() {
 
 /* ── Cat (sleeping, curled on desk) ───────────────────────── */
 function cat() {
-  // SleepingCat — curled snowshoe Siamese on the desk. The illustration is
-  // authored in its own (800 × 520) native coordinate space; we wrap it in
-  // a translate+scale so it sits on our desk between the speaker and the
-  // keyboard. Native cat center (400, 340) → our viewport (597, 863).
-  //
-  // Skipped from the original SleepingCat module: the desk surface, the
-  // cat bed/cushion, the cast shadow filter, and the coffee mug — those
-  // already exist in our scene.
+  const c = CAT;
+  const tx = worldX(c.cx) - c.nativeAnchorX * c.scale;
+  const ty = worldY(c.cy) - c.nativeAnchorY * c.scale;
   return (
-    '<g class="crt-cat-wrap" transform="translate(417, 710) scale(0.45)">' +
+    '<g class="crt-cat-wrap" transform="translate(' + tx + "," + ty + ") scale(" + c.scale + ')">' +
       '<g class="sc-breathe">' +
         // ── TAIL: dark seal-point, curled around the back ──
         '<path d="M 580 340 C 640 320, 660 290, 630 260 C 600 235, 550 240, 520 270 C 495 295, 490 320, 510 340 Z" fill="#5a3a26"/>' +
@@ -728,23 +1083,168 @@ function cat() {
   );
 }
 
+/* === OLD STRETCHED-CAT CODE (replaced by SleepingCat above) ===
+   The previous brown stretched-cat implementation has been removed.
+   The block below was the in-progress edit that defined it; it is
+   intentionally left empty so the build still picks up the new cat. */
+function _catLegacyStretched_removed() {
+  // Brown snowshoe cat, stretched out on the desk with head resting on its
+  // extended front paws. Anchor at world (480, 880); cat extends right.
+  //
+  // Body length tightened from ~310 → ~250 wide.
+  // Paw anatomy fleshed out with visible legs, toe separators, toe beans,
+  // and subtle claw hints — both front paws and back paw.
+  //
+  // The TAIL flick uses SMIL <animateTransform> instead of CSS keyframes:
+  // SMIL composes correctly with the parent's CSS scale (the breathing
+  // animation on .crt-cat), so the tail no longer drifts off-axis.
+  return (
+    '<g class="crt-cat-anchor" transform="translate(480, 880)">' +
+    '<g class="crt-cat">' +
+      // ── BACK HAUNCH (drawn first; body overlaps onto it) ──
+      '<ellipse cx="190" cy="-18" rx="32" ry="38" fill="#6a4220"/>' +
+
+      // ── BODY — shorter stretched sausage lying flat on the desk ──
+      '<path d="' +
+        'M 30 22'  +              // belly-front under the head
+        ' Q 0 8 22 -22' +          // shoulder rise
+        ' Q 70 -50 130 -50' +      // back top (flat stretch)
+        ' Q 175 -50 198 -32' +     // up to rear haunch
+        ' Q 218 0 195 22' +        // around the rump to desk
+        ' L 30 22' +
+        ' Z' +
+      '" fill="#6a4220"/>' +
+
+      // Darker saddle along the spine
+      '<path d="' +
+        'M 60 -46' +
+        ' Q 130 -56 195 -40' +
+        ' Q 207 -26 188 -22' +
+        ' Q 130 -22 60 -26' +
+        ' Q 48 -40 60 -46' +
+        ' Z' +
+      '" fill="#4a2a14" opacity=".65"/>' +
+
+      // Cream belly strip visible along the bottom of the body
+      '<ellipse cx="115" cy="20" rx="85" ry="7" fill="#e8d4ac"/>' +
+
+      // ── BACK LEG + PAW (rump area, more defined) ──
+      // Upper back-leg curl visible above the paw
+      '<path d="M 180 -10 Q 195 0 215 12 Q 200 18 175 12 Z" fill="#5a3622"/>' +
+      // Back paw
+      '<ellipse cx="200" cy="22" rx="26" ry="8" fill="#f1e4cc"/>' +
+      // Toe separators on back paw
+      '<g stroke="#9a8870" stroke-width="1.1" opacity=".85">' +
+        '<line x1="183" y1="17" x2="183" y2="28"/>' +
+        '<line x1="192" y1="16" x2="192" y2="28"/>' +
+        '<line x1="201" y1="16" x2="201" y2="28"/>' +
+        '<line x1="210" y1="17" x2="210" y2="28"/>' +
+      '</g>' +
+      // Toe beans on back paw
+      '<g fill="#a8755a" opacity=".75">' +
+        '<ellipse cx="179" cy="25" rx="2.6" ry="1.8"/>' +
+        '<ellipse cx="188" cy="26" rx="2.6" ry="1.8"/>' +
+        '<ellipse cx="197" cy="26" rx="2.6" ry="1.8"/>' +
+        '<ellipse cx="206" cy="26" rx="2.6" ry="1.8"/>' +
+        '<ellipse cx="215" cy="25" rx="2.6" ry="1.8"/>' +
+      '</g>' +
+
+      // ── FRONT LEG (visible coming down from the body to the paws) ──
+      '<path d="M 25 6 Q 8 12 -15 16 L -22 20 Q 5 18 22 14 Z" fill="#5a3622"/>' +
+      // Second front leg shadow (further/behind leg)
+      '<path d="M 30 8 Q 18 14 -2 17 L -8 21 Q 14 19 30 16 Z" fill="#4a2812" opacity=".65"/>' +
+
+      // ── FRONT PAWS extended forward (head sits on these) ──
+      // Far paw (behind, slightly darker)
+      '<ellipse cx="-22" cy="21" rx="32" ry="7" fill="#e0ccac"/>' +
+      // Near paw (in front)
+      '<ellipse cx="-20" cy="24" rx="38" ry="8" fill="#f1e4cc"/>' +
+      // Toe separators on near paw — 5 toes, deeper definition
+      '<g stroke="#9a8870" stroke-width="1.2" opacity=".9">' +
+        '<line x1="-50" y1="19" x2="-50" y2="30"/>' +
+        '<line x1="-40" y1="18" x2="-40" y2="30"/>' +
+        '<line x1="-30" y1="17" x2="-30" y2="30"/>' +
+        '<line x1="-20" y1="17" x2="-20" y2="30"/>' +
+        '<line x1="-10" y1="18" x2="-10" y2="30"/>' +
+      '</g>' +
+      // Toe beans (pads) on near paw
+      '<g fill="#a8755a" opacity=".8">' +
+        '<ellipse cx="-54" cy="27" rx="2.8" ry="1.9"/>' +
+        '<ellipse cx="-45" cy="28" rx="2.8" ry="1.9"/>' +
+        '<ellipse cx="-35" cy="28.5" rx="2.8" ry="1.9"/>' +
+        '<ellipse cx="-25" cy="28.5" rx="2.8" ry="1.9"/>' +
+        '<ellipse cx="-15" cy="28" rx="2.8" ry="1.9"/>' +
+        '<ellipse cx="-5"  cy="27" rx="2.8" ry="1.9"/>' +
+      '</g>' +
+      // Tiny claw hints peeking from the front edge
+      '<g stroke="#3a2418" stroke-width=".9" opacity=".55" stroke-linecap="round">' +
+        '<line x1="-54" y1="30" x2="-56" y2="33"/>' +
+        '<line x1="-45" y1="31" x2="-47" y2="34"/>' +
+        '<line x1="-35" y1="32" x2="-37" y2="35"/>' +
+        '<line x1="-25" y1="32" x2="-27" y2="35"/>' +
+        '<line x1="-15" y1="31" x2="-17" y2="34"/>' +
+      '</g>' +
+
+      // ── HEAD — resting on the front paws ──
+      '<g transform="translate(8, 0)">' +
+        '<ellipse cx="0" cy="6" rx="32" ry="15" fill="#6a4220"/>' +
+        '<path d="M-32 -4 Q-30 -30 0 -34 Q30 -30 32 -4 Q26 12 0 12 Q-26 12 -32 -4 Z" fill="#3a2418"/>' +
+        '<path d="M-22 -10 Q0 -24 22 -10 Q12 -6 0 -6 Q-12 -6 -22 -10 Z" fill="#4a2e1a" opacity=".7"/>' +
+        '<path d="M-28 -18 L-36 -44 L-12 -30 Z" fill="#2a1810"/>' +
+        '<path d="M28 -18 L36 -44 L12 -30 Z" fill="#2a1810"/>' +
+        '<path d="M-26 -22 L-30 -36 L-18 -30 Z" fill="#a8755a"/>' +
+        '<path d="M26 -22 L30 -36 L18 -30 Z" fill="#a8755a"/>' +
+        '<ellipse cx="0" cy="6" rx="15" ry="9" fill="#f1e4cc"/>' +
+        '<path d="M-3.5 3 L3.5 3 L0 8 Z" fill="#2a1408"/>' +
+        '<path class="crt-cat-eye" d="M-16 -4 Q-11 -1 -6 -4" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+        '<path class="crt-cat-eye" d="M6 -4 Q11 -1 16 -4" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+        '<path d="M-4 9 Q0 12 4 9" stroke="#1a0e08" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+        '<g stroke="#fff" stroke-width="1" opacity=".9">' +
+          '<line x1="-34" y1="6"  x2="-12" y2="6"/>' +
+          '<line x1="-34" y1="10" x2="-12" y2="9"/>' +
+          '<line x1="34"  y1="6"  x2="12"  y2="6"/>' +
+          '<line x1="34"  y1="10" x2="12"  y2="9"/>' +
+        '</g>' +
+      '</g>' +
+
+      // ── TAIL ── SMIL animateTransform rotates around (0,0) of the
+      //   tail group's local coords, which is the tail base. This avoids
+      //   the CSS-vs-parent-transform mismatch that made the tail fly off.
+      '<g transform="translate(210, -22)">' +
+        '<g class="crt-cat-tail">' +
+          '<animateTransform attributeName="transform" attributeType="XML" type="rotate"' +
+            ' values="0; 0; 0; -7; 4; -2; 0"' +
+            ' keyTimes="0; 0.78; 0.83; 0.88; 0.92; 0.96; 1"' +
+            ' dur="9s" repeatCount="indefinite" />' +
+          '<path d="M0 0 Q45 -25 25 -65 Q5 -100 -50 -85" stroke="#4a2a14" stroke-width="22" fill="none" stroke-linecap="round"/>' +
+          '<circle cx="-50" cy="-85" r="13" fill="#1a0e08"/>' +
+        '</g>' +
+      '</g>' +
+
+      // ── Sleepy "z" glyphs above the head ──
+      '<g class="crt-cat-zzz" font-family="DM Mono, monospace" fill="#d49a3a" opacity=".85">' +
+        '<text class="crt-zzz crt-zzz--1" x="36" y="-66"  font-size="22">z</text>' +
+        '<text class="crt-zzz crt-zzz--2" x="56" y="-86"  font-size="17">z</text>' +
+        '<text class="crt-zzz crt-zzz--3" x="74" y="-104" font-size="13">z</text>' +
+      '</g>' +
+    '</g>' +  // close .crt-cat (animation wrapper)
+    '</g>'   // close .crt-cat-anchor (positional wrapper)
+  );
+}
 
 /* ── Coffee mug with rising steam ─────────────────────────── */
 function mug() {
-  return (
-    '<g class="crt-room-decor" transform="translate(1480, 860)">' +
-      // Mug body
-      '<rect x="-26" y="-50" width="52" height="60" fill="#5a3a20" rx="3"/>' +
+  return gAtCenter(
+    MUG.cx,
+    MUG.cy,
+    "crt-room-decor",
+    '<rect x="-26" y="-50" width="52" height="60" fill="#5a3a20" rx="3"/>' +
       '<rect x="-22" y="-46" width="44" height="6" fill="#3a2418"/>' +
-      // Handle
       '<path d="M26 -36 Q44 -36 44 -20 Q44 -4 26 -4" stroke="#5a3a20" stroke-width="6" fill="none"/>' +
-      // Coffee inside (visible rim)
       '<ellipse cx="0" cy="-46" rx="22" ry="4" fill="#2a1408"/>' +
-      // Steam
       '<g class="crt-steam" fill="none" stroke="#fff" stroke-width="2" opacity=".4" stroke-linecap="round">' +
-        '<path class="crt-steam-curl crt-steam-curl--a" d="M-10 -58 Q-14 -76 -6 -90 Q2 -104 -6 -118"/>' +
-        '<path class="crt-steam-curl crt-steam-curl--b" d="M6 -58 Q10 -78 2 -94 Q-6 -108 4 -124"/>' +
-      '</g>' +
-    '</g>'
+      '<path class="crt-steam-curl crt-steam-curl--a" d="M-10 -58 Q-14 -76 -6 -90 Q2 -104 -6 -118"/>' +
+      '<path class="crt-steam-curl crt-steam-curl--b" d="M6 -58 Q10 -78 2 -94 Q-6 -108 4 -124"/>' +
+      "</g>"
   );
 }

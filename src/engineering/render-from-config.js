@@ -9,7 +9,7 @@ import {
   ENG_PAGE_RE,
   ENG_RESUME,
 } from "./config.js";
-import { crtRoomSceneSvg } from "./crt-room.js";
+import { applyCrtRoomLayoutVars, crtRoomSceneSvg } from "./crt-room.js";
 
 function escapeHtml(s) {
   if (s == null || s === "") return "";
@@ -95,7 +95,7 @@ function bootPanelHtml() {
   return (
     '<div class="stack-layer-panel is-active" data-layer="boot" data-domain="boot">' +
       '<div class="crt-boot">' + boot + '</div>' +
-      '<div class="crt-prompt"><span class="crt-cursor">_</span>' + escapeHtml(c.promptHint) + '</div>' +
+      '<div class="crt-prompt">' + escapeHtml(c.promptHint) + '<span class="crt-cursor">_</span></div>' +
       '<div class="crt-scroll-cue"><i class="ti ti-chevron-down"></i> Scroll to zoom into the stack</div>' +
     '</div>'
   );
@@ -808,6 +808,7 @@ function buildResumeInnerHtml() {
 export function mountEngineeringFromConfig() {
   var pe = document.getElementById("pe");
   if (pe) pe.innerHTML = buildEngHomeInnerHtml();
+  applyCrtRoomLayoutVars(document.getElementById("eng-stack-experience"));
 
   var sw = document.getElementById("page-sw");
   if (sw) sw.innerHTML =

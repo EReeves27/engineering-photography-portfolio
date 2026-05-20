@@ -1038,6 +1038,17 @@ a.res-dl { color: #0d0d1a; }
   --stack-progress: 0;
   --stack-chrome: 1;
 
+  /* Monitor screen sync (applyCrtRoomLayoutVars overwrites from crt-room.js). */
+  --crt-vb-w: 1920;
+  --crt-vb-h: 1080;
+  --crt-vb-cx: 960;
+  --crt-vb-cy: 540;
+  --crt-monitor-cx: 960;
+  --crt-monitor-cy: 600;
+  --crt-screen-w: 340;
+  --crt-screen-h: 250;
+  --crt-slice-scale: max(calc(100vw / var(--crt-vb-w)), calc(100vh / var(--crt-vb-h)));
+
   position: relative;
   background:
     radial-gradient(ellipse at 50% 25%, rgba(212, 154, 58, .08) 0%, transparent 55%),
@@ -1088,38 +1099,38 @@ a.res-dl { color: #0d0d1a; }
 }
 
 /* Camera fly-in: scale the entire SVG up to 8x as --zoom-progress goes 0→1.
-   transform-origin matches the SVG's monitor screen center (viewBox 960,540)
-   which xMidYMid-slice always maps to the viewport center. The whole SVG
-   fades out by zoom≈0.7 so the HTML screen overlay cleanly takes over. */
+   transform-origin is the monitor center in viewport space (xMidYMid slice).
+   The whole SVG fades out by zoom≈0.7 so the HTML screen overlay takes over. */
 .crt-room-svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  transform-origin: 50% 50%;
+  transform-origin:
+    calc(50vw + (var(--crt-monitor-cx) - var(--crt-vb-cx)) * var(--crt-slice-scale))
+    calc(50vh + (var(--crt-monitor-cy) - var(--crt-vb-cy)) * var(--crt-slice-scale));
   transform: scale(calc(1 + var(--zoom-progress, 0) * 7));
   opacity: clamp(0, calc(1 - var(--zoom-progress, 0) * 1.4), 1);
   will-change: transform, opacity;
 }
 
 /* ── Zoom screen (HTML overlay on top of the SVG monitor) ────
-   At zoom=0 the screen exactly overlaps the SVG monitor's screen
-   rectangle (viewBox 320×240 at viewport center). At zoom=1 it
-   fills the viewport. Width/height interpolate via --zoom-progress.
-
-   The SVG renders with xMidYMid slice; its scale factor along each
-   axis is max(vw/1920, vh/1080). So the SVG monitor screen renders
-   at 320 × scale_factor wide. We approximate that with max(16.7vw, 29.6vh)
-   and similarly for height. (These two values are equal at a 16:9
-   viewport and respect "cover" behavior on off-aspect viewports.)
+   At zoom=0 overlaps the SVG screen rect; at zoom=1 fills the viewport.
+   Position/size follow --crt-* vars from applyCrtRoomLayoutVars (MONITOR).
    ──────────────────────────────────────────────────────────── */
 .crt-zoom-screen {
   position: absolute;
   z-index: 5;
-  top: 50%; left: 50%;
-  /* --screen-w0 / --screen-h0 = the monitor's on-screen size at zoom=0. */
-  --screen-w0: max(16.7vw, 29.6vh);
-  --screen-h0: max(12.5vw, 22.2vh);
+  left: calc(49.5vw + (var(--crt-monitor-cx) - var(--crt-vb-cx)) * var(--crt-slice-scale));
+  top: calc(50vh + (var(--crt-monitor-cy) - var(--crt-vb-cy)) * var(--crt-slice-scale));
+  --screen-w0: max(
+    calc(var(--crt-screen-w) * 100vw / var(--crt-vb-w)),
+    calc(var(--crt-screen-w) * 100vh / var(--crt-vb-h))
+  );
+  --screen-h0: max(
+    calc(var(--crt-screen-h) * 100vw / var(--crt-vb-w)),
+    calc(var(--crt-screen-h) * 100vh / var(--crt-vb-h))
+  );
   width: calc(var(--screen-w0) + (min(96vw, 1400px) - var(--screen-w0)) * var(--zoom-progress, 0));
   height: calc(var(--screen-h0) + (min(82vh, 880px) - var(--screen-h0)) * var(--zoom-progress, 0));
   transform: translate(-50%, -50%);
@@ -1213,7 +1224,7 @@ a.res-dl { color: #0d0d1a; }
   opacity: 0; animation: crt-boot-line .35s ease-out .95s forwards;
 }
 .crt-cursor {
-  display: inline-block; margin-right: 6px;
+  display: inline-block; margin-left: 6px;
   animation: crt-cursor 1s steps(1) infinite;
 }
 @keyframes crt-cursor { 50% { opacity: 0; } }
@@ -1596,10 +1607,6 @@ a.res-dl { color: #0d0d1a; }
 @media (max-width: 560px) {
   .stack-layer-panel { padding: 14px 16px; }
   .stack-progress-tick { width: 22px; font-size: 9px; }
-  .crt-zoom-screen {
-    width: calc(300px + (96vw - 300px) * var(--stack-progress, 0));
-    height: calc(190px + (74vh - 190px) * var(--stack-progress, 0));
-  }
 }
 
 /* ══════════════════════════════════════════════════════════════

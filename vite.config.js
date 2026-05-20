@@ -46,8 +46,21 @@ function seriesAlbumImagesPlugin() {
   };
 }
 
+// GitHub project site: https://ereeves27.github.io/engineering-photography-portfolio/
+const repoBase = "/engineering-photography-portfolio/";
+
 export default defineConfig({
+  base: repoBase,
   root: ".",
   publicDir: "public",
   plugins: [seriesAlbumImagesPlugin()],
+  server: {
+    proxy: {
+      "/api/spotify": {
+        target: "http://127.0.0.1:8787",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/spotify/, ""),
+      },
+    },
+  },
 });

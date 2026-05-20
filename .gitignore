@@ -23,3 +23,13 @@ Thumbs.db
 # ── Claude Code worktrees & local settings ───────────────────
 .claude/worktrees/
 .claude/settings.local.json
+
+# ── Env / secrets ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+spotify-worker/.dev.vars
+
+# ── Cloudflare Worker ─────────────────────────────────────────
+spotify-worker/node_modules/
+spotify-worker/.wrangler/

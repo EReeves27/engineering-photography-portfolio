@@ -1,4 +1,5 @@
 import { CAROUSEL_PHOTOS, SERIES, GRAD_PHOTOS, HOME_PHOTOS, PHOTO_HOME } from "./photography/config.js";
+import { applyCrtRoomLayoutVars } from "./engineering/crt-room.js";
 import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
 
 /** Last segment of `folder` (e.g. `/photos/san-sebastian/` → `san-sebastian`). */
@@ -802,6 +803,8 @@ function initStackExperience() {
   var region = document.getElementById("stack-scroll-region");
   var stage = document.getElementById("stack-sticky-stage");
   if (!experience || !region || !stage) return;
+
+  applyCrtRoomLayoutVars(experience);
 
   var panels = Array.prototype.slice.call(
     experience.querySelectorAll(".stack-layer-panel")

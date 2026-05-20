@@ -29,7 +29,7 @@ export const ENG_STACK = {
     label: "ETHAN-R 4.7",
     promptHint: "CLICK TO BOOT",
     bootLines: [
-      "ETHAN-R BIOS 4.7 — POST OK",
+      "HanOS BIOS — POST OK",
       "MEM 640K · CPU OK · DISK OK",
       "MOUNT /stack ............ OK",
       "READY.",
@@ -114,7 +114,7 @@ export const ENG_STACK = {
       domain: "circuits",
       active: true,
       summary:
-        "Where transistors become logic — standard cells laid out by hand, multi-bit datapaths timed to 500 MHz.",
+        "Where transistors become logic — standard cells laid out by hand, multi-bit datapaths timed out to run within frequency constraints.",
       projects: [
         {
           title: "16-bit parallel prefix adder",
@@ -187,7 +187,7 @@ export const ENG_BIOGRAPHY = {
     {
       heading: "Where I'm coming from",
       body:
-        "I'm a junior in Computer Engineering at UCSB, based out of Pleasanton, CA. I gravitate toward problems that touch more than one layer of the stack at once — the kind that need a circuit person to talk to a firmware person without losing the plot.",
+        "I'm a third-year in Computer Engineering at UCSB, based out of the Bay Area. I love solving problems, and especially as a computer engineer toward problems that touch more than one layer of the stack at once — the kind that need a circuit person to talk to a firmware person without losing the plot.",
     },
     {
       heading: "What I've been working on",
@@ -580,4 +580,14 @@ export const ENG_RESUME = {
   extrasText:
     "UCSB Theta Tau — President (Jun 2025–present). UCSB TASA — Co-Historian / photographer (Jun 2025–present). Interests: guitar, photography (@ethan_r.photo), piano (Liszt, Debussy), reading, soccer, surfing, swimming.",
   downloadLabel: "Download PDF",
+};
+
+/**
+ * Live vinyl cover art from Spotify (via Cloudflare Worker).
+ * Set VITE_SPOTIFY_RECENT_URL in .env — see docs/SPOTIFY.md.
+ */
+export const ENG_SPOTIFY = {
+  recentUrl: import.meta.env.VITE_SPOTIFY_RECENT_URL || "",
+  /** Re-fetch interval (ms); 0 = only on load */
+  refreshMs: 5 * 60 * 1000,
 };

@@ -1,0 +1,7 @@
+name = "eng-spotify-vinyl"
+main = "src/index.js"
+compatibility_date = "2024-08-01"
+
+# Comma-separated browser origins (scheme + host only — no repo path, no trailing slash).
+[vars]
+ALLOWED_ORIGINS = "https://ereeves27.github.io,http://localhost:5173"
