@@ -181,23 +181,36 @@ export const ENG_BIOGRAPHY = {
   eyebrow: "Biography",
   name: "Ethan H Reeves",
   tagline: "Building things across the full stack of computer engineering.",
-  avatarSrc: "",
+  avatarSrc: "/photos/profile/eng_profile.jpeg",
   avatarAlt: "Ethan H Reeves",
   story: [
     {
       heading: "Where I'm coming from",
       body:
-        "I'm a third-year in Computer Engineering at UCSB, based out of the Bay Area. I love solving problems, and especially as a computer engineer toward problems that touch more than one layer of the stack at once — the kind that need a circuit person to talk to a firmware person without losing the plot.",
+        "I'm a third-year in Computer Engineering at UCSB based out of the Bay Area. Ever since I was a kid, I've been " +
+        "fascinated with opening things up and seeing how they work and problem solving. " + 
+        "Whether it was replacing the memory sticks in an old iMac to breath new life " +
+        "into it, or writing a little code to solve Worlde puzzles to try and gain an upper hand on my family, I've always tried " +
+        "applying my love for problem solving in both physical and digital means. " +
+        "Now as a computer engineer, I've tried to carry my passion for finding out how things really work by learning how " + 
+        "a computer works, from the top of the stack to the bottom.",
     },
     {
       heading: "What I've been working on",
       body:
-        "Recent work has spanned cleanroom fabrication of a working NMOS, a 500 MHz parallel prefix adder in Cadence Virtuoso, a Verilog RISC-V pipeline with cache and branch prediction, and a summer of real-time grid testing on an RTDS simulator at UC3M Madrid. Earlier, I built a guitar tuner and effects unit on Teensy and spent a summer prototyping electronic toys at Spin Master.",
+        "Here at UCSB, I've had the amazing opportunity to work in the cleanroom and build my own NMOS from wafer to " +
+        "a working transistor with verifiable device characteristics. In my other classes, I've built a " +
+        "500 MHz parallel prefix adder in Cadence Virtuoso, and a Verilog RISC-V pipeline with cache and branch prediction. " + 
+        "Last summer, I spent time doing research at UC3m Madrid on real-time grid testing on an RTDS simulator and had another " +
+        "amazing opportunity at Spin Master prototyping, coding, and assembling electronic toys.",
     },
     {
       heading: "Outside of school",
       body:
-        "President of UCSB Theta Tau, co-historian for TASA, and a fairly serious photographer (see the other side of this site). Off-screen: guitar, piano (Liszt and Debussy mostly), reading, soccer, surfing, swimming.",
+        "For organizations at UCSB, I'm about to wrap up my tenure as President of UCSB Theta Tau and co-historian for TASA. " +
+        "Besides that, I do some photography on the side (check out the other half of this website!) and " +
+        "when I'm not stuck behind a screen, you'll find me playing guitar or piano (Liszt and Debussy mostly), " +
+        "reading, playing soccer, surfing, or swimming.",
     },
   ],
   facts: [
@@ -236,7 +249,7 @@ export const ENG_HOME = {
     avatarAlt: "Ethan H Reeves",
     name: "Ethan H Reeves",
     role: "Candidate for B.S. Computer Engineering · UCSB · Expected June 2027",
-    body: "Based in Pleasanton, CA. Coursework spans high-speed IC design, VLSI, computer architecture, OS, and cleanroom fabrication. Research experience in Madrid on real-time grid testing (RTDS) and interconnect modeling.",
+    body: "Based in the Bay Area. Coursework spans high-speed IC design, VLSI, computer architecture, OS, and cleanroom fabrication. Research experience in Madrid on real-time grid testing (RTDS) and interconnect modeling.",
   },
   resumeButtonLabel: "View resume",
   worksSectionTitle: "Selected work",

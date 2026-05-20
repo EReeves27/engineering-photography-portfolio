@@ -8,8 +8,6 @@ import homeTop from "./shared/home-top.html?raw";
 import homeClose from "./shared/home-close.html?raw";
 import engHomePanel from "./engineering/home-panel.html?raw";
 import phoHomePanel from "./photography/home-panel.html?raw";
-import phoSeriesDetail from "./photography/page-series-detail.html?raw";
-import phoAlbums from "./photography/page-albums.html?raw";
 import phoGrad from "./photography/page-grad.html?raw";
 import phoContactGrad from "./photography/page-contact-grad.html?raw";
 import phoContactGeneral from "./photography/page-contact-general.html?raw";
@@ -25,8 +23,6 @@ document.getElementById("app").innerHTML = [
   engHomePanel,
   phoHomePanel,
   homeClose,
-  phoSeriesDetail,
-  phoAlbums,
   phoGrad,
   phoContactGrad,
   phoContactGeneral,

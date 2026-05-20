@@ -1,4 +1,4 @@
-import { CAROUSEL_PHOTOS, SERIES, GRAD_PHOTOS, HOME_PHOTOS, PHOTO_HOME } from "./photography/config.js";
+import { GRAD_PHOTOS, HOME_PHOTOS } from "./photography/config.js";
 import { applyCrtRoomLayoutVars } from "./engineering/crt-room.js";
 import { assetUrl } from "./asset-url.js";
 import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
@@ -10,28 +10,15 @@ function albumSlugFromFolder(folder) {
   return m ? m[1] : "";
 }
 
-/** Manual `images` in config wins; else filenames from `public/photos/<slug>/` at build time. */
-function resolvedSeriesImages(s) {
-  if (s.images && s.images.length > 0) return s.images;
-  var slug = albumSlugFromFolder(s.folder);
+/** Manual `images` in config wins; else filenames from `public/photos/home-photos/` at build time. */
+function resolvedHomeImages() {
+  if (HOME_PHOTOS.images && HOME_PHOTOS.images.length > 0) return HOME_PHOTOS.images;
+  var slug = albumSlugFromFolder(HOME_PHOTOS.folder);
   var list = SERIES_ALBUM_IMAGES[slug];
   return Array.isArray(list) ? list.slice() : [];
 }
 
-/** Basename for series card cover, or null if no images. Honors `s.coverImage` when it matches a file. */
-function seriesCardCoverBasename(s, imgs) {
-  if (!imgs || imgs.length === 0) return null;
-  var want = s.coverImage != null ? String(s.coverImage).trim() : "";
-  if (want) {
-    var wl = want.toLowerCase();
-    for (var i = 0; i < imgs.length; i++) {
-      if (imgs[i] === want || imgs[i].toLowerCase() === wl) return imgs[i];
-    }
-  }
-  return imgs[0];
-}
-
-/** Same as series: optional `GRAD_PHOTOS.images` overrides auto-list for `public/photos/grad/`. */
+/** Optional `GRAD_PHOTOS.images` overrides auto-list for `public/photos/grad/`. */
 function resolvedGradImages() {
   if (GRAD_PHOTOS.images && GRAD_PHOTOS.images.length > 0) return GRAD_PHOTOS.images;
   var slug = albumSlugFromFolder(GRAD_PHOTOS.folder);
@@ -102,333 +89,71 @@ function buildAdaptiveGrid(container, folder, filenames, fallbackCount) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   CAROUSEL BUILDER
+   HOME WATERFALL — scroll gallery from public/photos/home-photos/
 ══════════════════════════════════════════════════════════════ */
-var carouselCur = 0,
-  carouselTotal = 0,
-  carouselTimer = null;
+var mkWaterfallObserver = null;
 
-function buildCarousel() {
-  var track = document.getElementById("slides-track");
-  var dotsEl = document.getElementById("dots");
-  var scEl = document.getElementById("sc");
-  track.innerHTML = "";
-  dotsEl.innerHTML = "";
-
-  var photos = CAROUSEL_PHOTOS;
-
-  // Only show the carousel section when real photos are configured
-  var carouselSection = document.getElementById("carousel-section");
-  if (carouselSection) {
-    carouselSection.style.display = (photos && photos.length > 0) ? "" : "none";
+function initHomeWaterfallReveal(container) {
+  if (mkWaterfallObserver) {
+    mkWaterfallObserver.disconnect();
+    mkWaterfallObserver = null;
   }
+  var items = container.querySelectorAll(".mk-waterfall-item");
+  if (!items.length) return;
+  mkWaterfallObserver = new IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        mkWaterfallObserver.unobserve(entry.target);
+      });
+    },
+    { root: null, rootMargin: "0px 0px -6% 0px", threshold: 0.08 }
+  );
+  items.forEach(function (el) {
+    mkWaterfallObserver.observe(el);
+  });
 
-  if (!photos || photos.length === 0) {
-    carouselTotal = 0;
-    return;
-  } else {
-    photos.forEach(function (p) {
-      var slide = document.createElement("div");
-      slide.className = "c-slide";
-      var img = document.createElement("img");
-      img.src = assetUrl(p.src);
-      img.alt = p.caption || "";
-      slide.appendChild(img);
-      if (p.caption) {
-        var cap = document.createElement("div");
-        cap.className = "c-slide-caption";
-        cap.textContent = p.caption;
-        slide.appendChild(cap);
+  // Reveal anything already on screen (e.g. first photo before user scrolls)
+  requestAnimationFrame(function () {
+    items.forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      if (r.top < vh * 0.92 && r.bottom > 0) {
+        el.classList.add("is-visible");
+        if (mkWaterfallObserver) mkWaterfallObserver.unobserve(el);
       }
-      track.appendChild(slide);
     });
-    carouselTotal = photos.length;
-  }
-
-  for (var j = 0; j < carouselTotal; j++) {
-    var d = document.createElement("div");
-    d.className = "dot" + (j === 0 ? " active" : "");
-    dotsEl.appendChild(d);
-  }
-  updateCarousel();
-}
-
-function updateCarousel() {
-  var track = document.getElementById("slides-track");
-  var dotsEl = document.getElementById("dots");
-  var scEl = document.getElementById("sc");
-  track.style.transform = "translateX(-" + carouselCur * 100 + "%)";
-  if (scEl) scEl.textContent = carouselCur + 1 + " / " + carouselTotal;
-  var ds = dotsEl.querySelectorAll(".dot");
-  ds.forEach(function (d, i) {
-    d.className = "dot" + (i === carouselCur ? " active" : "");
   });
 }
 
-function goTo(n) {
-  carouselCur = (n + carouselTotal) % carouselTotal;
-  updateCarousel();
-}
-
-function startTimer() {
-  clearInterval(carouselTimer);
-  carouselTimer = setInterval(function () {
-    goTo(carouselCur + 1);
-  }, 5000);
-}
-function resetTimer() {
-  clearInterval(carouselTimer);
-  startTimer();
-}
-
-/* ══════════════════════════════════════════════════════════════
-   SERIES CARDS BUILDER
-══════════════════════════════════════════════════════════════ */
-var SVG_ICONS = [
-  '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><rect x="7" y="11" width="36" height="26" rx="2" fill="none" stroke="#c8a97e" stroke-width="1.1" opacity=".6"/><circle cx="25" cy="24" r="7" stroke="#c8a97e" stroke-width="1.1" opacity=".8"/><circle cx="25" cy="24" r="3" fill="#c8a97e" opacity=".7"/></svg>',
-  '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><path d="M6 38 Q16 10 25 28 Q34 44 44 16" stroke="#c8a97e" stroke-width="1.4" fill="none" opacity=".7"/><circle cx="25" cy="11" r="5" fill="none" stroke="#c8a97e" stroke-width="1.1" opacity=".5"/></svg>',
-  '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><circle cx="25" cy="21" r="10" fill="none" stroke="#c8a97e" stroke-width="1.1" opacity=".6"/><path d="M19 27 Q25 33 31 27" stroke="#c8a97e" stroke-width="1.1" fill="none" opacity=".8"/></svg>',
-  '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><rect x="6" y="6" width="38" height="38" rx="2" fill="none" stroke="#c8a97e" stroke-width=".5" opacity=".3"/><rect x="11" y="11" width="8" height="6" rx="1" fill="#c8a97e" opacity=".4"/><rect x="27" y="16" width="10" height="13" rx="1" fill="#c8a97e" opacity=".5"/></svg>',
-  '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><path d="M6 44 L15 25 L23 35 L33 13 L44 32" stroke="#c8a97e" stroke-width="1.4" fill="none" opacity=".5"/></svg>',
-  '<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><ellipse cx="25" cy="32" rx="15" ry="8" stroke="#c8a97e" stroke-width="1.1" opacity=".4"/><path d="M12 28 Q25 8 38 28" stroke="#c8a97e" stroke-width="1.1" fill="none" opacity=".6"/><circle cx="25" cy="18" r="4" fill="#c8a97e" opacity=".5"/></svg>',
-];
-
-/** Slugs that should never appear as auto-discovered albums (non-photo folders). */
-var AUTO_ALBUM_SKIP = { grad: true, "grad-preview": true, featured: true, profile: true };
-
-/** Title-cases a folder slug: "san-sebastian" → "San Sebastian". */
-function slugToTitle(slug) {
-  return slug.replace(/[-_]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-}
-
-function buildSeriesCard(s, idx, grid) {
-  var card = document.createElement("div");
-  card.className = "pho-ser-card";
-  card.onclick = function () { openSeriesDetail(s); };
-
-  var imgs = resolvedSeriesImages(s);
-  var coverBase = seriesCardCoverBasename(s, imgs);
-  var mediaHtml;
-  if (coverBase) {
-    mediaHtml =
-      '<div class="pho-ser-card-media">' +
-      '<img class="pho-ser-card-img" src="' + assetUrl(s.folder + coverBase) + '" alt="' + s.title + '" loading="lazy">' +
-      "</div>";
-  } else {
-    mediaHtml =
-      '<div class="pho-ser-card-media">' +
-      '<div class="pho-ser-card-placeholder">' + SVG_ICONS[idx % SVG_ICONS.length] + "</div></div>";
-  }
-
-  var titleItalic = s.titleItalic || "";
-  var titleHtml = titleItalic
-    ? s.title.replace(titleItalic, "<em>" + titleItalic + "</em>")
-    : s.title;
-  var tagDisplay = s.tag ? s.tag.split("·")[0].trim() : "";
-
-  card.innerHTML =
-    mediaHtml +
-    '<div class="pho-ser-card-overlay">' +
-    '<div class="pho-ser-card-tag">' + tagDisplay + "</div>" +
-    '<div class="pho-ser-card-title">' + titleHtml + "</div>" +
-    '<div class="pho-ser-card-foot">' +
-    '<span class="pho-ser-card-meta">' + (s.meta || "") + "</span>" +
-    '<span class="pho-ser-card-view"><i class="ti ti-arrow-up-right" style="font-size:11px;"></i></span>' +
-    "</div></div>";
-
-  grid.appendChild(card);
-}
-
-function buildSeriesGrid() {
-  var grid = document.getElementById("series-grid");
-  var countEl = document.getElementById("series-count");
+function buildHomeWaterfall() {
+  var grid = document.getElementById("mk-waterfall");
   if (!grid) return;
+
+  var files = resolvedHomeImages();
+  var folder = HOME_PHOTOS.folder || "/photos/home-photos/";
   grid.innerHTML = "";
 
-  // Configured series (full metadata)
-  var configuredSlugs = {};
-  SERIES.forEach(function (s) {
-    var slug = albumSlugFromFolder(s.folder);
-    if (slug) configuredSlugs[slug] = true;
+  if (!files.length) {
+    grid.innerHTML =
+      '<p class="mk-waterfall-empty">Add images to <code>public/photos/home-photos/</code></p>';
+    return;
+  }
+
+  files.forEach(function (name, i) {
+    var item = document.createElement("div");
+    item.className = "mk-waterfall-item";
+    var img = document.createElement("img");
+    img.src = assetUrl(folder + name);
+    img.alt = "";
+    img.loading = i < 3 ? "eager" : "lazy";
+    img.decoding = "async";
+    item.appendChild(img);
+    grid.appendChild(item);
   });
 
-  // Auto-discovered albums: folders with images not already in SERIES config
-  var autoSeries = [];
-  Object.keys(SERIES_ALBUM_IMAGES).forEach(function (slug) {
-    if (configuredSlugs[slug]) return;
-    if (AUTO_ALBUM_SKIP[slug]) return;
-    var files = SERIES_ALBUM_IMAGES[slug];
-    if (!files || files.length === 0) return;
-    autoSeries.push({
-      title: slugToTitle(slug),
-      titleItalic: "",
-      tag: "",
-      meta: files.length + " photos",
-      desc: "",
-      tags: [],
-      camera: "",
-      duration: "",
-      folder: "/photos/" + slug + "/",
-      images: files,
-    });
-  });
-
-  var allSeries = SERIES.concat(autoSeries);
-  if (countEl) countEl.textContent = String(allSeries.length).padStart(2, "0") + " albums";
-
-  allSeries.forEach(function (s, idx) {
-    buildSeriesCard(s, idx, grid);
-  });
-}
-
-/* ══════════════════════════════════════════════════════════════
-   SINGLE-PHOTO HOME VIEWER  (Mike Kelley style)
-   Shows one photo at a time; PREV / NEXT cycle through the set.
-   Uses HOME_PHOTOS if populated, else auto-picks one cover per series.
-══════════════════════════════════════════════════════════════ */
-var mkPhotos = [];
-var mkIdx = 0;
-var mkTimer = null;
-var mkKeyListenerAdded = false;
-
-var FADE_MS = 350;
-
-function mkShowPhoto(idx) {
-  if (!mkPhotos.length) return;
-  mkIdx = (idx + mkPhotos.length) % mkPhotos.length;
-  var img = document.getElementById("mk-photo-img");
-  var ph  = document.getElementById("mk-photo-placeholder");
-  if (!img) return;
-
-  var newSrc = mkPhotos[mkIdx].src;
-  var newAlt = mkPhotos[mkIdx].alt || "";
-
-  function applyAndFadeIn() {
-    img.src = newSrc;
-    img.alt = newAlt;
-    img.style.display = "block";
-    if (ph) ph.style.display = "none";
-    // Double rAF so the browser commits display:block before starting opacity transition
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        img.style.opacity = "1";
-      });
-    });
-  }
-
-  if (img.style.display === "none") {
-    // First load — skip fade-out, just fade in
-    img.style.opacity = "0";
-    applyAndFadeIn();
-  } else {
-    img.style.opacity = "0";
-    setTimeout(applyAndFadeIn, FADE_MS);
-  }
-}
-
-function mkStartTimer() {
-  clearInterval(mkTimer);
-  if (mkPhotos.length > 1) {
-    mkTimer = setInterval(function () { mkShowPhoto(mkIdx + 1); }, 5000);
-  }
-}
-
-function mkStopTimer() {
-  clearInterval(mkTimer);
-  mkTimer = null;
-}
-
-function mkPrev() { mkShowPhoto(mkIdx - 1); mkStartTimer(); }
-function mkNext() { mkShowPhoto(mkIdx + 1); mkStartTimer(); }
-
-function buildHomePhotoCollage() {
-  // Collect photo list
-  var photos = HOME_PHOTOS && HOME_PHOTOS.length > 0
-    ? HOME_PHOTOS.map(function (p) { return { src: assetUrl(p.src), alt: p.alt || "" }; })
-    : (function () {
-        var picks = [];
-        SERIES.forEach(function (s) {
-          var imgs = resolvedSeriesImages(s);
-          var cover = seriesCardCoverBasename(s, imgs);
-          if (cover) picks.push({ src: assetUrl(s.folder + cover), alt: s.title });
-        });
-        return picks;
-      })();
-
-  mkPhotos = photos;
-  mkIdx = 0;
-
-  if (photos.length > 0) {
-    mkShowPhoto(0);
-    mkStartTimer();
-  }
-
-  // Keyboard arrow navigation (only active in photo mode, only on home page)
-  if (!mkKeyListenerAdded) {
-    mkKeyListenerAdded = true;
-    document.addEventListener("keydown", function (e) {
-      if (!isP) return;
-      var active = document.querySelector(".page.active, .panel.active");
-      if (!active || active.id !== "page-home") return;
-      if (e.key === "ArrowLeft")  { e.preventDefault(); mkPrev(); }
-      if (e.key === "ArrowRight") { e.preventDefault(); mkNext(); }
-    });
-  }
-
-  // Expose to global for onclick handlers in HTML
-  window.mkPrev = mkPrev;
-  window.mkNext = mkNext;
-}
-
-function openSeriesDetail(s) {
-  var content = document.getElementById("series-detail-content");
-  var ti = s.titleItalic || "";
-  var titleHtml = ti ? s.title.replace(ti, "<em>" + ti + "</em>") : s.title;
-  var tagsHtml = s.tags
-    .map(function (t) {
-      return '<span class="stag">' + t + "</span>";
-    })
-    .join("");
-
-  content.innerHTML =
-    '<div class="series-hero">' +
-    '<div class="series-eyebrow">' +
-    s.tag +
-    "</div>" +
-    '<h1 class="series-title-big">' +
-    titleHtml +
-    "</h1>" +
-    '<div class="series-meta">' +
-    s.meta +
-    "</div>" +
-    '<p class="series-desc">' +
-    s.desc +
-    "</p>" +
-    '<div class="stags">' +
-    tagsHtml +
-    "</div>" +
-    "</div>" +
-    '<div class="photo-grid-wrap">' +
-    '<div class="photo-grid-label">Series photos</div>' +
-    '<div class="photo-collage-gallery" id="series-adaptive-grid"></div>' +
-    "</div>" +
-    '<div class="specs-grid">' +
-    '<div class="spec-card"><div class="spec-lbl">Camera</div><div class="spec-val">' +
-    (s.camera || "—") +
-    "</div></div>" +
-    '<div class="spec-card"><div class="spec-lbl">Duration</div><div class="spec-val">' +
-    (s.duration || "—") +
-    "</div></div>" +
-    "</div>";
-
-  showPage("page-series-detail");
-
-  requestAnimationFrame(function () {
-    var grid = document.getElementById("series-adaptive-grid");
-    mountCollagePhotoGallery(grid, s.folder, resolvedSeriesImages(s), {
-      fallbackCount: 8,
-    });
-  });
+  initHomeWaterfallReveal(grid);
 }
 
 function shuffleArray(arr) {
@@ -664,13 +389,6 @@ function sw() {
   document.getElementById("nav-li").style.display = isP ? "none" : "flex";
   document.getElementById("nav-bio").style.display = isP ? "none" : "flex";
   document.getElementById("nav-resume").style.display = isP ? "none" : "flex";
-  if (isP) {
-    startTimer();
-    mkStartTimer();
-  } else {
-    clearInterval(carouselTimer);
-    mkStopTimer();
-  }
 }
 
 function showPage(id, scrollSmooth) {
@@ -688,14 +406,6 @@ function showPage(id, scrollSmooth) {
     if (gg && gg._photoJgLayout) {
       requestAnimationFrame(function () {
         gg._photoJgLayout();
-      });
-    }
-  }
-  if (id === "page-series-detail") {
-    var sg = document.getElementById("series-adaptive-grid");
-    if (sg && sg._photoJgLayout) {
-      requestAnimationFrame(function () {
-        sg._photoJgLayout();
       });
     }
   }
@@ -774,6 +484,14 @@ function closePhotoLightbox() {
 function onDocumentClickPhotoLightbox(e) {
   if (e.target.tagName !== "IMG") return;
   if (e.target.closest(".photo-lightbox")) return;
+
+  var waterfallItem = e.target.closest(".mk-waterfall-item");
+  if (waterfallItem && waterfallItem.querySelector(":scope > img") === e.target) {
+    e.preventDefault();
+    e.stopPropagation();
+    openPhotoLightbox(e.target.currentSrc || e.target.src, e.target.getAttribute("alt") || "");
+    return;
+  }
 
   var collageCell = e.target.closest(".photo-collage-cell");
   if (collageCell && collageCell.querySelector(":scope > img") === e.target) {
@@ -921,10 +639,8 @@ export function initApp() {
   window.submitForm = submitForm;
   window.toggleFaq = toggleFaq;
 
-  buildCarousel();
-  buildSeriesGrid();
   buildGradGallery();
-  buildHomePhotoCollage();
+  buildHomeWaterfall();
   initStackExperience();
 
   document.getElementById("tog").addEventListener("keydown", function (e) {
@@ -933,36 +649,6 @@ export function initApp() {
       sw();
     }
   });
-
-  document.getElementById("prev").onclick = document.getElementById("warr-l").onclick = function () {
-    goTo(carouselCur - 1);
-    resetTimer();
-  };
-  document.getElementById("next").onclick = document.getElementById("warr-r").onclick = function () {
-    goTo(carouselCur + 1);
-    resetTimer();
-  };
-
-  var sx = 0;
-  var wheelEl = document.getElementById("wheel");
-  wheelEl.addEventListener(
-    "touchstart",
-    function (e) {
-      sx = e.touches[0].clientX;
-    },
-    { passive: true }
-  );
-  wheelEl.addEventListener(
-    "touchend",
-    function (e) {
-      var dx = e.changedTouches[0].clientX - sx;
-      if (Math.abs(dx) > 40) {
-        dx < 0 ? goTo(carouselCur + 1) : goTo(carouselCur - 1);
-        resetTimer();
-      }
-    },
-    { passive: true }
-  );
 
   document.addEventListener("click", onDocumentClickPhotoLightbox, true);
   document.addEventListener("keydown", onDocumentKeydownPhotoLightbox);

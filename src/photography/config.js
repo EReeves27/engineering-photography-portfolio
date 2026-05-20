@@ -2,11 +2,9 @@
  * Photography site copy and paths. Images live under `public/photos/…`
  * (URLs start with `/photos/…`).
  *
- * Albums (`SERIES`): set `folder` to `/photos/<dir>/`. Omit `images` (or `[]`)
- * to auto-list files in that folder at build time (`vite.config.js`). Use
- * `images: ["a.jpg"]` to pin order or a subset.
- * Optional `coverImage: "file.jpg"` sets the portfolio home card cover (basename
- * must match a file in that folder); omit to use the first image.
+ * Home gallery (`HOME_PHOTOS`): drop images in `public/photos/home-photos/`.
+ * Omit `images` (or `[]`) to auto-list files at build time (`vite.config.js`).
+ * Use `images: ["a.jpg", "b.jpg"]` to pin order or a subset.
  *
  * Grad gallery (`GRAD_PHOTOS`): same rule for `public/photos/grad/`.
  */
@@ -38,7 +36,6 @@ export const PHOTO_HOME = {
     ],
     aboutTitle: "About Me",
   },
-  carouselSectionTitle: "Featured shots",
   gradStrip: {
     sectionTitle: "Graduate photos",
     seeAllLabel: "See all ›",
@@ -50,90 +47,17 @@ export const PHOTO_HOME = {
     ctaLabel: "View packages & book",
     placeholderCaption: "Sample portrait — golden hour",
   },
-  seriesSectionTitle: "Selected series",
 };
 
-/** Featured carousel — add `{ src, caption }` entries; files in `public/photos/featured/`. */
-export const CAROUSEL_PHOTOS = [];
-
 /**
- * Curated home-page photos — individual shots shown in the immersive
- * scrolling collage. Add `{ src, alt }` entries pointing to any file
- * under `public/`. Leave empty ([]) to auto-pick one cover per series.
- *
- * Example:
- *   { src: "/photos/san-sebastian/IMG_001.jpg", alt: "San Sebastián harbour" }
+ * Home scroll gallery — auto-loads every image in `public/photos/home-photos/`.
+ * Drop .jpg / .png / .webp files there; no manual list needed.
+ * Optional: set `images: ["a.jpg", "b.jpg"]` to pin order or use a subset only.
  */
-export const HOME_PHOTOS = [];
-
-export const SERIES = [
-  {
-    title: "Solo Trip in Spain",
-    titleItalic: "...",
-    tag: "Beach · Street · Sunset",
-    meta: "San Sebastian, Spain · 2025",
-    desc: "Coastal winter light, empty streets, and the rhythm of a solo walk through San Sebastian.",
-    tags: ["Mirrorless", "Beach", "Street", "Golden hour"],
-    camera: "LUMIX FZ80D",
-    duration: "2 days",
-    folder: "/photos/san-sebastian/",
-  },
-  {
-    title: "Hiking through the streets",
-    titleItalic: "...",
-    tag: "Street · ...",
-    meta: "Lisbon, Portugal · 2025",
-    desc: "...",
-    tags: ["Digital", "Golden hour", "Landscape"],
-    camera: "LUMIX FZ80D",
-    duration: "1 day",
-    folder: "/photos/lisbon/",
-  },
-  {
-    title: "A weekend in Morocco",
-    titleItalic: "...",
-    tag: "Desert · ...",
-    meta: "Morocco · 2025",
-    desc: "...",
-    tags: ["", "", ""],
-    camera: "LUMIX FZ80D",
-    duration: "1 day",
-    folder: "/photos/Morocco/",
-  },
-  {
-    title: "Grid Lines",
-    titleItalic: "Lines",
-    tag: "Architecture · Urban",
-    meta: "Downtown LA · 2023",
-    desc: "The geometry of the built environment — repeating patterns, shadows on concrete, the city as abstract form.",
-    tags: ["Architecture", "Urban", "35mm"],
-    camera: "Nikon FM2",
-    duration: "4 weeks",
-    folder: "/photos/grid-lines/",
-  },
-  {
-    title: "Desert Intervals",
-    titleItalic: "Intervals",
-    tag: "Landscape · Golden hour",
-    meta: "Joshua Tree · 2023",
-    desc: "Vast space, long light, and the silence of the high desert at dusk.",
-    tags: ["Desert", "Landscape", "Golden hour", "35mm"],
-    camera: "Nikon FM2",
-    duration: "2 weekends",
-    folder: "/photos/desert-intervals/",
-  },
-  {
-    title: "Film Experiments",
-    titleItalic: "Experiments",
-    tag: "Abstract · Experimental",
-    meta: "35mm analogue · 2024",
-    desc: "Cross-processing, expired film, light leaks and happy accidents.",
-    tags: ["Experimental", "35mm", "Analogue"],
-    camera: "Various",
-    duration: "Ongoing",
-    folder: "/photos/film-experiments/",
-  },
-];
+export const HOME_PHOTOS = {
+  folder: "/photos/home-photos/",
+  images: [],
+};
 
 /** Grad sample gallery. Omit `images` (or `[]`) to auto-fill from `public/photos/grad/` at build time. */
 export const GRAD_PHOTOS = {

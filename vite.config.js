@@ -10,7 +10,7 @@ const RESOLVED_VIRTUAL = "\0" + VIRTUAL_ID;
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|avif|heic|HEIC|bmp|tif|tiff)$/i;
 
-/** Lists image files per `public/photos/<folder>/` (series albums, `grad`, etc.). */
+/** Lists image files per `public/photos/<folder>/` (`home-photos`, `grad`, etc.). */
 function scanAlbumFolders() {
   const photosRoot = path.join(__dirname, "public", "photos");
   /** @type {Record<string, string[]>} */
@@ -33,6 +33,14 @@ function scanAlbumFolders() {
 }
 
 function seriesAlbumImagesPlugin() {
+  /** @param {import('vite').ViteDevServer} server */
+  function invalidateOnPhotoChange(server, file) {
+    const photosRoot = path.join(__dirname, "public", "photos");
+    if (!file.startsWith(photosRoot)) return;
+    const mod = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL);
+    if (mod) server.moduleGraph.invalidateModule(mod);
+  }
+
   return {
     name: "series-album-images",
     resolveId(id) {
@@ -42,6 +50,11 @@ function seriesAlbumImagesPlugin() {
       if (id !== RESOLVED_VIRTUAL) return null;
       const manifest = scanAlbumFolders();
       return "export const SERIES_ALBUM_IMAGES = " + JSON.stringify(manifest) + ";\n";
+    },
+    configureServer(server) {
+      server.watcher.on("add", (file) => invalidateOnPhotoChange(server, file));
+      server.watcher.on("unlink", (file) => invalidateOnPhotoChange(server, file));
+      server.watcher.on("change", (file) => invalidateOnPhotoChange(server, file));
     },
   };
 }

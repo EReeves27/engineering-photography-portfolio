@@ -487,58 +487,63 @@ nav {
   user-select: none;
 }
 
-/* ── Main photo viewer ─────────────────────────────────────── */
+/* ── Home scroll waterfall ─────────────────────────────────── */
 .mk-main {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 36px 48px 28px 24px;
+  padding: 28px 40px 64px 20px;
 }
 
-.mk-photo-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 0;
+.mk-waterfall {
+  column-count: 1;
+  column-gap: 22px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
-/* Prev / Next controls under the photo */
-.mk-photo-nav {
-  display: flex;
-  align-items: center;
-  padding-top: 18px;
+@media (min-width: 720px) {
+  .mk-waterfall { column-count: 2; }
 }
 
-.mk-photo-img {
-  max-width: 100%;
-  max-height: calc(100vh - 52px - 80px);
-  width: auto;
+@media (min-width: 1080px) {
+  .mk-waterfall { column-count: 3; }
+}
+
+.mk-waterfall-item {
+  break-inside: avoid;
+  margin-bottom: 22px;
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.75s ease, transform 0.75s ease;
+}
+
+.mk-waterfall-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mk-waterfall-item img {
+  width: 100%;
   height: auto;
   display: block;
-  object-fit: contain;
+  border-radius: 2px;
   cursor: zoom-in;
-  transition: opacity 0.35s ease;
+  vertical-align: middle;
 }
 
-.mk-photo-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  width: 100%;
-  height: 420px;
-  color: #ccc;
-}
-.mk-photo-placeholder .ti { font-size: 44px; }
-.mk-photo-placeholder span {
+.mk-waterfall-empty {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: #aaa;
+  padding: 48px 0;
+}
+
+.mk-waterfall-empty code {
+  font-family: 'DM Mono', monospace;
   font-size: 11px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: #bbb;
+  color: #888;
 }
 
 /* ── Bio page ──────────────────────────────────────────────── */
@@ -2066,7 +2071,7 @@ a.res-dl { color: #0d0d1a; }
 }
 .crt-page-screen .bio-page-head {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 26px;
   align-items: start;
   margin-bottom: 32px;
@@ -2074,7 +2079,7 @@ a.res-dl { color: #0d0d1a; }
   border-bottom: .5px dashed rgba(139, 224, 127, .25);
 }
 .crt-page-screen .bio-page-avatar {
-  width: 130px; height: 130px;
+  width: 300px; height: 300px;
   border-radius: 12px;
   overflow: hidden;
   background: rgba(0, 0, 0, .4);

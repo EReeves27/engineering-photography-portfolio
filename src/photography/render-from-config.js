@@ -92,7 +92,6 @@ function buildPhotoHomeInnerHtml() {
     '<nav class="mk-nav">' +
     '<div class="mk-nav-group">' +
     '<button class="mk-nav-link mk-nav-link--active">Home</button>' +
-    '<button class="mk-nav-link" onclick="showPage(\'page-albums\')">Albums</button>' +
     '<button class="mk-nav-link" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
     '<button class="mk-nav-link" onclick="showPage(\'page-bio\')">Bio</button>' +
     '</div>' +
@@ -103,46 +102,12 @@ function buildPhotoHomeInnerHtml() {
     '</nav>' +
     '</aside>' +
 
-    // ── Single photo viewer + prev/next ───────────────────────
+    // ── Scroll waterfall gallery (public/photos/home-photos/) ───
     '<div class="mk-main">' +
-    '<div class="mk-photo-wrap" id="mk-photo-wrap">' +
-    '<img class="mk-photo-img" id="mk-photo-img" src="" alt="" style="display:none;">' +
-    '<div class="mk-photo-placeholder" id="mk-photo-placeholder">' +
-    '<i class="ti ti-camera"></i>' +
-    '<span>Add photos to HOME_PHOTOS in config.js</span>' +
-    '</div>' +
-    '</div>' +
-    '<div class="mk-photo-nav">' +
-    '<button class="mk-ctrl-btn" id="mk-prev" onclick="mkPrev()">Prev</button>' +
-    '<span class="mk-ctrl-sep"> / </span>' +
-    '<button class="mk-ctrl-btn" id="mk-next" onclick="mkNext()">Next</button>' +
-    '</div>' +
+    '<div class="mk-waterfall" id="mk-waterfall" aria-label="Photography gallery"></div>' +
     '</div>' +
 
-    '</div>' +
-
-    // Hidden carousel DOM stubs — required for JS event wiring
-    '<div id="carousel-section" style="display:none;">' +
-    '<div class="wheel" id="wheel"><div class="slides-track" id="slides-track"></div></div>' +
-    '<button id="warr-l"></button><button id="warr-r"></button>' +
-    '<button id="prev"></button><button id="next"></button>' +
-    '<div id="dots"></div><span id="sc"></span>' +
     '</div>'
-  );
-}
-
-function buildAlbumsPageInnerHtml() {
-  const h = PHOTO_HOME;
-  return (
-    '<div class="albums-hero">' +
-    '<div class="pho-ei-eyebrow" style="margin-bottom:6px;">' + escapeHtml(h.heroModeTag) + '</div>' +
-    '<h1 class="albums-title">Albums</h1>' +
-    '</div>' +
-    '<div class="pho-works-hdr">' +
-    '<span class="sec-title" style="color:#9a8878;">' + escapeHtml(h.seriesSectionTitle) + '</span>' +
-    '<span class="sec-count" style="color:#c8a97e;" id="series-count"></span>' +
-    '</div>' +
-    '<div class="pho-series-list" id="series-grid"></div>'
   );
 }
 
@@ -377,9 +342,6 @@ export function mountPhotographyFromConfig() {
   var pp = document.getElementById("pp");
   if (pp) pp.innerHTML = buildPhotoHomeInnerHtml();
 
-  var albums = document.getElementById("page-albums");
-  if (albums) albums.innerHTML = phoDetNav("page-home") + buildAlbumsPageInnerHtml();
-
   var grad = document.getElementById("page-grad");
   if (grad) grad.innerHTML = phoDetNav("page-home") + buildGradPageInnerHtml();
 
@@ -392,9 +354,4 @@ export function mountPhotographyFromConfig() {
   var bio = document.getElementById("page-bio");
   if (bio) bio.innerHTML = phoDetNav("page-home") + buildBioPageInnerHtml();
 
-  var series = document.getElementById("page-series-detail");
-  if (series) {
-    series.innerHTML =
-      phoDetNav("page-albums") + '<div id="series-detail-content"></div>';
-  }
 }
