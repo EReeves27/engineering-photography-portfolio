@@ -13,6 +13,16 @@ export const PHOTO_BRAND = {
   logoHtml: 'Ethan<em style="font-style:italic;color:#c8a97e;">R.</em>',
 };
 
+/** Formspree endpoint — override with VITE_FORMSPREE_URL in .env if needed. */
+export const PHOTO_FORMSPREE_URL =
+  import.meta.env.VITE_FORMSPREE_URL || "https://formspree.io/f/mykvwlew";
+
+export const PHOTO_CONTACT_SUBMIT = {
+  emailNote: "Your message is emailed to me — I'll reply as soon as I can.",
+  sendingLabel: "Sending…",
+  errorMessage: "Something went wrong. Please try again in a moment.",
+};
+
 export const PHOTO_NAV = {
   backLabel: "Back",
   homeAriaLabel: "Home",
@@ -25,7 +35,9 @@ export const PHOTO_HOME = {
     avatarAlt: "Ethan Reeves",
     name: "Ethan Reeves",
     role: "Photographer",
-    body: "Hello! I'm from the Bay Area and currently attending UCSB. *insert more here*",
+    body: "Hello! I'm from the Bay Area (specifically East Bay) and currently attending UCSB. " +
+          "I've been taking photos for a while now but really started getting into it once I got to college. " +
+          "From there, I've taken photos ",
     /**
      * Up to 3 photos shown side-by-side on the Bio page.
      * Point to any file under public/ (e.g. "/photos/profile/…").
@@ -93,12 +105,12 @@ export const PHOTO_GRAD_PAGE = {
   testimonialsSectionLabel: "What past clients say",
   testimonials: [
     {
-      text: '"Ethan made the whole session feel relaxed and fun. The photos came out better than I ever imagined — my family cried."',
-      attribution: "— Maya L., Class of 2024",
+      text: '"Review"',
+      attribution: "— Name, Class",
     },
     {
-      text: '"Booked the Signature package and it was worth every penny. Beautiful light, great locations, and fast turnaround."',
-      attribution: "— Jordan K., Class of 2024",
+      text: '"Review"',
+      attribution: "- Name, Class",
     },
   ],
   faqSectionLabel: "FAQ",
@@ -128,7 +140,7 @@ export const PHOTO_CONTACT_GRAD = {
   headingHtml: "Book your <em>session</em>",
   sub:
     "Fill out the form below and I'll get back to you within 24 hours to confirm your date and details.",
-  emailNote: "Submissions go directly to your-email@placeholder.com",
+  emailNote: PHOTO_CONTACT_SUBMIT.emailNote,
   fields: {
     nameLabel: "Your name",
     namePlaceholder: "Full name",
@@ -146,7 +158,7 @@ export const PHOTO_CONTACT_GENERAL = {
   eyebrow: "Photography enquiries",
   headingHtml: "Get in <em>touch</em>",
   sub: "Whether it's a print inquiry, a collaboration, or just to say hello — I'd love to hear from you.",
-  emailNote: "Submissions go directly to your-email@placeholder.com",
+  emailNote: PHOTO_CONTACT_SUBMIT.emailNote,
   fields: {
     nameLabel: "Name",
     namePlaceholder: "Your name",

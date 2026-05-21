@@ -224,22 +224,23 @@ function buildContactGradInnerHtml() {
     '</p><div class="email-note"><i class="ti ti-mail"></i> ' +
     escapeHtml(c.emailNote) +
     '</div><div id="grad-form">' +
+    '<div class="form-err" id="grad-err" role="alert"></div>' +
     '<div class="cf"><label for="gf-name">' +
     escapeHtml(f.nameLabel) +
-    '</label><input type="text" id="gf-name" placeholder="' +
+    '</label><input type="text" id="gf-name" name="name" autocomplete="name" placeholder="' +
     escapeAttr(f.namePlaceholder) +
     '"></div>' +
     '<div class="cf"><label for="gf-email">' +
     escapeHtml(f.emailLabel) +
-    '</label><input type="email" id="gf-email" placeholder="' +
+    '</label><input type="email" id="gf-email" name="email" autocomplete="email" placeholder="' +
     escapeAttr(f.emailPlaceholder) +
     '"></div>' +
     '<div class="cf"><label for="gf-msg">' +
     escapeHtml(f.messageLabel) +
-    '</label><textarea id="gf-msg" placeholder="' +
+    '</label><textarea id="gf-msg" name="message" placeholder="' +
     escapeAttr(f.messagePlaceholder) +
     '"></textarea></div>' +
-    '<button class="pho-submit" onclick="submitForm(\'grad-form\',\'grad-succ\')"><i class="ti ti-send"></i> ' +
+    '<button type="button" class="pho-submit" onclick="submitForm(\'grad-form\',\'grad-succ\',\'grad\')"><i class="ti ti-send"></i> ' +
     escapeHtml(c.submitLabel) +
     "</button></div>" +
     '<div class="form-succ" id="grad-succ"><div class="big">' +
@@ -286,22 +287,23 @@ function buildContactGeneralInnerHtml() {
     '</p><div class="email-note"><i class="ti ti-mail"></i> ' +
     escapeHtml(c.emailNote) +
     '</div><div id="gen-form">' +
+    '<div class="form-err" id="gen-err" role="alert"></div>' +
     '<div class="cf"><label for="gn-name">' +
     escapeHtml(f.nameLabel) +
-    '</label><input type="text" id="gn-name" placeholder="' +
+    '</label><input type="text" id="gn-name" name="name" autocomplete="name" placeholder="' +
     escapeAttr(f.namePlaceholder) +
     '"></div>' +
     '<div class="cf"><label for="gn-email">' +
     escapeHtml(f.emailLabel) +
-    '</label><input type="email" id="gn-email" placeholder="' +
+    '</label><input type="email" id="gn-email" name="email" autocomplete="email" placeholder="' +
     escapeAttr(f.emailPlaceholder) +
     '"></div>' +
     '<div class="cf"><label for="gn-msg">' +
     escapeHtml(f.messageLabel) +
-    '</label><textarea id="gn-msg" placeholder="' +
+    '</label><textarea id="gn-msg" name="message" placeholder="' +
     escapeAttr(f.messagePlaceholder) +
     '"></textarea></div>' +
-    '<button class="pho-submit" onclick="submitForm(\'gen-form\',\'gen-succ\')"><i class="ti ti-send"></i> ' +
+    '<button type="button" class="pho-submit" onclick="submitForm(\'gen-form\',\'gen-succ\',\'general\')"><i class="ti ti-send"></i> ' +
     escapeHtml(c.submitLabel) +
     "</button></div>" +
     '<div class="form-succ" id="gen-succ"><div class="big">' +

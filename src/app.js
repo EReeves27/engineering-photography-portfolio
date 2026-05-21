@@ -1,4 +1,9 @@
-import { GRAD_PHOTOS, HOME_PHOTOS } from "./photography/config.js";
+import {
+  GRAD_PHOTOS,
+  HOME_PHOTOS,
+  PHOTO_CONTACT_SUBMIT,
+  PHOTO_FORMSPREE_URL,
+} from "./photography/config.js";
 import { applyCrtRoomLayoutVars } from "./engineering/crt-room.js";
 import { assetUrl } from "./asset-url.js";
 import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
@@ -624,15 +629,88 @@ function goHome() {
   showPage("page-home", true);
 }
 
-function submitForm(formId, succId) {
+function contactFieldPrefix(formKind) {
+  return formKind === "grad" ? "gf" : "gn";
+}
+
+function readContactFields(formKind) {
+  var p = contactFieldPrefix(formKind);
+  return {
+    name: (document.getElementById(p + "-name")?.value || "").trim(),
+    email: (document.getElementById(p + "-email")?.value || "").trim(),
+    message: (document.getElementById(p + "-msg")?.value || "").trim(),
+  };
+}
+
+function isValidContactEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function submitForm(formId, succId, formKind) {
   var form = document.getElementById(formId);
-  var valid = true;
-  form.querySelectorAll("input, textarea").forEach(function (el) {
-    if (!el.value.trim()) valid = false;
-  });
-  if (!valid) return;
-  form.style.display = "none";
-  document.getElementById(succId).style.display = "block";
+  if (!form) return;
+  var errEl = document.getElementById(formId.replace("-form", "-err"));
+  var succEl = document.getElementById(succId);
+  var btn = form.querySelector(".pho-submit");
+  var fields = readContactFields(formKind);
+
+  if (!fields.name || !fields.email || !fields.message) {
+    if (errEl) {
+      errEl.textContent = "Please fill in all fields.";
+      errEl.style.display = "block";
+    }
+    return;
+  }
+  if (!isValidContactEmail(fields.email)) {
+    if (errEl) {
+      errEl.textContent = "Please enter a valid email address.";
+      errEl.style.display = "block";
+    }
+    return;
+  }
+
+  if (errEl) {
+    errEl.textContent = "";
+    errEl.style.display = "none";
+  }
+  if (btn) btn.disabled = true;
+
+  try {
+    var res = await fetch(PHOTO_FORMSPREE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        name: fields.name,
+        email: fields.email,
+        message: fields.message,
+        form: formKind === "grad" ? "Grad photo booking" : "General enquiry",
+        _subject:
+          formKind === "grad"
+            ? "Grad photo booking — " + fields.name
+            : "Photography enquiry — " + fields.name,
+      }),
+    });
+    var data = {};
+    try {
+      data = await res.json();
+    } catch (_) {
+      /* non-JSON error body */
+    }
+    if (!res.ok) {
+      throw new Error(data.error || "Formspree request failed");
+    }
+    form.style.display = "none";
+    if (succEl) succEl.style.display = "block";
+  } catch (_) {
+    if (errEl) {
+      errEl.textContent = PHOTO_CONTACT_SUBMIT.errorMessage;
+      errEl.style.display = "block";
+    }
+    if (btn) btn.disabled = false;
+  }
 }
 
 function toggleFaq(el) {
