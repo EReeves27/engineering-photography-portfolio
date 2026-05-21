@@ -4,6 +4,8 @@ import { mountPhotographyFromConfig } from "./photography/render-from-config.js"
 import { mountEngineeringFromConfig } from "./engineering/render-from-config.js";
 import { initSpotifyVinyl } from "./engineering/spotify-vinyl.js";
 
+import siteNav from "./shared/site-nav.html?raw";
+import photoSidebar from "./shared/photo-sidebar.html?raw";
 import homeTop from "./shared/home-top.html?raw";
 import homeClose from "./shared/home-close.html?raw";
 import engHomePanel from "./engineering/home-panel.html?raw";
@@ -19,6 +21,8 @@ import engPageResume from "./engineering/page-resume.html?raw";
 import engPageBiography from "./engineering/page-biography.html?raw";
 
 document.getElementById("app").innerHTML = [
+  siteNav,
+  photoSidebar,
   homeTop,
   engHomePanel,
   phoHomePanel,

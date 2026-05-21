@@ -1,5 +1,4 @@
 import {
-  PHOTO_BRAND,
   PHOTO_HOME,
   PHOTO_GRAD_PAGE,
   PHOTO_CONTACT_GRAD,
@@ -30,51 +29,45 @@ function photoInstagramHref() {
   return igHref;
 }
 
-/** Left sidebar — same on every photography view. */
-function buildPhotoSidebar(activePageId) {
+/** Nav links for the shared #photo-sidebar (mounted once; active state via updatePhotoSidebar). */
+function buildPhotoSidebarNavHtml() {
   var igHref = photoInstagramHref();
-
-  function activeClass(pageId) {
-    return activePageId === pageId ? " mk-nav-link--active" : "";
-  }
-
-  var contactActive =
-    activePageId === "page-contact-general" || activePageId === "page-contact-grad"
-      ? " mk-nav-link--active"
-      : "";
-
   return (
-    '<aside class="mk-sidebar">' +
-    '<div class="mk-logo">' +
-    PHOTO_BRAND.logoHtml +
-    "</div>" +
     '<nav class="mk-nav">' +
     '<div class="mk-nav-group">' +
-    '<button type="button" class="mk-nav-link' +
-    activeClass("page-home") +
-    '" onclick="goHome()">Home</button>' +
-    '<button type="button" class="mk-nav-link' +
-    activeClass("page-grad") +
-    '" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
-    '<button type="button" class="mk-nav-link' +
-    activeClass("page-bio") +
-    '" onclick="showPage(\'page-bio\')">Bio</button>' +
-    '<a class="mk-nav-link" href="' +
+    '<button type="button" class="mk-nav-link" data-pho-nav="page-home" onclick="goHome()">Home</button>' +
+    '<button type="button" class="mk-nav-link" data-pho-nav="page-grad" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
+    '<button type="button" class="mk-nav-link" data-pho-nav="page-bio" onclick="showPage(\'page-bio\')">Bio</button>' +
+    '<a class="mk-nav-link" data-pho-nav="page-instagram" href="' +
     escapeAttr(igHref) +
     '" target="_blank" rel="noopener noreferrer">Instagram</a>' +
-    '<button type="button" class="mk-nav-link' +
-    contactActive +
-    '" onclick="showPage(\'page-contact-general\')">Contact</button>' +
-    "</div>" +
-    "</nav>" +
-    "</aside>"
+    '<button type="button" class="mk-nav-link" data-pho-nav="page-contact" onclick="showPage(\'page-contact-general\')">Contact</button>' +
+    "</div></nav>"
   );
 }
 
-function wrapPhotoPage(activePageId, mainHtml) {
+export function updatePhotoSidebar(activePageId) {
+  var sidebar = document.getElementById("photo-sidebar");
+  if (!sidebar) return;
+  var contactActive =
+    activePageId === "page-contact-general" || activePageId === "page-contact-grad";
+  sidebar.querySelectorAll("[data-pho-nav]").forEach(function (el) {
+    var key = el.getAttribute("data-pho-nav");
+    var active =
+      key === activePageId ||
+      (key === "page-contact" && contactActive);
+    el.classList.toggle("mk-nav-link--active", active);
+  });
+}
+
+function mountPhotoSidebar() {
+  var sidebar = document.getElementById("photo-sidebar");
+  if (sidebar) sidebar.innerHTML = buildPhotoSidebarNavHtml();
+}
+
+function wrapPhotoPage(_activePageId, mainHtml) {
   return (
-    '<div class="mk-layout pho-page-layout">' +
-    buildPhotoSidebar(activePageId) +
+    '<div class="pho-page-layout">' +
     '<div class="mk-main mk-page-main">' +
     mainHtml +
     "</div></div>"
@@ -347,6 +340,8 @@ function buildBioPageInnerHtml() {
 
 /** Call after #app innerHTML is set; fills all photography views from config.js */
 export function mountPhotographyFromConfig() {
+  mountPhotoSidebar();
+
   var pp = document.getElementById("pp");
   if (pp) pp.innerHTML = buildPhotoHomeInnerHtml();
 

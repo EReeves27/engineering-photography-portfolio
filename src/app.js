@@ -4,6 +4,7 @@ import {
   PHOTO_CONTACT_SUBMIT,
   PHOTO_FORMSPREE_URL,
 } from "./photography/config.js";
+import { updatePhotoSidebar } from "./photography/render-from-config.js";
 import { applyCrtRoomLayoutVars } from "./engineering/crt-room.js";
 import { assetUrl } from "./asset-url.js";
 import { SERIES_ALBUM_IMAGES } from "virtual:series-album-images";
@@ -557,18 +558,79 @@ function buildGradGallery() {
    TOGGLE, NAVIGATION, FORMS
 ══════════════════════════════════════════════════════════════ */
 var isP = false;
-function sw() {
-  isP = !isP;
+
+function applyPortTheme() {
   var p = document.getElementById("port");
+  if (!p) return;
   p.className = isP ? "pho" : "eng";
-  document.getElementById("tog").setAttribute("aria-checked", isP ? "true" : "false");
-  document.getElementById("le").classList.toggle("on", !isP);
-  document.getElementById("lp").classList.toggle("on", isP);
-  document.getElementById("pe").classList.toggle("active", !isP);
-  document.getElementById("pp").classList.toggle("active", isP);
-  document.getElementById("nav-li").style.display = isP ? "none" : "flex";
-  document.getElementById("nav-bio").style.display = isP ? "none" : "flex";
-  document.getElementById("nav-resume").style.display = isP ? "none" : "flex";
+  var tog = document.getElementById("tog");
+  if (tog) tog.setAttribute("aria-checked", isP ? "true" : "false");
+  var le = document.getElementById("le");
+  var lp = document.getElementById("lp");
+  if (le) le.classList.toggle("on", !isP);
+  if (lp) lp.classList.toggle("on", isP);
+  var pe = document.getElementById("pe");
+  var pp = document.getElementById("pp");
+  if (pe) pe.classList.toggle("active", !isP);
+  if (pp) pp.classList.toggle("active", isP);
+  var navLi = document.getElementById("nav-li");
+  var navBio = document.getElementById("nav-bio");
+  var navResume = document.getElementById("nav-resume");
+  if (navLi) navLi.style.display = isP ? "none" : "flex";
+  if (navBio) navBio.style.display = isP ? "none" : "flex";
+  if (navResume) navResume.style.display = isP ? "none" : "flex";
+}
+
+/** Keep logo + Eng/Photo toggle visible on all photography pages. */
+function syncSiteNav(pageId) {
+  var bar = document.getElementById("site-nav");
+  if (!bar) return;
+  var onPhotoSite = pageId === "page-home" || isPhotoPageId(pageId);
+  bar.classList.toggle("site-nav--hidden", !onPhotoSite);
+  if (isPhotoPageId(pageId) && pageId !== "page-home") {
+    isP = true;
+  }
+  applyPortTheme();
+  syncPhotoChrome(pageId);
+}
+
+/** One shared left nav for all photography views (no per-page logo). */
+function syncPhotoChrome(pageId) {
+  var activeId = pageId;
+  if (!activeId) {
+    var active = document.querySelector(".page.active");
+    activeId = active ? active.id : "page-home";
+  }
+  var onPhotoSite = activeId === "page-home" || isPhotoPageId(activeId);
+  var show = onPhotoSite && (activeId !== "page-home" || isP);
+  document.body.classList.toggle("photo-site", show);
+  var chrome = document.getElementById("photo-chrome");
+  if (chrome) {
+    chrome.classList.toggle("photo-chrome--hidden", !show);
+    chrome.setAttribute("aria-hidden", show ? "false" : "true");
+  }
+  if (show) {
+    updatePhotoSidebar(activeId);
+  }
+}
+
+function measureSiteNavHeight() {
+  var bar = document.getElementById("site-nav");
+  if (!bar || bar.classList.contains("site-nav--hidden")) return;
+  var h = bar.offsetHeight;
+  if (h > 0) {
+    document.documentElement.style.setProperty("--site-nav-h", h + "px");
+  }
+}
+
+function sw() {
+  var active = document.querySelector(".page.active");
+  if (active && active.id !== "page-home") {
+    showPage("page-home", false);
+  }
+  isP = !isP;
+  applyPortTheme();
+  syncPhotoChrome("page-home");
 }
 
 var PHOTO_PAGE_IDS = {
@@ -615,6 +677,9 @@ function showPage(id, scrollSmooth) {
   } else {
     window.scrollTo(0, 0);
   }
+
+  syncSiteNav(id);
+  requestAnimationFrame(measureSiteNavHeight);
 
   if (id === "page-grad") {
     var gg = document.getElementById("grad-gallery");
@@ -926,6 +991,10 @@ export function initApp() {
   window.sw = sw;
   window.submitForm = submitForm;
   window.toggleFaq = toggleFaq;
+
+  syncSiteNav("page-home");
+  measureSiteNavHeight();
+  window.addEventListener("resize", measureSiteNavHeight);
 
   buildGradGallery();
   buildHomeWaterfall();

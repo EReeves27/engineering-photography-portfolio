@@ -207,7 +207,8 @@ export const ENG_BIOGRAPHY = {
     {
       heading: "Outside of school",
       body:
-        "For organizations at UCSB, I'm about to wrap up my tenure as President of UCSB Theta Tau and co-historian for TASA. " +
+        "For organizations at UCSB, I'm about to wrap up my tenure as President of Theta Tau (Professional Co-Ed Engineering Fraternity) "+
+        "and co-historian for TASA. " +
         "Besides that, I do some photography on the side (check out the other half of this website!) and " +
         "when I'm not stuck behind a screen, you'll find me playing guitar or piano (Liszt and Debussy mostly), " +
         "reading, playing soccer, surfing, or swimming.",
