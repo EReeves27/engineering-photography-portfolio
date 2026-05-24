@@ -167,6 +167,15 @@ function buildGradPageInnerHtml() {
     })
     .join("");
 
+  var packagesSection =
+    p.showPackages === false
+      ? ""
+      : '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
+        escapeHtml(p.packagesSectionLabel) +
+        '</div><div class="package-grid">' +
+        pkgs +
+        "</div></div>";
+
   return (
     '<div class="grad-hero">' +
     '<div class="grad-eyebrow">' +
@@ -181,11 +190,7 @@ function buildGradPageInnerHtml() {
     '<div class="grad-section"><div class="grad-sec-label">' +
     escapeHtml(p.gallerySectionLabel) +
     '</div><div class="photo-collage-gallery" id="grad-gallery"></div></div>' +
-    '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
-    escapeHtml(p.packagesSectionLabel) +
-    '</div><div class="package-grid">' +
-    pkgs +
-    "</div></div>" +
+    packagesSection +
     '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
     escapeHtml(p.testimonialsSectionLabel) +
     '</div><div class="testimonial-row">' +
@@ -196,7 +201,7 @@ function buildGradPageInnerHtml() {
     '</div><div class="faq-list">' +
     faq +
     "</div></div>" +
-    '<div class="grad-section" style="padding-top:0;padding-bottom:28px;">' +
+    '<div class="grad-section grad-section--footer">' +
     '<button class="grad-cta-big" style="width:100%;justify-content:center;" onclick="showPage(\'page-contact-grad\')"><i class="ti ti-calendar"></i> ' +
     escapeHtml(p.bottomCtaLabel) +
     "</button></div>"

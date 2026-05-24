@@ -935,6 +935,9 @@ body.photo-site .pho-page-layout {
 .spec-val { font-size: 16.25px; font-weight: 600; color: #1c1410; }
 
 /* ── Grad page ────────────────────────────────────────────── */
+#page-grad .mk-page-main {
+  padding-bottom: clamp(72px, 14vh, 140px);
+}
 .grad-hero { padding: 36px 18px 28px; text-align: center; border-bottom: .5px solid #e0d8cd; }
 .grad-eyebrow { font-family: 'DM Mono', monospace; font-size: 11.25px; letter-spacing: .25em; text-transform: uppercase; color: #c8a97e; margin-bottom: 10px; }
 .grad-title-big { font-family: 'Playfair Display', serif; font-size: 40px; line-height: 1.1; font-weight: 600; color: #1c1410; margin-bottom: 10px; }
@@ -949,6 +952,7 @@ body.photo-site .pho-page-layout {
 }
 .grad-cta-big:active { opacity: .8; }
 .grad-section { padding: 22px 18px; }
+.grad-section--footer { padding-top: 0; }
 .grad-sec-label { font-family: 'DM Mono', monospace; font-size: 11.25px; letter-spacing: .2em; text-transform: uppercase; color: #9a8878; margin-bottom: 14px; padding-bottom: 8px; border-bottom: .5px solid #e0d8cd; }
 .package-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .pkg-card { background: #f2ede5; border: .5px solid #e0d8cd; border-radius: 12px; padding: 14px; }

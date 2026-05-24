@@ -37,7 +37,12 @@ export const PHOTO_HOME = {
     role: "Photographer",
     body: "Hello! I'm from the Bay Area (specifically East Bay) and currently attending UCSB. " +
           "I've been taking photos for a while now but really started getting into it once I got to college. " +
-          "From there, I've taken photos ",
+          "From there, I've had the amazing opportunity to take photos at a bunch of different places " +
+          "around the world! Whether it's an F1 car flying down the back straight in Austin, a peaceful day at " +
+          "the top of a mountain in Lake Tahoe, or a sunset at Coal Oil Point, I absolutely love taking " +
+          "photos wherever I go. As a photographer, I want to share my joy with you! If you have any questions " +
+          "about what kind of photo shoot you wanted to do, feel free to reach out. I hope to be hearing from " +
+          "you soon!",
     /**
      * Up to 3 photos shown side-by-side on the Bio page.
      * Point to any file under public/ (e.g. "/photos/profile/…").
@@ -77,6 +82,8 @@ export const GRAD_PHOTOS = {
 };
 
 export const PHOTO_GRAD_PAGE = {
+  /** Set to `false` to hide the Packages section on the Grad Photos page. */
+  showPackages: false,
   heroEyebrow: "Class of 2026",
   heroTitleHtml: "Graduate <em>Photos</em>",
   heroTagline:
@@ -121,7 +128,8 @@ export const PHOTO_GRAD_PAGE = {
     },
     {
       q: "Where do shoots take place?",
-      a: "Anywhere you'd like! At UCSB, I've done Henley Gate, Devs Beanch, Coal Oil Point, Goleta Beach, the Library, and DP!",
+      a: "Anywhere you'd like! At UCSB, I've done Henley Gate, Devs Beanch, Coal Oil Point, Goleta Beach, the Library, and DP! " +
+      "For high school graduation, I'm available in Pleasanton, CA. ",
     },
     {
       q: "How long until I get my photos?",
@@ -130,6 +138,11 @@ export const PHOTO_GRAD_PAGE = {
     {
       q: "What should I wear?",
       a: "Wear what makes you feel like yourself!",
+    },
+    {
+      q: "When do photoshoots typically take place?",
+      a: "Photoshoots typically occur later in the afternoon and closer to sunset. " + 
+      "Windows typically start at 5:30pm and go til 7:30pm. ",
     },
   ],
   bottomCtaLabel: "Book your session",
