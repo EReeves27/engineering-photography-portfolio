@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,14 +59,61 @@ function seriesAlbumImagesPlugin() {
   };
 }
 
+/**
+ * Build-only Content-Security-Policy meta tag. Build-only so Vite's dev server
+ * (HMR websocket, injected inline scripts) is left untouched.
+ * `'unsafe-inline'` is required because the markup uses inline `onclick`/`style`
+ * attributes; the policy still constrains script/style/img/font/connect origins.
+ */
+function cspMetaPlugin(env) {
+  const recentUrl =
+    env.VITE_SPOTIFY_RECENT_URL ||
+    "https://eng-spotify-vinyl.ethanhreeves.workers.dev/recent";
+  let workerOrigin = "";
+  try {
+    workerOrigin = new URL(recentUrl).origin;
+  } catch {
+    /* leave empty if unparseable */
+  }
+  const connect = ["'self'", "https://formspree.io"];
+  if (workerOrigin) connect.push(workerOrigin);
+
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+    "img-src 'self' data: https:",
+    "connect-src " + connect.join(" "),
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+
+  return {
+    name: "inject-csp-meta",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(html) {
+        const tag =
+          '<meta http-equiv="Content-Security-Policy" content="' + csp + '">';
+        return html.replace("</head>", "  " + tag + "\n</head>");
+      },
+    },
+  };
+}
+
 // GitHub project site: https://ereeves27.github.io/engineering-photography-portfolio/
 const repoBase = "/engineering-photography-portfolio/";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, __dirname, "VITE_");
+  return {
   base: repoBase,
   root: ".",
   publicDir: "public",
-  plugins: [seriesAlbumImagesPlugin()],
+  plugins: [seriesAlbumImagesPlugin(), cspMetaPlugin(env)],
   server: {
     proxy: {
       "/api/spotify": {
@@ -76,4 +123,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });
