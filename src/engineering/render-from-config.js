@@ -1,12 +1,8 @@
 import {
   ENG_NAV,
   ENG_NAV_THEMES,
-  ENG_HOME,
   ENG_STACK,
   ENG_BIOGRAPHY,
-  ENG_PAGE_SW,
-  ENG_PAGE_HW,
-  ENG_PAGE_RE,
   ENG_RESUME,
 } from "./config.js";
 import { applyCrtRoomLayoutVars, crtRoomSceneSvg } from "./crt-room.js";
@@ -258,14 +254,37 @@ function layerPanelHtml(L) {
       var tags = (p.tags || [])
         .map(function (t) { return '<span class="stack-proj-tag">' + escapeHtml(t) + "</span>"; })
         .join("");
-      var link = "";
-      if (p.link && p.link.pageId) {
-        link =
-          '<button type="button" class="stack-proj-link" onclick="showPage(\'' +
-          escapeAttr(p.link.pageId) +
-          '\')"><i class="ti ti-arrow-up-right"></i> ' +
-          escapeHtml(p.link.label || "More") +
+      var more = p.more || null;
+      var hasMore =
+        more &&
+        ((more.paragraphs && more.paragraphs.length) ||
+          (more.bullets && more.bullets.length));
+      var moreBtn = "";
+      var moreBody = "";
+      if (hasMore) {
+        var paras = (more.paragraphs || [])
+          .map(function (para) {
+            return '<p class="stack-proj-more-p">' + escapeHtml(para) + "</p>";
+          })
+          .join("");
+        var bullets = "";
+        if (more.bullets && more.bullets.length) {
+          bullets =
+            '<ul class="stack-proj-more-list">' +
+            more.bullets
+              .map(function (b) {
+                return "<li>" + escapeHtml(b) + "</li>";
+              })
+              .join("") +
+            "</ul>";
+        }
+        moreBtn =
+          '<button type="button" class="stack-proj-toggle" aria-expanded="false" onclick="toggleStackProject(this)">' +
+          '<i class="ti ti-chevron-down" aria-hidden="true"></i> ' +
+          '<span class="stack-proj-toggle-label">More info</span>' +
           "</button>";
+        moreBody =
+          '<div class="stack-proj-more" hidden>' + paras + bullets + "</div>";
       }
       return (
         '<article class="stack-proj">' +
@@ -275,7 +294,8 @@ function layerPanelHtml(L) {
           escapeHtml(p.meta || "") +
           '</span></header>' +
           '<p class="stack-proj-body">' + escapeHtml(p.body) + "</p>" +
-          '<div class="stack-proj-foot"><div class="stack-proj-tags">' + tags + '</div>' + link + '</div>' +
+          '<div class="stack-proj-foot"><div class="stack-proj-tags">' + tags + '</div>' + moreBtn + '</div>' +
+          moreBody +
         '</article>'
       );
     })
@@ -344,6 +364,10 @@ function buildEngHomeInnerHtml() {
               bootPanelHtml() +
               layerPanels +
             '</div>' +
+          '</div>' +
+          '<div id="crt-vinyl-tooltip" class="crt-vinyl-tooltip" hidden>' +
+            '<span class="crt-vinyl-tooltip-title"></span>' +
+            '<span class="crt-vinyl-tooltip-artist"></span>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -414,246 +438,6 @@ function buildBiographyInnerHtml() {
     '</div>';
 
   return crtPageFrame("bio", "/biography", body);
-}
-
-function projButtonsHtml(buttons) {
-  return buttons
-    .map(function (b) {
-      if (b.href) {
-        return (
-          '<a class="pbtn" href="' +
-          escapeAttr(b.href) +
-          '" target="_blank" rel="noopener noreferrer" style="' +
-          escapeAttr(b.style) +
-          '"><i class="ti ' +
-          escapeAttr(b.icon) +
-          '"></i> ' +
-          escapeHtml(b.label) +
-          "</a>"
-        );
-      }
-      return (
-        '<button type="button" class="pbtn" style="' +
-        escapeAttr(b.style) +
-        '"><i class="ti ' +
-        escapeAttr(b.icon) +
-        '"></i> ' +
-        escapeHtml(b.label) +
-        "</button>"
-      );
-    })
-    .join("");
-}
-
-function schematicBlock(s) {
-  if (!s) return "";
-  if (s.kind === "img" && s.src) {
-    return (
-      '<div class="schematic"><img src="' +
-      escapeAttr(assetUrl(s.src)) +
-      '" alt="' +
-      escapeAttr(s.alt || "") +
-      '" style="max-width:100%;max-height:200px;object-fit:contain;border-radius:8px;"></div>'
-    );
-  }
-  if (s.kind === "svg" && s.html) {
-    return '<div class="schematic">' + s.html + "</div>";
-  }
-  return "";
-}
-
-function chipsSection(title, chips) {
-  var inner = chips
-    .map(function (ch) {
-      return (
-        '<span class="chip" style="color:' +
-        escapeAttr(ch.color) +
-        ';">' +
-        escapeHtml(ch.label) +
-        "</span>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="proj-sec"><div class="proj-sec-title">' +
-    escapeHtml(title) +
-    '</div><div class="chips">' +
-    inner +
-    "</div></div>"
-  );
-}
-
-function metricsSection(title, metrics) {
-  var cells = metrics
-    .map(function (m) {
-      return (
-        '<div class="metric"><div class="metric-val">' +
-        m.valueHtml +
-        '</div><div class="metric-lbl">' +
-        escapeHtml(m.label) +
-        "</div></div>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="proj-sec"><div class="proj-sec-title">' +
-    escapeHtml(title) +
-    '</div><div class="metrics-grid">' +
-    cells +
-    "</div></div>"
-  );
-}
-
-function featuresSection(title, lines, bulletColor) {
-  var col = bulletColor || "#4f8ef7";
-  var lis = lines
-    .map(function (line) {
-      return (
-        "<li><span style=\"color:" +
-        col +
-        ';position:absolute;left:0;">—</span>' +
-        escapeHtml(line) +
-        "</li>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="proj-sec"><div class="proj-sec-title">' +
-    escapeHtml(title) +
-    '</div><ul class="feat-list">' +
-    lis +
-    "</ul></div>"
-  );
-}
-
-function timelineSection(title, items, dotColor) {
-  var rows = items
-    .map(function (it) {
-      return (
-        '<div class="tl-item"><div class="tl-l"><div class="tl-dot" style="background:' +
-        escapeAttr(dotColor) +
-        ';"></div><div class="tl-line"></div></div><div><div class="tl-date" style="color:' +
-        escapeAttr(dotColor) +
-        ';">' +
-        escapeHtml(it.date) +
-        '</div><div class="tl-text">' +
-        escapeHtml(it.title) +
-        '</div><div class="tl-sub">' +
-        escapeHtml(it.sub) +
-        "</div></div></div>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="proj-sec"><div class="proj-sec-title">' +
-    escapeHtml(title) +
-    '</div><div class="tl">' +
-    rows +
-    "</div></div>"
-  );
-}
-
-function buildSwPageBody() {
-  const p = ENG_PAGE_SW;
-  return (
-    '<div class="proj-body">' +
-    '<span class="proj-cat-badge" style="' +
-    escapeAttr(p.catBadgeStyle) +
-    '">' +
-    escapeHtml(p.catBadgeText) +
-    '</span><h1 class="proj-title">' +
-    p.titleHtml +
-    '</h1><p class="proj-sub">' +
-    escapeHtml(p.sub) +
-    '</p><div class="proj-btns">' +
-    projButtonsHtml(p.buttons) +
-    '</div><div class="proj-divider"></div>' +
-    schematicBlock(p.schematic) +
-    chipsSection(p.chipsSectionTitle, p.chips) +
-    metricsSection(p.metricsSectionTitle, p.metrics) +
-    featuresSection(p.featuresSectionTitle, p.features, p.featureBulletColor) +
-    timelineSection(p.timelineSectionTitle, p.timeline, p.timelineDotColor) +
-    "</div>"
-  );
-}
-
-function buildHwPageBody() {
-  const p = ENG_PAGE_HW;
-  var feats =
-    p.features && p.features.length ?
-      featuresSection(p.featuresSectionTitle, p.features, p.featureBulletColor)
-    : "";
-  return (
-    '<div class="proj-body">' +
-    '<span class="proj-cat-badge" style="' +
-    escapeAttr(p.catBadgeStyle) +
-    '">' +
-    escapeHtml(p.catBadgeText) +
-    '</span><h1 class="proj-title">' +
-    p.titleHtml +
-    '</h1><p class="proj-sub">' +
-    escapeHtml(p.sub) +
-    '</p><div class="proj-btns">' +
-    projButtonsHtml(p.buttons) +
-    '</div><div class="proj-divider"></div>' +
-    schematicBlock(p.schematic) +
-    chipsSection(p.chipsSectionTitle, p.chips) +
-    feats +
-    metricsSection(p.metricsSectionTitle, p.metrics) +
-    timelineSection(p.timelineSectionTitle, p.timeline, p.timelineDotColor) +
-    "</div>"
-  );
-}
-
-function findingsSection(title, items) {
-  var cards = items
-    .map(function (f) {
-      return (
-        '<div class="finding-card"><div class="finding-num">' +
-        escapeHtml(f.num) +
-        '</div><div class="finding-text">' +
-        escapeHtml(f.text) +
-        '</div><div class="finding-sub">' +
-        escapeHtml(f.sub) +
-        "</div></div>"
-      );
-    })
-    .join("");
-  return (
-    '<div class="proj-sec"><div class="proj-sec-title">' +
-    escapeHtml(title) +
-    "</div>" +
-    cards +
-    "</div>"
-  );
-}
-
-function buildRePageBody() {
-  const p = ENG_PAGE_RE;
-  return (
-    '<div class="proj-body">' +
-    '<span class="proj-cat-badge" style="' +
-    escapeAttr(p.catBadgeStyle) +
-    '">' +
-    escapeHtml(p.catBadgeText) +
-    '</span><h1 class="proj-title">' +
-    p.titleHtml +
-    '</h1><p class="proj-sub">' +
-    escapeHtml(p.sub) +
-    '</p><div class="proj-btns">' +
-    projButtonsHtml(p.buttons) +
-    '</div><div class="proj-divider"></div>' +
-    '<div class="proj-sec"><div class="proj-sec-title" style="' +
-    escapeAttr(p.abstractTitleStyle) +
-    '">' +
-    escapeHtml(p.abstractSectionTitle) +
-    '</div><div class="abstract-block">' +
-    escapeHtml(p.abstractText) +
-    "</div></div>" +
-    findingsSection(p.findingsSectionTitle, p.findings) +
-    metricsSection(p.metricsSectionTitle, p.metrics) +
-    "</div>"
-  );
 }
 
 function resumeCourseworkHtml(r) {
@@ -810,21 +594,6 @@ export function mountEngineeringFromConfig() {
   var pe = document.getElementById("pe");
   if (pe) pe.innerHTML = buildEngHomeInnerHtml();
   applyCrtRoomLayoutVars(document.getElementById("eng-stack-experience"));
-
-  var sw = document.getElementById("page-sw");
-  if (sw) sw.innerHTML =
-    engDetNav("page-home", ENG_PAGE_SW.navTheme) +
-    crtPageFrame(ENG_PAGE_SW.navTheme, "/stack/software", buildSwPageBody());
-
-  var hw = document.getElementById("page-hw");
-  if (hw) hw.innerHTML =
-    engDetNav("page-home", ENG_PAGE_HW.navTheme) +
-    crtPageFrame(ENG_PAGE_HW.navTheme, "/stack/hardware", buildHwPageBody());
-
-  var re = document.getElementById("page-re");
-  if (re) re.innerHTML =
-    engDetNav("page-home", ENG_PAGE_RE.navTheme) +
-    crtPageFrame(ENG_PAGE_RE.navTheme, "/stack/research", buildRePageBody());
 
   var res = document.getElementById("page-resume");
   if (res) res.innerHTML =

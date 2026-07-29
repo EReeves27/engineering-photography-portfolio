@@ -601,7 +601,6 @@ body.photo-site .pho-page-layout {
   display: block;
   border-radius: 2px;
   cursor: zoom-in;
-  vertical-align: middle;
 }
 
 .mk-waterfall-empty {
@@ -1460,7 +1459,7 @@ a.res-dl { color: #0d0d1a; }
   color: #94a98b;
   border-radius: 999px;
 }
-.stack-proj-link {
+.stack-proj-toggle {
   display: inline-flex; align-items: center; gap: 5px;
   font-family: 'DM Mono', monospace; font-size: 10px;
   letter-spacing: .15em; text-transform: uppercase;
@@ -1469,9 +1468,55 @@ a.res-dl { color: #0d0d1a; }
   color: var(--crt-amber);
   padding: 5px 9px; border-radius: 6px;
   cursor: pointer;
-  transition: background .15s, color .15s;
+  transition: background .15s, color .15s, border-color .15s;
 }
-.stack-proj-link:hover { background: rgba(212, 154, 58, .15); color: #fff; }
+.stack-proj-toggle i {
+  font-size: 14px;
+  transition: transform .25s ease;
+}
+.stack-proj-toggle:hover { background: rgba(212, 154, 58, .15); color: #fff; }
+.stack-proj.is-open .stack-proj-toggle {
+  border-color: rgba(212, 154, 58, .75);
+  background: rgba(212, 154, 58, .12);
+  color: #fff;
+}
+.stack-proj.is-open .stack-proj-toggle i { transform: rotate(180deg); }
+.stack-proj-more {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: .5px dashed rgba(212, 154, 58, .25);
+}
+.stack-proj-more[hidden] { display: none !important; }
+.stack-proj-more-p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #c5d4bc;
+  margin: 0 0 10px;
+}
+.stack-proj-more-p:last-child { margin-bottom: 0; }
+.stack-proj-more-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.stack-proj-more-list li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #a8b8a0;
+}
+.stack-proj-more-list li::before {
+  content: "·";
+  position: absolute;
+  left: 2px;
+  color: var(--crt-amber, #d49a3a);
+  font-size: 16px;
+  line-height: 1.1;
+}
 .stack-empty {
   padding: 24px;
   text-align: center;
@@ -1497,12 +1542,85 @@ a.res-dl { color: #0d0d1a; }
   backdrop-filter: blur(8px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .35s ease, transform .35s ease;
+  transition: opacity .35s ease, transform .35s ease, padding .25s ease, gap .25s ease;
 }
 .eng-stack-experience[data-mode="stack"] .stack-progress {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
   pointer-events: auto;
+}
+/* Collapsed by default in stack mode (ticks only) */
+.eng-stack-experience[data-mode="stack"] .stack-progress {
+  padding: 8px 6px;
+  gap: 4px;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress .stack-progress-hdr {
+  display: none;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress .stack-progress-label {
+  display: none !important;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress .stack-progress-dot {
+  padding: 5px 6px;
+  justify-content: center;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress .stack-progress-dot.is-active {
+  background: transparent;
+}
+/* Expanded: hover (desktop), keyboard focus, or touch toggle */
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded {
+  padding: 12px 10px;
+  gap: 8px;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-hdr,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-hdr,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-hdr {
+  display: block;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-dot,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-dot,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-dot {
+  padding: 6px 8px;
+  justify-content: flex-start;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-dot.is-active,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-dot.is-active,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-dot.is-active {
+  background: linear-gradient(90deg, rgba(212, 154, 58, .18) 0%, rgba(212, 154, 58, 0) 100%);
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-label {
+  display: inline !important;
+  color: rgba(168, 187, 160, 0.42);
+  white-space: nowrap;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-dot.is-active .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-dot.is-active .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-dot.is-active .stack-progress-label {
+  color: #f1f5ea;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-dot:not(.is-active) .stack-progress-tick,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-dot:not(.is-active) .stack-progress-tick,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-dot:not(.is-active) .stack-progress-tick {
+  opacity: 0.45;
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-dot:hover .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-dot:hover .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-dot:hover .stack-progress-label {
+  color: rgba(241, 245, 234, 0.75);
+}
+.eng-stack-experience[data-mode="stack"] .stack-progress:hover .stack-progress-dot.is-active:hover .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress:focus-within .stack-progress-dot.is-active:hover .stack-progress-label,
+.eng-stack-experience[data-mode="stack"] .stack-progress.is-expanded .stack-progress-dot.is-active:hover .stack-progress-label {
+  color: #fff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stack-progress {
+    transition: opacity .35s ease, transform .35s ease;
+  }
 }
 .stack-progress-hdr {
   font-family: 'DM Mono', monospace; font-size: 9px;
@@ -2346,3 +2464,45 @@ a.res-dl { color: #0d0d1a; }
 /* The room stage as a whole is non-interactive (clicks go to the screen overlay) */
 .crt-room-stage { pointer-events: none; }
 .crt-room-stage * { pointer-events: none; }
+.crt-room-stage .crt-vinyl-slot,
+.crt-room-stage .crt-vinyl-slot * {
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* Vinyl hover tooltip — song name + artist below each frame */
+.crt-vinyl-tooltip {
+  position: fixed;
+  z-index: 50;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: rgba(7, 7, 13, .92);
+  border: .5px solid rgba(212, 154, 58, .35);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s ease;
+  /* Gap below the frame (JS) + extra nudge: negative moves up, positive moves down */
+  --crt-vinyl-tooltip-shift-y: 0px;
+  transform: translate(-50%, var(--crt-vinyl-tooltip-shift-y));
+}
+.crt-vinyl-tooltip:not([hidden]) { opacity: 1; }
+.crt-vinyl-tooltip-title {
+  display: block;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d9e6d2;
+  line-height: 1.35;
+}
+.crt-vinyl-tooltip-artist {
+  display: block;
+  margin-top: 2px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: #9a8878;
+  line-height: 1.35;
+}

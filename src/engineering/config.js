@@ -18,11 +18,10 @@ export const ENG_NAV = {
 
 /**
  * The six layers of the computer-engineering "full stack".
- * Each layer renders in the right-hand canvas with a CRT-chrome frame and
- * domain-true illustration. Layers with `active: false` are grayed out.
+ * Each layer has projects; optional `more: { paragraphs, bullets }` expands
+ * in-place on the stack (no separate detail pages).
  *
  * Ordinals: 1 = bottom of stack (Materials) ... 6 = top (Applications).
- * Domain tag is used purely to pick the illustration in render.
  */
 export const ENG_STACK = {
   computer: {
@@ -46,23 +45,43 @@ export const ENG_STACK = {
       domain: "applications",
       active: true,
       summary:
-        "End-user systems built on top of every layer below — toys you can pick up, grid testbeds you can shake.",
+        "End-user systems built on top of every layer below — toys you can pick up, doors that open themselves, grids you can stress-test.",
       projects: [
         {
-          title: "Spin Master · BAIC test controllers",
-          meta: "Aug–Sep 2025 · Pleasanton, CA",
+          title: "Spin Master · BAIC engineering intern",
+          meta: "Jun 2026–present · Aug–Sep 2025 · Pleasanton, CA",
           body:
-            "Built controllers and embedded prototypes used by design engineers to validate mechanical behavior in electronic toys. Trimmed BOM cost by simplifying designs.",
-          tags: ["Embedded", "Prototyping", "Cost engineering"],
-          link: { label: "Engineering detail", pageId: "page-sw" },
+            "Returning engineering intern at Spin Master’s Bay Area Innovation Center. First tour: assembled test controllers, wrote embedded bring-up code, and brought mechanical toy animations to life with digital circuits. Now owning a full prototype from start to finish.",
+          tags: ["Embedded", "Prototyping", "Toy electronics"],
+          more: {
+            paragraphs: [
+              "Aug–Sep 2025: assembled controllers for design engineers to test mechanical and digital toy behavior, wrote embedded software to exercise prototype circuits, and created digital circuits that drove mechanical animations and toy features.",
+              "Jun 2026–present: returned as an Engineering Intern to take a full project prototype from start to finish over the summer.",
+            ],
+            bullets: [
+              "Test controllers for mechanical + digital validation of electronic toys",
+              "Embedded firmware to bring up and improve prototype circuits",
+              "Digital circuits that animate mechanical toy features",
+              "Returning 2026: end-to-end ownership of a full summer prototype",
+            ],
+          },
         },
         {
           title: "RTDS power-grid testbed",
           meta: "Jun–Aug 2025 · UC3M Madrid",
           body:
-            "Real-time hardware-in-the-loop campaigns stressing the grid under fault scenarios. Compared grid-forming vs grid-following inverter behavior for stability.",
+            "International research internship developing real-time grid testing protocols. Modeled fault events on an RTDS and compared grid-forming vs grid-following inverters as renewables replace classical generators.",
           tags: ["RTDS", "RSCAD FX", "Power systems"],
-          link: { label: "Research detail", pageId: "page-re" },
+          more: {
+            paragraphs: [
+              "Undergraduate researcher at Universidad Carlos III de Madrid. Collaborated on real-time testing protocols for the power grid, running RTDS simulations under fault events and studying how grid-forming vs grid-following inverters compete for reliability as renewables displace classical generators.",
+            ],
+            bullets: [
+              "Real-time testing protocols for power-grid fault scenarios",
+              "RTDS simulations of grid behavior under faults",
+              "Grid-forming vs grid-following inverter research for renewable-heavy grids",
+            ],
+          },
         },
       ],
     },
@@ -74,15 +93,60 @@ export const ENG_STACK = {
       domain: "software",
       active: true,
       summary:
-        "Firmware, DSP, and signal-processing code that turns CPUs into something useful.",
+        "Firmware, OS kernels, and signal-processing code that turns CPUs into something useful.",
       projects: [
         {
-          title: "Goleta Sound Machine",
-          meta: "Oct–Dec 2023 · Teensy 4",
+          title: "Automated garage door · STM32",
+          meta: "May–Jun 2026 · STM32L476 · Nucleo",
           body:
-            "Guitar tuner and real-time effects unit on Teensy. Frequency analysis on the audio path, LCD UI, and programmable effects chain.",
-          tags: ["Embedded C", "DSP", "Real-time"],
-          link: { label: "Software detail", pageId: "page-sw" },
+            "Firmware integrating SPI accelerometer, I2C temperature sensor, and DMA-backed USART over Bluetooth to drive a stepper motor with non-blocking, interrupt-driven control.",
+          tags: ["STM32", "Embedded C", "I2C/SPI/UART", "Real-time"],
+          more: {
+            paragraphs: [
+              "Built an automated garage-door controller on an STM32L476 Nucleo board: continuously polls sensors, streams telemetry over Bluetooth, and drives a stepper motor while keeping the control loop non-blocking.",
+            ],
+            bullets: [
+              "SPI accelerometer + I2C temperature sensor + DMA USART / Bluetooth telemetry",
+              "Finite-state door controller with accelerometer end-stops and startup calibration",
+              "Temperature hysteresis (Schmitt trigger) for automated open/close",
+              "SysTick half-stepping motor control; 4 s post-move lockout; resolved pin conflicts across stepper, SPI, I2C, and dual UART at register level",
+            ],
+          },
+        },
+        {
+          title: "Nachos OS projects",
+          meta: "Apr–Jun 2026 · C/C++ · Simulated MIPS",
+          body:
+            "Core OS pieces in Nachos: thread scheduling/sync, multiprogramming, system calls, page tables, and virtual memory with page-fault handling — debugged concurrency and context switches in a simulated MIPS kernel.",
+          tags: ["Operating Systems", "C/C++", "Virtual memory"],
+          more: {
+            paragraphs: [
+              "Implemented core Nachos operating-system components including thread scheduling/synchronization, multiprogramming, and user process management (Fork, Exec, Join, Exit), then built out system-call and memory subsystems with page-table translation and process isolation.",
+            ],
+            bullets: [
+              "Thread scheduling, synchronization, and multiprogramming",
+              "System calls: Fork, Exec, Join, Exit, Read, Write, Open, Close, Create",
+              "Page-table address translation + user↔kernel memory transfer",
+              "Virtual memory: page-fault handling and replacement; kernel concurrency / exception debugging",
+            ],
+          },
+        },
+        {
+          title: "Goleta Sound Machine",
+          meta: "Oct–Dec 2023 · Teensy",
+          body:
+            "Guitar tuner and real-time effects unit on Teensy with an audio adapter board — frequency analysis, LCD output, and programmable effects.",
+          tags: ["Embedded C", "DSP", "Teensy"],
+          more: {
+            paragraphs: [
+              "Developed a guitar tuner and effects unit using a Teensy microcontroller and audio adapter board.",
+            ],
+            bullets: [
+              "Real-time frequency analysis for tuning",
+              "LCD output for mode / feedback",
+              "Programmable audio effects on the signal path",
+            ],
+          },
         },
       ],
     },
@@ -100,9 +164,18 @@ export const ENG_STACK = {
           title: "RISC-V five-stage pipeline (Verilog)",
           meta: "Jan–Mar 2026 · Course project",
           body:
-            "RV32I subset (add, addi, sub, and, andi, or, slt, slti, lw, sw, beq, jal, lui) with a hazard-aware controller, branch predictor, and a critical-word-first / prefetch cache to cut runtime.",
+            "5-stage pipelined RISC-V in Verilog with gshare + BTB branch prediction and a 4-way set-associative I-cache (critical-word-first / early-restart + hardware prefetcher).",
           tags: ["Verilog", "RV32I", "Cache", "Branch predictor"],
-          link: { label: "Architecture detail", pageId: "page-sw" },
+          more: {
+            paragraphs: [
+              "Designed and verified a 5-stage pipelined RISC-V processor in Verilog — core arithmetic/logic, load/store, branch, and jump instructions, with datapath/control extensions for jal, jalr, and lui.",
+            ],
+            bullets: [
+              "Branch prediction: direct-mapped BTB + gshare (global history register + saturating counters)",
+              "4-way set-associative I-cache with random replacement, miss handling, critical-word-first / early-restart, and a hardware prefetcher",
+              "Testbench verification with waveform debug and counters for branch/jump miss rates, cache miss rates, and execution-time sweeps",
+            ],
+          },
         },
       ],
     },
@@ -114,23 +187,58 @@ export const ENG_STACK = {
       domain: "circuits",
       active: true,
       summary:
-        "Where transistors become logic — standard cells laid out by hand, multi-bit datapaths timed out to run within frequency constraints.",
+        "Where transistors become logic — standard cells laid out by hand, multi-bit datapaths and clock trees timed within hard frequency constraints.",
       projects: [
         {
-          title: "16-bit parallel prefix adder",
-          meta: "Dec 2025 · Skywater 130 nm · 500 MHz",
+          title: "1 GHz skip-buffered H-tree clock network",
+          meta: "Apr–Jun 2026 · Clock tree · HSPICE",
           body:
-            "Kogge–Stone style adder taped out at 500 MHz in Cadence Virtuoso with custom gate logic on the Skywater 130 nm PDK.",
-          tags: ["Virtuoso", "PPA", "130 nm", "500 MHz"],
-          link: { label: "Hardware detail", pageId: "page-hw" },
+            "Designed a 1 GHz skip-buffered H-tree for a 5 mm × 5 mm, 100K flip-flop chip — 75.5 ps skew (spec <100 ps) with Monte Carlo validation in HSPICE.",
+          tags: ["Clock tree", "HSPICE", "Monte Carlo", "1 GHz"],
+          more: {
+            paragraphs: [
+              "High-speed IC design project: a 1 GHz skip-buffered H-tree clock distribution network for a 5 mm × 5 mm chip with 100K flip-flops. Hit 75.5 ps skew against a <100 ps spec after root-cause jitter analysis of supply-droop across series buffer stages.",
+            ],
+            bullets: [
+              "Parametric models for buffer sizing, wire RC extraction, and power budgeting (2.26 W)",
+              "Simulation-calibrated jitter estimator with per-tile coherent grouping + quadrature summation",
+              "Monte Carlo HSPICE runs confirming statistical skew compliance",
+            ],
+          },
+        },
+        {
+          title: "16-bit parallel prefix adder",
+          meta: "Dec 2025 · Cadence Virtuoso · 2 ns / 500 MHz",
+          body:
+            "Transistor-level 16-bit parallel prefix adder in Virtuoso — propagate/generate logic, custom CMOS sizing, verified within a 2 ns timing target while driving 32 unit inverters per bit (~108 fF).",
+          tags: ["Virtuoso", "PPA", "2 ns", "CMOS sizing"],
+          more: {
+            paragraphs: [
+              "Designed and simulated a 16-bit parallel prefix adder at the transistor level in Cadence Virtuoso for unsigned addition. Outputs required to drive 32 unit inverters and meet a 2 ns timing target (~500 MHz).",
+            ],
+            bullets: [
+              "Propagate/generate blocks, CMOS carry-computation (“black-box”) stages, and sum logic",
+              "Critical-path analysis for Cout and MSB sum; custom INV/NAND/NOR/XOR sizing for rise/fall balance",
+              "Load modeling ≈108 fF per bit; multi-vector transistor-level sims confirmed 2 ns compliance",
+            ],
+          },
         },
         {
           title: "CMOS standard-cell layout",
-          meta: "Sep–Dec 2025 · INV, NAND, NOR, MUX, XOR",
+          meta: "Sep–Dec 2025 · Skywater 130 nm",
           body:
-            "Hand-drawn schematic and layout for the canonical CMOS cell set; sign-off with DRC and LVS clean.",
-          tags: ["Layout", "DRC", "LVS"],
-          link: { label: "Hardware detail", pageId: "page-hw" },
+            "Functional INV, NAND, NOR, MUX, and XOR layouts on the Skywater 130 nm PDK — signed off with DRC and LVS clean.",
+          tags: ["Layout", "DRC", "LVS", "130 nm"],
+          more: {
+            paragraphs: [
+              "Designed functional INV, NAND, NOR, MUX, and XOR gates using the Skywater 130 nm PDK in Cadence Virtuoso, then verified layouts against DRC and LVS.",
+            ],
+            bullets: [
+              "Cells: INV, NAND, NOR, MUX, XOR",
+              "Skywater 130 nm PDK layout in Virtuoso",
+              "DRC and LVS clean at sign-off",
+            ],
+          },
         },
       ],
     },
@@ -148,9 +256,18 @@ export const ENG_STACK = {
           title: "Fabricated NMOS + passives",
           meta: "Jan–Mar 2026 · UCSB Engineering II cleanroom",
           body:
-            "Full process flow: masking, photolithography, doping, etch, thermal oxide growth, and metal deposition — followed by electrical test of NMOS, resistor, and capacitor.",
+            "Fabricated and validated long-channel NMOS devices, resistors, and capacitors from bare silicon wafers — full process flow through metallization and electrical test.",
           tags: ["Cleanroom", "Photolithography", "Doping", "Electrical test"],
-          link: { label: "Hardware detail", pageId: "page-hw" },
+          more: {
+            paragraphs: [
+              "Started from bare silicon wafers in the UCSB Engineering II Cleanroom and fabricated working long-channel NMOS transistors plus resistors and capacitors, then measured electrical characteristics across samples to confirm MOSFET operation and process consistency.",
+            ],
+            bullets: [
+              "Full flow: photolithography, mask alignment, metrology, doping, oxidation, etching, metallization",
+              "Electrical characterization of transistors, resistors, and capacitors",
+              "Hands-on process integration, device fab, and post-fab test",
+            ],
+          },
         },
       ],
     },
@@ -165,12 +282,21 @@ export const ENG_STACK = {
         "The thing the whole stack is made of — modeled at first-principles to ask what comes after copper.",
       projects: [
         {
-          title: "Cu/Ru vs monolayer graphene interconnects",
-          meta: "Jan–Mar 2026 · Synopsys QuantumATK",
+          title: "Cu / Ru / graphene interconnect transport",
+          meta: "Jan–Mar 2026 · QuantumATK · 300–600 K",
           body:
-            "Resistivity models for Cu/Ru nanowires with temperature effects, plus graphene monolayer resistivity simulated in QuantumATK — benchmarked against conventional back-end-of-line stacks.",
-          tags: ["QuantumATK", "DFT-ish", "Transport modeling"],
-          link: { label: "Research detail", pageId: "page-re" },
+            "Temperature-dependent transport models for Cu and Ru nanowires plus QuantumATK graphene simulations (MD-Landauer / BTE). Graphene degraded more slowly with temperature than the copper baseline.",
+          tags: ["QuantumATK", "Transport", "BEOL"],
+          more: {
+            paragraphs: [
+              "Modeled temperature-dependent transport in advanced interconnect materials, comparing Cu, Ru, and monolayer graphene under nanoscale scaling. Built a copper nanowire resistance model with Fuchs–Sondheimer surface scattering, Mayadas–Shatzkes grain-boundary scattering, barrier-area loss, and thermal effects, then benchmarked ruthenium and graphene against that baseline.",
+            ],
+            bullets: [
+              "QuantumATK graphene sims via MD-Landauer and BTE mobility workflows (300 K–600 K)",
+              "Graphene transport degraded more slowly with temperature than the Cu reference",
+              "Noted practical limits: contact resistance and process nonidealities",
+            ],
+          },
         },
       ],
     },
@@ -198,24 +324,21 @@ export const ENG_BIOGRAPHY = {
     {
       heading: "What I've been working on",
       body:
-        "Here at UCSB, I've had the amazing opportunity to work in the cleanroom and build my own NMOS from wafer to " +
-        "a working transistor with verifiable device characteristics. In my other classes, I've built a " +
-        "500 MHz parallel prefix adder in Cadence Virtuoso, and a Verilog RISC-V pipeline with cache and branch prediction. " + 
-        "Last summer, I spent time doing research at UC3m Madrid on real-time grid testing on an RTDS simulator and had another " +
-        "amazing opportunity at Spin Master prototyping, coding, and assembling electronic toys.",
+        "Here at UCSB I've fabricated a working NMOS from wafer to electrical test, designed a 1 GHz H-tree clock network, built a RISC-V pipeline with cache and branch prediction, and shipped embedded firmware on STM32 and Teensy. " +
+        "I've also done interconnect transport research (Cu/Ru/graphene), RTDS grid testing at UC3M Madrid, and engineering internships at Spin Master — including a return this summer owning a full prototype end to end.",
     },
     {
       heading: "Outside of school",
       body:
-        "For organizations at UCSB, I'm about to wrap up my tenure as President of Theta Tau (Professional Co-Ed Engineering Fraternity) "+
-        "and co-historian for TASA. " +
+        "For organizations at UCSB, I wrapped up my tenure as President of Theta Tau (Professional Co-Ed Engineering Fraternity) " +
+        "and as co-historian for TASA. " +
         "Besides that, I do some photography on the side (check out the other half of this website!) and " +
         "when I'm not stuck behind a screen, you'll find me playing guitar or piano (Liszt and Debussy mostly), " +
         "reading, playing soccer, surfing, or swimming.",
     },
   ],
   facts: [
-    { valueHtml: "06", label: "Projects shipped" },
+    { valueHtml: "10", label: "Projects shipped" },
     { valueHtml: "02", label: "Industry / research" },
     { valueHtml: "3.76", label: "GPA · College of Engineering" },
     { valueHtml: '15<span>+</span>', label: "Tools & labs" },
@@ -331,188 +454,9 @@ export const ENG_HOME = {
   ],
 };
 
-const SCHEMATIC_SW_HTML =
-  '<svg width="260" height="110" viewBox="0 0 260 110" fill="none"><rect x="20" y="22" width="70" height="36" rx="4" fill="#0d1a2e" stroke="#378add" stroke-width=".9"/><text x="55" y="44" font-size="8" fill="#85b7eb" text-anchor="middle" font-family="monospace">IF/ID</text><rect x="110" y="22" width="70" height="36" rx="4" fill="#0d1a2e" stroke="#4f8ef7" stroke-width="1"/><text x="145" y="44" font-size="8" fill="#85b7eb" text-anchor="middle" font-family="monospace">EXE</text><rect x="200" y="22" width="40" height="36" rx="4" fill="#0d1a2e" stroke="#378add" stroke-width=".8"/><text x="220" y="44" font-size="7" fill="#85b7eb" text-anchor="middle" font-family="monospace">MEM</text><rect x="70" y="68" width="120" height="28" rx="4" fill="#0d1a2e" stroke="#378add" stroke-width=".8"/><text x="130" y="86" font-size="8" fill="#85b7eb" text-anchor="middle" font-family="monospace">Cache / prefetch</text><line x1="90" y1="40" x2="110" y2="40" stroke="#4f8ef7" stroke-width=".8" opacity=".7"/><line x1="180" y1="40" x2="200" y2="40" stroke="#4f8ef7" stroke-width=".8" opacity=".7"/></svg>';
-const SCHEMATIC_HW_HTML =
-  '<svg width="260" height="110" viewBox="0 0 260 110" fill="none"><rect x="30" y="28" width="90" height="54" rx="4" fill="#0d1a14" stroke="#1d9e75" stroke-width="1.1"/><text x="75" y="52" font-size="8" fill="#5dcaa5" text-anchor="middle" font-family="monospace">NMOS / CMOS</text><text x="75" y="66" font-size="7" fill="#1d9e75" text-anchor="middle" font-family="monospace">Skywater 130 nm</text><rect x="150" y="30" width="80" height="22" rx="3" fill="#0d1a14" stroke="#1d9e75" stroke-width=".7" opacity=".85"/><text x="190" y="45" font-size="7" fill="#5dcaa5" text-anchor="middle" font-family="monospace">DRC / LVS</text><rect x="150" y="60" width="80" height="22" rx="3" fill="#0d1a14" stroke="#1d9e75" stroke-width=".7" opacity=".85"/><text x="190" y="75" font-size="7" fill="#5dcaa5" text-anchor="middle" font-family="monospace">Cleanroom</text></svg>';
-
-export const ENG_PAGE_SW = {
-  navTheme: "sw",
-  catBadgeStyle: "background:#0d1a2e;color:#85b7eb;border:.5px solid #378add;",
-  catBadgeText: "Architecture & embedded",
-  titleHtml: 'RTL, audio & <em style="color:#4f8ef7;">prototyping</em>',
-  sub: "RISC-V five-stage pipeline in Verilog with cache and branch prediction, a Teensy-based guitar tuner and effects unit, and embedded prototyping at Spin Master’s Bay Area Innovation Center.",
-  buttons: [
-    {
-      style: "background:#4f8ef7;color:#0d0d1a;border:none;",
-      icon: "ti-brand-linkedin",
-      label: "LinkedIn",
-      href: "https://linkedin.com/in/ethanhreeves",
-    },
-    {
-      style: "border:.5px solid #2a2a40;color:#e8eaf6;",
-      icon: "ti-mail",
-      label: "Email",
-      href: "mailto:ethanhreeves@engineering.ucsb.edu",
-    },
-  ],
-  schematic: { kind: "svg", html: SCHEMATIC_SW_HTML },
-  chipsSectionTitle: "Tools & languages",
-  chips: [
-    { label: "Verilog", color: "#85b7eb" },
-    { label: "Teensy", color: "#85b7eb" },
-    { label: "C / C++", color: "#85b7eb" },
-    { label: "Assembly (RISC-V)", color: "#85b7eb" },
-    { label: "Embedded C", color: "#85b7eb" },
-  ],
-  metricsSectionTitle: "Highlights",
-  metrics: [
-    { valueHtml: "RV32I", label: "ISA subset" },
-    { valueHtml: '16<span style="color:#4f8ef7;">bit</span>', label: "Parallel audio path" },
-    { valueHtml: "RT", label: "Effects & tuner" },
-    { valueHtml: "2023", label: "Goleta build" },
-  ],
-  featuresSectionTitle: "What I shipped",
-  featureBulletColor: "#4f8ef7",
-  features: [
-    "RISC-V pipeline supporting add, addi, sub, and, andi, or, slt, slti, lw, sw, beq, jal, and lui — controller, branch predictor, and critical-word-first / prefetch cache to cut runtime.",
-    "Goleta Sound Machine: guitar tuner and effects on Teensy with real-time frequency analysis, LCD UI, and programmable audio effects.",
-    "Spin Master BAIC (Aug–Sep 2025): built test controllers for electronic toys, wrote embedded bring-up code, and trimmed BOM cost by simplifying designs.",
-  ],
-  timelineSectionTitle: "Timeline",
-  timelineDotColor: "#4f8ef7",
-  timeline: [
-    {
-      date: "Aug–Sep 2025",
-      title: "Spin Master · Engineering intern",
-      sub: "Controllers, embedded prototypes, cost-aware design",
-    },
-    {
-      date: "Jan–Mar 2026",
-      title: "RISC-V CPU · Course project",
-      sub: "Pipeline, cache hierarchy, branch prediction",
-    },
-    {
-      date: "Oct–Dec 2023",
-      title: "Goleta Sound Machine",
-      sub: "Teensy audio path and UI",
-    },
-  ],
-};
-
-export const ENG_PAGE_HW = {
-  navTheme: "hw",
-  catBadgeStyle: "background:#1a2a1a;color:#5dcaa5;border:.5px solid #1d9e75;",
-  catBadgeText: "VLSI & fabrication",
-  titleHtml: 'From layout to <em style="color:#5dcaa5;">silicon</em>',
-  sub: "Cleanroom fabrication of a working NMOS (plus resistor and capacitor), Skywater 130 nm standard-cell layout through DRC/LVS, and a 500 MHz 16-bit parallel prefix adder in Cadence Virtuoso.",
-  buttons: [
-    {
-      style: "background:#5dcaa5;color:#04342c;border:none;",
-      icon: "ti-brand-linkedin",
-      label: "LinkedIn",
-      href: "https://linkedin.com/in/ethanhreeves",
-    },
-    {
-      style: "border:.5px solid #2a2a40;color:#e8eaf6;",
-      icon: "ti-mail",
-      label: "Email",
-      href: "mailto:ethanhreeves@engineering.ucsb.edu",
-    },
-  ],
-  schematic: { kind: "svg", html: SCHEMATIC_HW_HTML },
-  chipsSectionTitle: "Stack",
-  chips: [
-    { label: "Cadence Virtuoso", color: "#5dcaa5" },
-    { label: "Skywater 130 nm", color: "#5dcaa5" },
-    { label: "DRC / LVS", color: "#5dcaa5" },
-    { label: "Cleanroom flow", color: "#5dcaa5" },
-    { label: "HSPICE", color: "#5dcaa5" },
-  ],
-  featuresSectionTitle: "Build highlights",
-  featureBulletColor: "#5dcaa5",
-  features: [
-    "Fabricated working NMOS, resistor, and capacitor from a silicon wafer in the UCSB Engineering II cleanroom — masking, metrology, doping, etch, oxide growth, and metal deposition.",
-    "16-bit Kogge–Stone style parallel prefix adder taped out at 500 MHz with custom gate logic on Skywater 130 nm.",
-    "Layout for INV, NAND, NOR, MUX, and XOR cells; sign-off with DRC and LVS.",
-  ],
-  metricsSectionTitle: "Specs",
-  metrics: [
-    { valueHtml: '500<span style="color:#5dcaa5;">MHz</span>', label: "Adder target" },
-    { valueHtml: "130", label: "Process (nm)" },
-    { valueHtml: "5", label: "Gate types (std cell)" },
-    { valueHtml: "NMOS", label: "Active device demo" },
-  ],
-  timelineSectionTitle: "Milestones",
-  timelineDotColor: "#5dcaa5",
-  timeline: [
-    {
-      date: "Sep–Dec 2025",
-      title: "CMOS gate layout",
-      sub: "Skywater PDK, DRC/LVS clean",
-    },
-    {
-      date: "Dec 2025",
-      title: "Parallel prefix adder",
-      sub: "Virtuoso schematic + layout",
-    },
-    {
-      date: "Jan–Mar 2026",
-      title: "Student fabrication run",
-      sub: "NMOS + passives on wafer",
-    },
-  ],
-};
-
-export const ENG_PAGE_RE = {
-  navTheme: "re",
-  catBadgeStyle: "background:#2a1a2e;color:#afa9ec;border:.5px solid #7f77dd;",
-  catBadgeText: "Research",
-  titleHtml: 'Grid testing & <em style="color:#afa9ec;">interconnects</em>',
-  sub: "Undergraduate researcher at Universidad Carlos III de Madrid on real-time power-grid experiments, plus an independent study modeling copper/ruthenium versus monolayer graphene interconnects.",
-  buttons: [
-    {
-      style: "background:#7f77dd;color:#26215c;border:none;",
-      icon: "ti-brand-linkedin",
-      label: "LinkedIn",
-      href: "https://linkedin.com/in/ethanhreeves",
-    },
-    {
-      style: "border:.5px solid #2a2a40;color:#e8eaf6;",
-      icon: "ti-mail",
-      label: "Email",
-      href: "mailto:ethanhreeves@engineering.ucsb.edu",
-    },
-  ],
-  abstractTitleStyle: "color:#afa9ec;",
-  abstractSectionTitle: "Summary",
-  abstractText:
-    "At UC3M I collaborated on RTDS-based experiments to stress the power grid under faults, contrasting grid-forming and grid-following inverters for stability. Separately I built resistivity models for Cu/Ru nanowires and simulated graphene interconnects in Synopsys QuantumATK to compare performance at finite temperature.",
-  findingsSectionTitle: "Focus areas",
-  findings: [
-    {
-      num: "Grid 01",
-      text: "RTDS simulator campaigns for fault events and real-time protection validation.",
-      sub: "Grid-forming vs grid-following inverter behavior",
-    },
-    {
-      num: "Interconnect 02",
-      text: "Cu/Ru resistance models with nanowire and temperature effects; graphene monolayer resistivity from QuantumATK.",
-      sub: "Benchmarked against conventional backend stacks",
-    },
-  ],
-  metricsSectionTitle: "Context",
-  metrics: [
-    { valueHtml: "RTDS", label: "Lab platform" },
-    { valueHtml: "RSCAD", label: "Automation FX" },
-    { valueHtml: "QM", label: "QuantumATK studies" },
-    { valueHtml: "Jun–Aug", label: "2025 · Madrid" },
-  ],
-};
-
 export const ENG_RESUME = {
   nameHtml: 'Ethan <em>H Reeves</em>',
-  tagline: "B.S. Electrical & Computer Engineering · UCSB · GPA 3.76",
+  tagline: "B.S. Computer Engineering · UCSB · GPA 3.76",
   pdfHref: "/ethan-reeves-resume-2026.pdf",
   contacts: [
     { icon: "ti-mail", text: "ethanhreeves@engineering.ucsb.edu", href: "mailto:ethanhreeves@engineering.ucsb.edu" },
@@ -523,7 +467,7 @@ export const ENG_RESUME = {
   educationSectionTitle: "Education",
   education: [
     {
-      title: "B.S. Electrical & Computer Engineering",
+      title: "B.S. Computer Engineering",
       dateRange: "Sep 2023 – June 2027 (expected)",
       orgLine: "University of California, Santa Barbara · College of Engineering · GPA 3.76 / 4.00",
     },
@@ -532,35 +476,45 @@ export const ENG_RESUME = {
   coursework: [
     "High Speed IC Design (M.S. level)",
     "Nanoelectronic Device Physics",
-    "VLSI Design I & II (in progress)",
-    "Computer Architecture I & II (in progress)",
-    "Integrated Circuit Fabrication (cleanroom labs)",
-    "Data Structures & Algorithms",
-    "Operating Systems (in progress)",
-    "Sensor / Peripheral Design (in progress)",
+    "VLSI Design I & II",
+    "Integrated Circuit Fabrication",
+    "Computer Architecture I & II",
+    "Operating Systems",
+    "Sensor / Peripheral Design",
+    "Signal Analysis & Processing*",
+    "Distributed Systems*",
   ],
   experienceSectionTitle: "Experience",
   experience: [
     {
+      title: "Returning Engineering Intern",
+      dateRange: "Jun 2026 – present",
+      orgLine: "Spin Master · Bay Area Innovation Center · Pleasanton, CA",
+      body: "Returning engineering intern owning a full project prototype from start to finish over the summer.",
+    },
+    {
       title: "Engineering Intern",
       dateRange: "Aug–Sep 2025",
       orgLine: "Spin Master · Bay Area Innovation Center · Pleasanton, CA",
-      body: "Assembled controllers used by design engineers to validate mechanical behavior in electronic toys. Built prototypes with embedded firmware and simplified designs to reduce component count and cost.",
+      body: "Assembled controllers for design engineers to test mechanical and digital toy operations. Wrote embedded software for prototype circuits and created digital circuits that brought mechanical animations and toy features to life.",
     },
     {
       title: "Electrical Engineering Undergraduate Researcher",
       dateRange: "Jun–Aug 2025",
       orgLine: "Universidad Carlos III de Madrid · Madrid, Spain",
-      body: "Developed real-time testing protocols for the power grid using an RTDS simulator; modeled fault scenarios. Studied grid-forming versus grid-following inverters for stability and fault tolerance.",
+      body: "Developed real-time testing protocols for the power grid using an RTDS simulator; modeled fault scenarios. Studied grid-forming versus grid-following inverters for reliability as renewables replace classical generators.",
     },
   ],
   projectsSectionTitle: "Projects",
   projects: [
+    { title: "1 GHz skip-buffered H-tree clock network", meta: "Apr–Jun 2026 · 75.5 ps skew · HSPICE Monte Carlo" },
+    { title: "Automated garage door system (STM32)", meta: "May–Jun 2026 · SPI/I2C/UART · real-time control" },
+    { title: "Nachos operating systems projects", meta: "Apr–Jun 2026 · Threads, syscalls, virtual memory" },
     { title: "Fabricated working NMOS from silicon wafer", meta: "Jan–Mar 2026 · Cleanroom fabrication & electrical test" },
-    { title: "Research paper — Cu vs graphene interconnects", meta: "Jan–Mar 2026 · QuantumATK & analytical models" },
-    { title: "Working RISC-V pipeline processor in Verilog", meta: "Jan–Mar 2026 · Cache + branch predictor" },
-    { title: "Parallel prefix adder in Cadence Virtuoso", meta: "Dec 2025 · 500 MHz · Skywater 130 nm" },
-    { title: "Layout of CMOS logic gates in Virtuoso", meta: "Sep–Dec 2025 · INV, NAND, NOR, MUX, XOR" },
+    { title: "Cu / Ru / graphene interconnect transport", meta: "Jan–Mar 2026 · QuantumATK · 300–600 K" },
+    { title: "RISC-V pipeline processor in Verilog", meta: "Jan–Mar 2026 · gshare + BTB · 4-way I-cache" },
+    { title: "16-bit parallel prefix adder in Virtuoso", meta: "Dec 2025 · 2 ns timing · transistor-level" },
+    { title: "Layout of CMOS logic gates in Virtuoso", meta: "Sep–Dec 2025 · Skywater 130 nm · DRC/LVS" },
     { title: "Goleta Sound Machine", meta: "Oct–Dec 2023 · Teensy · tuner & effects" },
   ],
   skillsSectionTitle: "Technical skills",
@@ -586,13 +540,14 @@ export const ENG_RESUME = {
     "Git",
     "RTDS",
     "RSCAD FX",
+    "STM32",
     "Teensy",
     "Oscilloscope",
     "Soldering",
   ],
   extrasSectionTitle: "Leadership & interests",
   extrasText:
-    "UCSB Theta Tau — President (Jun 2025–present). UCSB TASA — Co-Historian / photographer (Jun 2025–present). Interests: guitar, photography (@ethan_r.photo), piano (Liszt, Debussy), reading, soccer, surfing, swimming.",
+    "UCSB Theta Tau — President (Jun 2025–Jun 2026). UCSB TASA — Co-Historian / photographer (Jun 2025–Jun 2026). Graduation photos photographer (May 2025–present). Interests: guitar, photography (@ethan_r.photo), piano (Liszt, Debussy), reading (Blake Crouch), soccer, surfing, swimming.",
   downloadLabel: "Download PDF",
 };
 

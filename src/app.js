@@ -631,6 +631,7 @@ function sw() {
   isP = !isP;
   applyPortTheme();
   syncPhotoChrome("page-home");
+  window.scrollTo(0, 0);
 }
 
 var PHOTO_PAGE_IDS = {
@@ -786,6 +787,40 @@ function toggleFaq(el) {
   if (!isOpen) el.classList.add("open");
 }
 
+/** Expand / collapse stack project "More info" panels in place. */
+function toggleStackProject(btn) {
+  if (!btn) return;
+  var card = btn.closest(".stack-proj");
+  if (!card) return;
+  var panel = card.closest(".stack-layer-panel");
+  var opening = !card.classList.contains("is-open");
+
+  if (panel) {
+    panel.querySelectorAll(".stack-proj.is-open").forEach(function (other) {
+      if (other === card) return;
+      other.classList.remove("is-open");
+      var ob = other.querySelector(".stack-proj-toggle");
+      var om = other.querySelector(".stack-proj-more");
+      var ol = other.querySelector(".stack-proj-toggle-label");
+      if (ob) ob.setAttribute("aria-expanded", "false");
+      if (om) om.hidden = true;
+      if (ol) ol.textContent = "More info";
+    });
+  }
+
+  card.classList.toggle("is-open", opening);
+  btn.setAttribute("aria-expanded", opening ? "true" : "false");
+  var more = card.querySelector(".stack-proj-more");
+  if (more) more.hidden = !opening;
+  var label = btn.querySelector(".stack-proj-toggle-label");
+  if (label) label.textContent = opening ? "Less info" : "More info";
+  if (opening && more) {
+    requestAnimationFrame(function () {
+      more.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
+}
+
 /* ══════════════════════════════════════════════════════════════
    Album justified grids + legacy adaptive placeholders / lightbox
 ══════════════════════════════════════════════════════════════ */
@@ -884,11 +919,13 @@ function initStackExperience() {
   var dots = Array.prototype.slice.call(
     experience.querySelectorAll(".stack-progress-dot")
   );
+  var progressRail = document.getElementById("stack-progress");
   // Phases: index 0 = boot, 1..6 = stack layers (Apps → Materials).
   var totalPhases = panels.length;
   if (totalPhases < 2) return;
 
   var lastPhase = -1;
+  var lastStackMode = "";
 
   function smoothStep(t) {
     t = Math.max(0, Math.min(1, t));
@@ -933,7 +970,14 @@ function initStackExperience() {
     experience.style.setProperty("--stack-progress", smoothStep(progress).toFixed(4));
 
     // Hide the floating rail/reassemble until the user starts scrolling.
-    experience.setAttribute("data-mode", zoomFloat > 0.04 ? "stack" : "boot");
+    var mode = zoomFloat > 0.04 ? "stack" : "boot";
+    if (mode !== lastStackMode) {
+      if (mode === "boot" && progressRail) {
+        progressRail.classList.remove("is-expanded");
+      }
+      lastStackMode = mode;
+    }
+    experience.setAttribute("data-mode", mode);
   }
 
   // rAF-throttled scroll handler.
@@ -969,6 +1013,14 @@ function initStackExperience() {
     });
   });
 
+  if (progressRail) {
+    progressRail.addEventListener("click", function (e) {
+      if (!window.matchMedia("(hover: none)").matches) return;
+      if (e.target.closest(".stack-progress-dot")) return;
+      progressRail.classList.toggle("is-expanded");
+    });
+  }
+
   // CRT screen click on the boot panel: smooth-scroll to first layer (Apps).
   var bootPanel = experience.querySelector('.stack-layer-panel[data-layer="boot"]');
   if (bootPanel) {
@@ -991,6 +1043,7 @@ export function initApp() {
   window.sw = sw;
   window.submitForm = submitForm;
   window.toggleFaq = toggleFaq;
+  window.toggleStackProject = toggleStackProject;
 
   syncSiteNav("page-home");
   measureSiteNavHeight();
