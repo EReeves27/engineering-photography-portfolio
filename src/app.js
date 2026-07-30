@@ -926,6 +926,9 @@ function initStackExperience() {
 
   var lastPhase = -1;
   var lastStackMode = "";
+  var lastZoomProgress = "";
+  var lastRoomState = "";
+  var cachedRegionHeight = region.offsetHeight;
 
   function smoothStep(t) {
     t = Math.max(0, Math.min(1, t));
@@ -951,7 +954,7 @@ function initStackExperience() {
   function updateScroll() {
     var rect = region.getBoundingClientRect();
     var vh = window.innerHeight || document.documentElement.clientHeight;
-    var totalScroll = region.offsetHeight - vh;
+    var totalScroll = cachedRegionHeight - vh;
     var scrolledIn = totalScroll > 0 ? Math.max(0, -rect.top) : 0;
     var progress = totalScroll > 0 ? Math.min(1, scrolledIn / totalScroll) : 0;
 
@@ -963,21 +966,27 @@ function initStackExperience() {
     // the screen stays at full size while content cycles through the layers.
     var zoomFloat = Math.min(1, phaseFloat);
     var zoomP = smoothStep(zoomFloat);
-    experience.style.setProperty("--zoom-progress", zoomP.toFixed(4));
-    experience.style.setProperty("--stack-chrome", (1 - zoomP).toFixed(4));
-    // --stack-progress remains the overall scroll position (0..1) for
-    // anything that should depend on full-page progress.
-    experience.style.setProperty("--stack-progress", smoothStep(progress).toFixed(4));
+    var zoomStr = zoomP.toFixed(4);
+    if (zoomStr !== lastZoomProgress) {
+      experience.style.setProperty("--zoom-progress", zoomStr);
+      lastZoomProgress = zoomStr;
+    }
 
-    // Hide the floating rail/reassemble until the user starts scrolling.
+    // Hide floating rail until scroll starts; park the CRT room after fly-in.
     var mode = zoomFloat > 0.04 ? "stack" : "boot";
     if (mode !== lastStackMode) {
       if (mode === "boot" && progressRail) {
         progressRail.classList.remove("is-expanded");
       }
+      experience.setAttribute("data-mode", mode);
       lastStackMode = mode;
     }
-    experience.setAttribute("data-mode", mode);
+    // opacity hits 0 around zoom≈0.71 — stop animating the invisible SVG after that.
+    var roomState = zoomP >= 0.72 ? "off" : "on";
+    if (roomState !== lastRoomState) {
+      experience.setAttribute("data-room", roomState);
+      lastRoomState = roomState;
+    }
   }
 
   // rAF-throttled scroll handler.
@@ -990,14 +999,19 @@ function initStackExperience() {
       ticking = false;
     });
   }
+  function onResize() {
+    applyCrtRoomLayoutVars(experience);
+    cachedRegionHeight = region.offsetHeight;
+    onScroll();
+  }
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", onScroll, { passive: true });
+  window.addEventListener("resize", onResize, { passive: true });
   updateScroll();
 
   // Jump to a phase by clicking a progress dot.
   function scrollToPhase(idx) {
     var vh = window.innerHeight || document.documentElement.clientHeight;
-    var totalScroll = region.offsetHeight - vh;
+    var totalScroll = cachedRegionHeight - vh;
     if (totalScroll <= 0) return;
     // Sit ~10% into the phase so the panel is fully active.
     var phaseProgress = (idx + 0.1) / totalPhases;
@@ -1018,6 +1032,13 @@ function initStackExperience() {
       if (!window.matchMedia("(hover: none)").matches) return;
       if (e.target.closest(".stack-progress-dot")) return;
       progressRail.classList.toggle("is-expanded");
+    });
+    // Clicking a layer focuses the button; :focus-within would keep the rail
+    // expanded after the pointer leaves. Always collapse on mouse leave.
+    progressRail.addEventListener("mouseleave", function () {
+      progressRail.classList.remove("is-expanded");
+      var focused = progressRail.querySelector(":focus");
+      if (focused && typeof focused.blur === "function") focused.blur();
     });
   }
 

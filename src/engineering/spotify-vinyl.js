@@ -66,8 +66,9 @@ function initVinylTooltips() {
     artistEl.hidden = !artist;
 
     const rect = slot.getBoundingClientRect();
-    tooltip.style.top = rect.bottom + TOOLTIP_GAP_PX + "px";
-    tooltip.style.left = rect.left + rect.width / 2 + "px";
+    const stageRect = stage.getBoundingClientRect();
+    tooltip.style.top = rect.bottom - stageRect.top + TOOLTIP_GAP_PX + "px";
+    tooltip.style.left = rect.left - stageRect.left + rect.width / 2 + "px";
     tooltip.hidden = false;
   }
 

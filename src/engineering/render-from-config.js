@@ -396,15 +396,6 @@ function buildBiographyInnerHtml() {
     })
     .join("");
 
-  var facts = b.facts
-    .map(function (f) {
-      return (
-        '<div class="bio-page-fact"><div class="bio-page-fact-n">' + f.valueHtml +
-        '</div><div class="bio-page-fact-l">' + escapeHtml(f.label) + "</div></div>"
-      );
-    })
-    .join("");
-
   var ctas = b.ctas
     .map(function (c) {
       if (c.pageId) {
@@ -433,7 +424,6 @@ function buildBiographyInnerHtml() {
           '<div class="bio-page-ctas">' + ctas + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="bio-page-facts">' + facts + '</div>' +
       '<div class="bio-page-story">' + story + '</div>' +
     '</div>';
 

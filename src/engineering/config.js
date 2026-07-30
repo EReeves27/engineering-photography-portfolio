@@ -254,13 +254,13 @@ export const ENG_STACK = {
       projects: [
         {
           title: "Fabricated NMOS + passives",
-          meta: "Jan–Mar 2026 · UCSB Engineering II cleanroom",
+          meta: "Jan–Mar 2026 · UCSB Teaching Cleanroom",
           body:
             "Fabricated and validated long-channel NMOS devices, resistors, and capacitors from bare silicon wafers — full process flow through metallization and electrical test.",
           tags: ["Cleanroom", "Photolithography", "Doping", "Electrical test"],
           more: {
             paragraphs: [
-              "Started from bare silicon wafers in the UCSB Engineering II Cleanroom and fabricated working long-channel NMOS transistors plus resistors and capacitors, then measured electrical characteristics across samples to confirm MOSFET operation and process consistency.",
+              "Started from bare silicon wafers in the UCSB Teaching Cleanroom and fabricated working long-channel NMOS transistors plus resistors and capacitors, then measured electrical characteristics across samples to confirm MOSFET operation and process consistency.",
             ],
             bullets: [
               "Full flow: photolithography, mask alignment, metrology, doping, oxidation, etching, metallization",
@@ -336,12 +336,6 @@ export const ENG_BIOGRAPHY = {
         "when I'm not stuck behind a screen, you'll find me playing guitar or piano (Liszt and Debussy mostly), " +
         "reading, playing soccer, surfing, or swimming.",
     },
-  ],
-  facts: [
-    { valueHtml: "10", label: "Projects shipped" },
-    { valueHtml: "02", label: "Industry / research" },
-    { valueHtml: "3.76", label: "GPA · College of Engineering" },
-    { valueHtml: '15<span>+</span>', label: "Tools & labs" },
   ],
   ctas: [
     { label: "View resume", icon: "ti-file-cv", pageId: "page-resume" },
@@ -459,8 +453,8 @@ export const ENG_RESUME = {
   tagline: "B.S. Computer Engineering · UCSB · GPA 3.76",
   pdfHref: "/ethan-reeves-resume-2026.pdf",
   contacts: [
-    { icon: "ti-mail", text: "ethanhreeves@engineering.ucsb.edu", href: "mailto:ethanhreeves@engineering.ucsb.edu" },
-    { icon: "ti-phone", text: "+1 (925) 353-0613", href: "tel:+19253530613" },
+    { icon: "ti-mail", text: "ethanhreeves@engineering.ucsb.edu", href: "" },
+    { icon: "ti-phone", text: "available upon contact", href: "" },
     { icon: "ti-map-pin", text: "Pleasanton, CA" },
     { icon: "ti-brand-linkedin", text: "linkedin.com/in/ethanhreeves", href: "https://linkedin.com/in/ethanhreeves" },
   ],
@@ -507,11 +501,11 @@ export const ENG_RESUME = {
   ],
   projectsSectionTitle: "Projects",
   projects: [
-    { title: "1 GHz skip-buffered H-tree clock network", meta: "Apr–Jun 2026 · 75.5 ps skew · HSPICE Monte Carlo" },
+    { title: "1 GHz skip-buffered H-tree clock network", meta: "Apr–Jun 2026 · HSPICE · Monte Carlo" },
     { title: "Automated garage door system (STM32)", meta: "May–Jun 2026 · SPI/I2C/UART · real-time control" },
     { title: "Nachos operating systems projects", meta: "Apr–Jun 2026 · Threads, syscalls, virtual memory" },
     { title: "Fabricated working NMOS from silicon wafer", meta: "Jan–Mar 2026 · Cleanroom fabrication & electrical test" },
-    { title: "Cu / Ru / graphene interconnect transport", meta: "Jan–Mar 2026 · QuantumATK · 300–600 K" },
+    { title: "Cu / Ru / graphene interconnect transport", meta: "Jan–Mar 2026 · QuantumATK" },
     { title: "RISC-V pipeline processor in Verilog", meta: "Jan–Mar 2026 · gshare + BTB · 4-way I-cache" },
     { title: "16-bit parallel prefix adder in Virtuoso", meta: "Dec 2025 · 2 ns timing · transistor-level" },
     { title: "Layout of CMOS logic gates in Virtuoso", meta: "Sep–Dec 2025 · Skywater 130 nm · DRC/LVS" },

@@ -1176,6 +1176,7 @@ a.res-dl { color: #0d0d1a; }
   display: grid;
   place-items: center;
   overflow: hidden;
+  contain: paint;
 }
 
 /* ── CRT room stage ──────────────────────────────────────────
@@ -1188,7 +1189,6 @@ a.res-dl { color: #0d0d1a; }
   position: absolute;
   inset: 0;
   overflow: hidden;
-  perspective: 1200px;
 }
 
 /* Camera fly-in: scale the entire SVG up to 8x as --zoom-progress goes 0→1.
@@ -1206,10 +1206,21 @@ a.res-dl { color: #0d0d1a; }
   opacity: clamp(0, calc(1 - var(--zoom-progress, 0) * 1.4), 1);
   will-change: transform, opacity;
 }
+/* After fly-in completes: drop the invisible animated room from the compositor. */
+.eng-stack-experience[data-room="off"] .crt-room-svg {
+  visibility: hidden;
+  pointer-events: none;
+  will-change: auto;
+  animation-play-state: paused;
+}
+.eng-stack-experience[data-room="off"] .crt-room-svg * {
+  animation-play-state: paused !important;
+}
 
 /* ── Zoom screen (HTML overlay on top of the SVG monitor) ────
-   At zoom=0 overlaps the SVG screen rect; at zoom=1 fills the viewport.
-   Position/size follow --crt-* vars from applyCrtRoomLayoutVars (MONITOR).
+   At zoom=0 matches the SVG monitor screen; at zoom=1 fills the overlay.
+   Width/height (no transition) so boot text stays readable when zoomed out.
+   Position follows --crt-* vars from applyCrtRoomLayoutVars (MONITOR).
    ──────────────────────────────────────────────────────────── */
 .crt-zoom-screen {
   position: absolute;
@@ -1231,10 +1242,9 @@ a.res-dl { color: #0d0d1a; }
   border-radius: calc(6px - var(--zoom-progress, 0) * 4px);
   overflow: hidden;
   box-shadow:
-    inset 0 0 calc(20px + var(--zoom-progress, 0) * 80px) rgba(0, 0, 0, .85),
-    inset 0 0 calc(8px + var(--zoom-progress, 0) * 40px) rgba(139, 224, 127, .22);
+    inset 0 0 60px rgba(0, 0, 0, .85),
+    inset 0 0 24px rgba(139, 224, 127, .22);
   cursor: pointer;
-  transition: width .2s linear, height .2s linear, border-radius .2s linear;
 }
 .crt-zoom-screen::before {
   content: "";
@@ -1250,6 +1260,9 @@ a.res-dl { color: #0d0d1a; }
   mix-blend-mode: multiply;
   opacity: .45;
   z-index: 3;
+}
+.eng-stack-experience[data-room="off"] .crt-scanlines {
+  display: none;
 }
 .crt-glow {
   position: absolute; inset: 0;
@@ -1542,7 +1555,7 @@ a.res-dl { color: #0d0d1a; }
   backdrop-filter: blur(8px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .35s ease, transform .35s ease, padding .25s ease, gap .25s ease;
+  transition: opacity .35s ease, transform .35s ease, padding .45s ease, gap .45s ease;
 }
 .eng-stack-experience[data-mode="stack"] .stack-progress {
   opacity: 1;
@@ -1643,7 +1656,7 @@ a.res-dl { color: #0d0d1a; }
   font-family: 'DM Mono', monospace; font-size: 10px;
   letter-spacing: .12em;
   cursor: pointer;
-  transition: background .2s, color .2s;
+  transition: background .3s, color .3s, padding .45s ease;
 }
 .stack-progress-dot:hover { background: rgba(212, 154, 58, .08); color: #fff; }
 .stack-progress-tick {
@@ -2470,9 +2483,11 @@ a.res-dl { color: #0d0d1a; }
   cursor: default;
 }
 
-/* Vinyl hover tooltip — song name + artist below each frame */
+/* Vinyl hover tooltip — song name + artist below each frame.
+   Absolute within the sticky stage (stage has contain:paint, which would
+   trap position:fixed and break viewport-based coords). */
 .crt-vinyl-tooltip {
-  position: fixed;
+  position: absolute;
   z-index: 50;
   max-width: 220px;
   padding: 8px 12px;
