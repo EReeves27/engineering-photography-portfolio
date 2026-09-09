@@ -828,7 +828,7 @@ body.photo-site .pho-page-layout {
 
 .bio-pg-photos {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-bottom: 48px;
 }
@@ -837,6 +837,7 @@ body.photo-site .pho-page-layout {
   overflow: hidden;
   background: #f0ece5;
   line-height: 0;
+  width: 100%;
 }
 
 .bio-pg-photo img {
@@ -844,10 +845,11 @@ body.photo-site .pho-page-layout {
   height: auto;
   display: block;
   object-fit: cover;
+  aspect-ratio: 3 / 2;
 }
 
 .bio-pg-photo--ph {
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 3 / 2;
   display: flex;
   align-items: center;
   justify-content: center;

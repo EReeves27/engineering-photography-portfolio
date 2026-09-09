@@ -44,9 +44,9 @@ export const PHOTO_HOME = {
           "about what kind of photo shoot you wanted to do, feel free to reach out. I hope to be hearing from " +
           "you soon!",
     /**
-     * Up to 3 photos shown side-by-side on the Bio page.
+     * Bio page hero photo (fills the full photo band).
      * Point to any file under public/ (e.g. "/photos/profile/…").
-     * Leave as [] to show placeholders.
+     * First entry is used; leave as [] to fall back to avatarSrc.
      */
     photos: [
       "/photos/profile/profile_pic.jpeg",

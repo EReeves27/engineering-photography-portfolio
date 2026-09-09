@@ -409,26 +409,17 @@ function buildContactGeneralInnerHtml() {
 function buildBioPageInnerHtml() {
   const b = PHOTO_HOME.bio;
   const photos = b.photos || [];
+  const src = photos[0] || b.avatarSrc || "";
 
-  // Build up to 3 side-by-side photo cells; pad with placeholders
-  var cells = [0, 1, 2].map(function (i) {
-    if (photos[i]) {
-      return (
-        '<div class="bio-pg-photo">' +
-        '<img src="' + escapeAttr(assetUrl(photos[i])) + '" alt="' + escapeHtml(b.name) + '">' +
-        '</div>'
-      );
-    }
-    return (
-      '<div class="bio-pg-photo bio-pg-photo--ph">' +
-      '<i class="ti ti-user"></i>' +
-      '</div>'
-    );
-  }).join('');
+  var photoHtml = src
+    ? '<div class="bio-pg-photo">' +
+      '<img src="' + escapeAttr(assetUrl(src)) + '" alt="' + escapeHtml(b.name) + '">' +
+      "</div>"
+    : '<div class="bio-pg-photo bio-pg-photo--ph"><i class="ti ti-user"></i></div>';
 
   return (
     '<div class="bio-pg-wrap">' +
-    '<div class="bio-pg-photos">' + cells + '</div>' +
+    '<div class="bio-pg-photos">' + photoHtml + '</div>' +
     '<h2 class="bio-pg-title">' + escapeHtml(b.aboutTitle || 'About Me') + '</h2>' +
     '<div class="bio-pg-body">' + escapeHtml(b.body) + '</div>' +
     '</div>'
