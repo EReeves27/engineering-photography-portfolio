@@ -6,6 +6,11 @@
  *  Images: use /photos/… → public/photos/… on disk.
  *  Resume PDF: place at `public/ethan-reeves-resume-2026.pdf` (see ENG_RESUME.pdfHref).
  *
+ *  Stack project photos (optional): put files under public/photos/eng/<project>/,
+ *  then list them on that project's `more.images`:
+ *    images: [{ src: "/photos/eng/spin-master/board.jpg", alt: "…" }]
+ *  Omit `images` (or use []) for text-only More info. Click opens the lightbox.
+ *
  * =============================================================================
  */
 
@@ -18,7 +23,7 @@ export const ENG_NAV = {
 
 /**
  * The six layers of the computer-engineering "full stack".
- * Each layer has projects; optional `more: { paragraphs, bullets }` expands
+ * Each layer has projects; optional `more: { paragraphs, bullets, images }` expands
  * in-place on the stack (no separate detail pages).
  *
  * Ordinals: 1 = bottom of stack (Materials) ... 6 = top (Applications).
@@ -221,6 +226,12 @@ export const ENG_STACK = {
               "Critical-path analysis for Cout and MSB sum; custom INV/NAND/NOR/XOR sizing for rise/fall balance",
               "Load modeling ≈108 fF per bit; multi-vector transistor-level sims confirmed 2 ns compliance",
             ],
+            images: [
+              {
+                src: "/photos/eng_project_photos/adder/adder.jpg",
+                alt: "16-bit parallel prefix adder layout in Cadence Virtuoso",
+              },
+            ],
           },
         },
         {
@@ -266,6 +277,20 @@ export const ENG_STACK = {
               "Full flow: photolithography, mask alignment, metrology, doping, oxidation, etching, metallization",
               "Electrical characterization of transistors, resistors, and capacitors",
               "Hands-on process integration, device fab, and post-fab test",
+            ],
+            images: [
+              {
+                src: "/photos/eng_project_photos/cleanroom/ethan_cleanroom.JPG",
+                alt: "In the UCSB Teaching Cleanroom during NMOS fabrication",
+              },
+              {
+                src: "/photos/eng_project_photos/cleanroom/ethan_lab_coat.jpg",
+                alt: "In cleanroom gowning for device fabrication",
+              },
+              {
+                src: "/photos/eng_project_photos/cleanroom/final_samples.JPG",
+                alt: "Finished NMOS and passive device samples after fabrication",
+              },
             ],
           },
         },

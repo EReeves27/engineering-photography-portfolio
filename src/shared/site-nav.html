@@ -5,16 +5,20 @@
       <div class="logo">Ethan<em>R.</em></div>
       <div class="tog-wrap">
         <span class="tog-lbl on" id="le">Engineering</span>
-        <div class="tog" id="tog" onclick="sw()" role="switch" aria-checked="false" tabindex="0"><div class="knob"></div></div>
+        <div class="tog" id="tog" onclick="sw()" role="switch" aria-checked="false" tabindex="0" aria-label="Switch between Engineering and Photography">
+          <i class="ti ti-cpu tog-icon tog-icon-eng" aria-hidden="true"></i>
+          <i class="ti ti-camera tog-icon tog-icon-pho" aria-hidden="true"></i>
+          <div class="knob"></div>
+        </div>
         <span class="tog-lbl" id="lp">Photography</span>
       </div>
     </div>
     <div class="nav-right">
-      <button id="nav-bio" class="nav-link" onclick="showPage('page-biography')"><i class="ti ti-user"></i>Biography</button>
-      <button id="nav-resume" class="nav-link" onclick="showPage('page-resume')"><i class="ti ti-file-cv"></i>Resume</button>
-      <a id="nav-li" class="nav-link" href="https://www.linkedin.com/in/ethanhreeves/" target="_blank" rel="noopener noreferrer"><i class="ti ti-brand-linkedin"></i>LinkedIn</a>
-      <a id="nav-ig" class="nav-link" href="https://www.instagram.com/ethan_r.photo/" target="_blank" rel="noopener noreferrer" style="display:none"><i class="ti ti-brand-instagram"></i>Instagram</a>
-      <button id="nav-albums" class="nav-link" onclick="showPage('page-albums')" style="display:none"><i class="ti ti-layout-grid"></i>Albums</button>
+      <button id="nav-bio" class="nav-link" onclick="showPage('page-biography')"><i class="ti ti-user"></i><span class="nav-link-text">Biography</span></button>
+      <button id="nav-resume" class="nav-link" onclick="showPage('page-resume')"><i class="ti ti-file-cv"></i><span class="nav-link-text">Resume</span></button>
+      <a id="nav-li" class="nav-link" href="https://www.linkedin.com/in/ethanhreeves/" target="_blank" rel="noopener noreferrer"><i class="ti ti-brand-linkedin"></i><span class="nav-link-text">LinkedIn</span></a>
+      <a id="nav-ig" class="nav-link" href="https://www.instagram.com/ethan_r.photo/" target="_blank" rel="noopener noreferrer" style="display:none"><i class="ti ti-brand-instagram"></i><span class="nav-link-text">Instagram</span></a>
+      <button id="nav-albums" class="nav-link" onclick="showPage('page-albums')" style="display:none"><i class="ti ti-layout-grid"></i><span class="nav-link-text">Albums</span></button>
     </div>
   </nav>
 </div>

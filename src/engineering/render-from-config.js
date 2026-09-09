@@ -258,7 +258,8 @@ function layerPanelHtml(L) {
       var hasMore =
         more &&
         ((more.paragraphs && more.paragraphs.length) ||
-          (more.bullets && more.bullets.length));
+          (more.bullets && more.bullets.length) ||
+          (more.images && more.images.length));
       var moreBtn = "";
       var moreBody = "";
       if (hasMore) {
@@ -278,13 +279,35 @@ function layerPanelHtml(L) {
               .join("") +
             "</ul>";
         }
+        var gallery = "";
+        if (more.images && more.images.length) {
+          gallery =
+            '<div class="stack-proj-gallery" role="list">' +
+            more.images
+              .map(function (img) {
+                if (!img || !img.src) return "";
+                return (
+                  '<button type="button" class="stack-proj-gallery-item" role="listitem" aria-label="' +
+                  escapeAttr(img.alt || "Expand photo") +
+                  '">' +
+                  '<img src="' +
+                  escapeAttr(assetUrl(img.src)) +
+                  '" alt="' +
+                  escapeAttr(img.alt || "") +
+                  '" loading="lazy" decoding="async">' +
+                  "</button>"
+                );
+              })
+              .join("") +
+            "</div>";
+        }
         moreBtn =
           '<button type="button" class="stack-proj-toggle" aria-expanded="false" onclick="toggleStackProject(this)">' +
           '<i class="ti ti-chevron-down" aria-hidden="true"></i> ' +
           '<span class="stack-proj-toggle-label">More info</span>' +
           "</button>";
         moreBody =
-          '<div class="stack-proj-more" hidden>' + paras + bullets + "</div>";
+          '<div class="stack-proj-more" hidden>' + paras + bullets + gallery + "</div>";
       }
       return (
         '<article class="stack-proj">' +

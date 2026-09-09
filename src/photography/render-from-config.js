@@ -30,20 +30,55 @@ function photoInstagramHref() {
 }
 
 /** Nav links for the shared #photo-sidebar (mounted once; active state via updatePhotoSidebar). */
+var PHOTO_NAV_LABELS = {
+  "page-home": "Home",
+  "page-grad": "Grad Photos",
+  "page-bio": "Bio",
+  "page-instagram": "Instagram",
+  "page-contact": "Contact",
+  "page-contact-general": "Contact",
+  "page-contact-grad": "Contact",
+};
+
 function buildPhotoSidebarNavHtml() {
   var igHref = photoInstagramHref();
   return (
-    '<nav class="mk-nav">' +
-    '<div class="mk-nav-group">' +
-    '<button type="button" class="mk-nav-link" data-pho-nav="page-home" onclick="goHome()">Home</button>' +
-    '<button type="button" class="mk-nav-link" data-pho-nav="page-grad" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
-    '<button type="button" class="mk-nav-link" data-pho-nav="page-bio" onclick="showPage(\'page-bio\')">Bio</button>' +
-    '<a class="mk-nav-link" data-pho-nav="page-instagram" href="' +
+    '<nav class="mk-nav" id="photo-mk-nav">' +
+    '<button type="button" class="mk-nav-menu-btn" id="photo-nav-menu-btn" aria-expanded="false" aria-controls="photo-nav-menu" aria-haspopup="true">' +
+    '<span class="mk-nav-menu-label" id="photo-nav-menu-label">Home</span>' +
+    '<i class="ti ti-chevron-down" aria-hidden="true"></i>' +
+    "</button>" +
+    '<div class="mk-nav-group" id="photo-nav-menu" role="menu">' +
+    '<button type="button" class="mk-nav-link" role="menuitem" data-pho-nav="page-home" onclick="goHome()">Home</button>' +
+    '<button type="button" class="mk-nav-link" role="menuitem" data-pho-nav="page-grad" onclick="showPage(\'page-grad\')">Grad Photos</button>' +
+    '<button type="button" class="mk-nav-link" role="menuitem" data-pho-nav="page-bio" onclick="showPage(\'page-bio\')">Bio</button>' +
+    '<a class="mk-nav-link" role="menuitem" data-pho-nav="page-instagram" href="' +
     escapeAttr(igHref) +
     '" target="_blank" rel="noopener noreferrer">Instagram</a>' +
-    '<button type="button" class="mk-nav-link" data-pho-nav="page-contact" onclick="showPage(\'page-contact-general\')">Contact</button>' +
+    '<button type="button" class="mk-nav-link" role="menuitem" data-pho-nav="page-contact" onclick="showPage(\'page-contact-general\')">Contact</button>' +
     "</div></nav>"
   );
+}
+
+function setPhotoNavMenuOpen(open) {
+  var nav = document.getElementById("photo-mk-nav");
+  var btn = document.getElementById("photo-nav-menu-btn");
+  var menu = document.getElementById("photo-nav-menu");
+  if (!nav || !btn || !menu) return;
+  nav.classList.toggle("is-open", open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) {
+    var rect = btn.getBoundingClientRect();
+    menu.style.top = Math.round(rect.bottom + 6) + "px";
+    menu.style.left = Math.round(rect.left) + "px";
+    menu.style.width = Math.round(Math.min(280, Math.max(160, rect.width))) + "px";
+    menu.style.right = "auto";
+  } else {
+    menu.style.top = "";
+    menu.style.left = "";
+    menu.style.width = "";
+    menu.style.right = "";
+  }
 }
 
 export function updatePhotoSidebar(activePageId) {
@@ -51,6 +86,11 @@ export function updatePhotoSidebar(activePageId) {
   if (!sidebar) return;
   var contactActive =
     activePageId === "page-contact-general" || activePageId === "page-contact-grad";
+  var labelKey = contactActive ? "page-contact" : activePageId;
+  var labelEl = document.getElementById("photo-nav-menu-label");
+  if (labelEl) {
+    labelEl.textContent = PHOTO_NAV_LABELS[labelKey] || "Menu";
+  }
   sidebar.querySelectorAll("[data-pho-nav]").forEach(function (el) {
     var key = el.getAttribute("data-pho-nav");
     var active =
@@ -58,11 +98,63 @@ export function updatePhotoSidebar(activePageId) {
       (key === "page-contact" && contactActive);
     el.classList.toggle("mk-nav-link--active", active);
   });
+  setPhotoNavMenuOpen(false);
+}
+
+function bindPhotoNavDropdown() {
+  var btn = document.getElementById("photo-nav-menu-btn");
+  var nav = document.getElementById("photo-mk-nav");
+  var menu = document.getElementById("photo-nav-menu");
+  if (!btn || !nav || !menu || btn._phoNavBound) return;
+  btn._phoNavBound = true;
+
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setPhotoNavMenuOpen(!nav.classList.contains("is-open"));
+  });
+
+  menu.querySelectorAll(".mk-nav-link").forEach(function (el) {
+    el.addEventListener("click", function () {
+      setPhotoNavMenuOpen(false);
+    });
+  });
+
+  document.addEventListener(
+    "click",
+    function (e) {
+      if (!nav.classList.contains("is-open")) return;
+      if (nav.contains(e.target) || menu.contains(e.target)) return;
+      setPhotoNavMenuOpen(false);
+    },
+    true
+  );
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") setPhotoNavMenuOpen(false);
+  });
+
+  window.addEventListener(
+    "resize",
+    function () {
+      if (nav.classList.contains("is-open")) setPhotoNavMenuOpen(true);
+    },
+    { passive: true }
+  );
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (nav.classList.contains("is-open")) setPhotoNavMenuOpen(false);
+    },
+    { passive: true, capture: true }
+  );
 }
 
 function mountPhotoSidebar() {
   var sidebar = document.getElementById("photo-sidebar");
   if (sidebar) sidebar.innerHTML = buildPhotoSidebarNavHtml();
+  bindPhotoNavDropdown();
 }
 
 function wrapPhotoPage(_activePageId, mainHtml) {

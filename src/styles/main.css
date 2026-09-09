@@ -112,6 +112,85 @@ nav {
   transition: transform .45s cubic-bezier(.77,0,.18,1);
 }
 .pho .knob { transform: translateX(19px); }
+.tog-icon { display: none; }
+
+/* Phone: icon-only eng links; symbols live inside the Eng/Photo toggle */
+@media (max-width: 720px) {
+  nav {
+    padding: 10px 12px;
+    gap: 8px;
+    overflow-x: hidden;
+  }
+  .nav-left {
+    min-width: 0;
+    gap: 8px;
+  }
+  .logo {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .tog-lbl {
+    display: none;
+  }
+  .tog-wrap {
+    gap: 0;
+  }
+  .tog {
+    width: 54px;
+    height: 28px;
+    border-radius: 14px;
+  }
+  .tog-icon {
+    display: flex;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+  }
+  /* In photo mode (knob right): show eng symbol on the left */
+  .tog-icon-eng {
+    left: 6px;
+    color: rgba(28, 20, 16, 0.72);
+  }
+  .pho .tog-icon-eng {
+    opacity: 1;
+  }
+  /* In eng mode (knob left): show camera on the right */
+  .tog-icon-pho {
+    right: 6px;
+    color: rgba(232, 234, 246, 0.72);
+  }
+  .eng .tog-icon-pho {
+    opacity: 1;
+  }
+  .knob {
+    width: 20px;
+    height: 20px;
+    top: 2.5px;
+    left: 3px;
+    z-index: 1;
+  }
+  .pho .knob {
+    transform: translateX(26px);
+  }
+  .nav-right {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .nav-link {
+    padding: 6px 8px;
+  }
+  .nav-link-text {
+    display: none;
+  }
+}
 
 /* ── Stats ────────────────────────────────────────────────── */
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); border-bottom: .5px solid var(--bdr); }
@@ -494,6 +573,10 @@ body.photo-site .pho-page-layout {
   flex: 1;
 }
 
+.mk-nav-menu-btn {
+  display: none;
+}
+
 .mk-nav-group {
   display: flex;
   flex-direction: column;
@@ -518,6 +601,114 @@ body.photo-site .pho-page-layout {
 }
 .mk-nav-link:hover { color: #111; }
 .mk-nav-link--active { color: #111; font-weight: 500; }
+
+/* Phone: photography nav is a dropdown under the site bar */
+@media (max-width: 720px) {
+  :root {
+    --photo-sidebar-w: 0px;
+    --photo-mobile-nav-h: 48px;
+  }
+
+  #photo-chrome {
+    width: 100%;
+    right: 0;
+    bottom: auto;
+    height: var(--photo-mobile-nav-h);
+    border-bottom: 1px solid #e0d8cd;
+    overflow: visible;
+    z-index: 250;
+  }
+
+  #photo-sidebar {
+    padding: 0 14px;
+    flex-direction: row;
+    align-items: center;
+    overflow: visible;
+  }
+
+  .mk-nav {
+    position: relative;
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+  }
+
+  .mk-nav-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    max-width: 280px;
+    padding: 8px 12px;
+    border: 1px solid #e0d8cd;
+    border-radius: 8px;
+    background: #fff;
+    color: #1c1410;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    line-height: 1.2;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mk-nav-menu-btn i {
+    font-size: 16px;
+    color: #9a8878;
+    transition: transform 0.2s ease;
+  }
+
+  .mk-nav.is-open .mk-nav-menu-btn i {
+    transform: rotate(180deg);
+  }
+
+  /* Fixed panel so it isn't clipped by the slim chrome bar */
+  .mk-nav-group {
+    display: none;
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    width: auto;
+    max-width: 280px;
+    flex-direction: column;
+    gap: 0;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #e0d8cd;
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(28, 20, 16, 0.12);
+    z-index: 260;
+  }
+
+  .mk-nav.is-open .mk-nav-group {
+    display: flex;
+  }
+
+  .mk-nav-link {
+    padding: 10px 12px;
+    border-radius: 7px;
+    white-space: nowrap;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  .mk-nav-link:hover,
+  .mk-nav-link:focus-visible {
+    background: #f2ede5;
+    color: #111;
+  }
+
+  .mk-nav-link--active {
+    background: #f2ede5;
+  }
+
+  body.photo-site .pho-page-layout {
+    margin-left: 0;
+    padding-top: var(--photo-mobile-nav-h);
+  }
+}
 
 .mk-ctrl-btn {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -562,6 +753,17 @@ body.photo-site .pho-page-layout {
   max-width: 960px;
   margin: 0 auto;
   padding-bottom: 72px;
+}
+
+@media (max-width: 720px) {
+  #pp .mk-main {
+    padding: 16px 14px 100px;
+  }
+
+  .mk-waterfall {
+    gap: 14px;
+    padding-bottom: 48px;
+  }
 }
 
 @media (min-width: 720px) {
@@ -856,6 +1058,56 @@ body.photo-site .pho-page-layout {
 }
 .photo-lightbox-close:active {
   opacity: 0.85;
+}
+.photo-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: rgba(250, 247, 242, 0.14);
+  color: #faf7f2;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  z-index: 1;
+}
+.photo-lightbox-nav:hover {
+  background: rgba(250, 247, 242, 0.26);
+}
+.photo-lightbox-nav:active {
+  opacity: 0.85;
+}
+.photo-lightbox-nav[hidden] {
+  display: none;
+}
+.photo-lightbox-prev {
+  left: 12px;
+}
+.photo-lightbox-next {
+  right: 12px;
+}
+@media (max-width: 640px) {
+  .photo-lightbox {
+    padding: 52px 56px 20px;
+  }
+  .photo-lightbox-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 26px;
+  }
+  .photo-lightbox-prev {
+    left: 6px;
+  }
+  .photo-lightbox-next {
+    right: 6px;
+  }
 }
 
 .ag-cell-placeholder {
@@ -1245,6 +1497,7 @@ a.res-dl { color: #0d0d1a; }
     inset 0 0 60px rgba(0, 0, 0, .85),
     inset 0 0 24px rgba(139, 224, 127, .22);
   cursor: pointer;
+  touch-action: pan-y;
 }
 .crt-zoom-screen::before {
   content: "";
@@ -1303,12 +1556,15 @@ a.res-dl { color: #0d0d1a; }
   transform: translateY(0);
 }
 
-/* Boot panel — original phosphor terminal vibe */
+/* Boot panel — original phosphor terminal vibe.
+   overflow:hidden so touch/finger scrolls reach the page (into the stack)
+   instead of getting trapped in an empty scroll container. */
 .stack-layer-panel[data-layer="boot"] {
   align-items: center;
   justify-content: center;
   text-align: center;
   gap: 14px;
+  overflow: hidden;
 }
 .crt-boot {
   display: flex; flex-direction: column; gap: 2px;
@@ -1529,6 +1785,40 @@ a.res-dl { color: #0d0d1a; }
   color: var(--crt-amber, #d49a3a);
   font-size: 16px;
   line-height: 1.1;
+}
+.stack-proj-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: .5px dashed rgba(212, 154, 58, .2);
+}
+.stack-proj-gallery-item {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: .5px solid rgba(212, 154, 58, .35);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, .35);
+  overflow: hidden;
+  cursor: zoom-in;
+  width: min(148px, calc(50% - 4px));
+  aspect-ratio: 4 / 3;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.stack-proj-gallery-item:hover,
+.stack-proj-gallery-item:focus-visible {
+  border-color: rgba(212, 154, 58, .85);
+  box-shadow: 0 0 0 1px rgba(212, 154, 58, .25);
+  outline: none;
+}
+.stack-proj-gallery-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 .stack-empty {
   padding: 24px;
