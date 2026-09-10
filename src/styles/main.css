@@ -1217,10 +1217,6 @@ body.photo-site .pho-page-layout {
 .pkg-features { list-style: none; display: flex; flex-direction: column; gap: 5px; }
 .pkg-features li { font-size: 13.75px; color: #9a8878; padding-left: 12px; position: relative; line-height: 1.5; }
 .pkg-features li::before { content: '·'; position: absolute; left: 0; color: #c8a97e; font-size: 17.5px; line-height: 1.1; }
-.testimonial-row { display: flex; flex-direction: column; gap: 10px; }
-.testi { background: #f2ede5; border: .5px solid #e0d8cd; border-radius: 12px; padding: 14px; }
-.testi-text { font-size: 15px; color: #1c1410; line-height: 1.65; margin-bottom: 8px; font-style: italic; }
-.testi-name { font-family: 'DM Mono', monospace; font-size: 11.25px; letter-spacing: .1em; text-transform: uppercase; color: #c8a97e; }
 .faq-list { display: flex; flex-direction: column; }
 .faq-item { border-bottom: .5px solid #e0d8cd; padding: 13px 0; cursor: pointer; }
 .faq-item:last-child { border-bottom: none; }
@@ -2803,6 +2799,7 @@ a.res-dl { color: #0d0d1a; }
   font-weight: 600;
   color: #d9e6d2;
   line-height: 1.35;
+  transition: opacity .35s ease;
 }
 .crt-vinyl-tooltip-artist {
   display: block;
@@ -2812,4 +2809,10 @@ a.res-dl { color: #0d0d1a; }
   letter-spacing: .04em;
   color: #9a8878;
   line-height: 1.35;
+  transition: opacity .35s ease;
+}
+/* Touch: box visible immediately; name/artist fade in after JS delay */
+.crt-vinyl-tooltip--awaiting .crt-vinyl-tooltip-title,
+.crt-vinyl-tooltip--awaiting .crt-vinyl-tooltip-artist {
+  opacity: 0;
 }

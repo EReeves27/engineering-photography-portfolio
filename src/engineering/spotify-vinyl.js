@@ -39,6 +39,9 @@ export function initSpotifyVinyl() {
   }
 }
 
+/** Delay before name/artist text fades in after a touch tap. */
+const TOUCH_CONTENT_DELAY_MS = 2000;
+
 function initVinylTooltips() {
   if (vinylTooltipsBound) return;
 
@@ -52,39 +55,115 @@ function initVinylTooltips() {
 
   vinylTooltipsBound = true;
 
+  let contentTimer = null;
+  let activeTapSlot = null;
+  const canHover =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  function clearContentTimer() {
+    if (contentTimer != null) {
+      clearTimeout(contentTimer);
+      contentTimer = null;
+    }
+  }
+
   function hideTooltip() {
+    clearContentTimer();
+    activeTapSlot = null;
+    tooltip.classList.remove("crt-vinyl-tooltip--awaiting");
     tooltip.hidden = true;
   }
 
-  function showTooltip(slot) {
-    const name = slot.getAttribute("data-track-name") || "";
-    const artist = slot.getAttribute("data-track-artist") || "";
-    if (!name) return;
-
-    titleEl.textContent = name;
-    artistEl.textContent = artist;
-    artistEl.hidden = !artist;
-
+  function positionTooltip(slot) {
     const rect = slot.getBoundingClientRect();
     const stageRect = stage.getBoundingClientRect();
     tooltip.style.top = rect.bottom - stageRect.top + TOOLTIP_GAP_PX + "px";
     tooltip.style.left = rect.left - stageRect.left + rect.width / 2 + "px";
+  }
+
+  function fillTooltip(slot) {
+    const name = slot.getAttribute("data-track-name") || "";
+    const artist = slot.getAttribute("data-track-artist") || "";
+    if (!name) return false;
+    titleEl.textContent = name;
+    artistEl.textContent = artist;
+    artistEl.hidden = !artist;
+    return true;
+  }
+
+  /** Immediate box + text (desktop hover). */
+  function showTooltip(slot) {
+    clearContentTimer();
+    if (!fillTooltip(slot)) return;
+    tooltip.classList.remove("crt-vinyl-tooltip--awaiting");
+    positionTooltip(slot);
     tooltip.hidden = false;
   }
 
-  stage.addEventListener("mouseover", function (e) {
-    const slot = e.target.closest(".crt-vinyl-slot[data-track-name]");
-    if (!slot) return;
-    if (slot.contains(e.relatedTarget)) return;
-    showTooltip(slot);
-  });
+  /**
+   * Touch: show the empty-sized box right away, then fade in name/artist
+   * after TOUCH_CONTENT_DELAY_MS.
+   */
+  function showTooltipFromTap(slot) {
+    clearContentTimer();
+    if (!fillTooltip(slot)) return;
+    activeTapSlot = slot;
+    tooltip.classList.add("crt-vinyl-tooltip--awaiting");
+    positionTooltip(slot);
+    tooltip.hidden = false;
+    contentTimer = setTimeout(function () {
+      contentTimer = null;
+      tooltip.classList.remove("crt-vinyl-tooltip--awaiting");
+    }, TOUCH_CONTENT_DELAY_MS);
+  }
 
-  stage.addEventListener("mouseout", function (e) {
-    const slot = e.target.closest(".crt-vinyl-slot[data-track-name]");
-    if (!slot) return;
-    if (slot.contains(e.relatedTarget)) return;
-    hideTooltip();
-  });
+  if (canHover) {
+    stage.addEventListener("mouseover", function (e) {
+      const slot = e.target.closest(".crt-vinyl-slot[data-track-name]");
+      if (!slot) return;
+      if (slot.contains(e.relatedTarget)) return;
+      activeTapSlot = null;
+      showTooltip(slot);
+    });
+
+    stage.addEventListener("mouseout", function (e) {
+      const slot = e.target.closest(".crt-vinyl-slot[data-track-name]");
+      if (!slot) return;
+      if (slot.contains(e.relatedTarget)) return;
+      hideTooltip();
+    });
+  }
+
+  // Tap-to-show for touch / coarse pointers (iPhone, etc.)
+  stage.addEventListener(
+    "click",
+    function (e) {
+      const slot = e.target.closest(".crt-vinyl-slot[data-track-name]");
+      if (!slot) return;
+      // Fine-pointer hover devices already get mouseover; ignore clicks there.
+      if (canHover) return;
+
+      e.stopPropagation();
+      if (activeTapSlot === slot && !tooltip.hidden) {
+        hideTooltip();
+        return;
+      }
+      showTooltipFromTap(slot);
+    },
+    true
+  );
+
+  // Dismiss when tapping anywhere else (room stage is mostly non-interactive).
+  document.addEventListener(
+    "click",
+    function (e) {
+      if (!activeTapSlot || tooltip.hidden) return;
+      if (e.target.closest(".crt-vinyl-slot[data-track-name]")) return;
+      hideTooltip();
+    },
+    true
+  );
 }
 
 function applyVinylCovers(tracks) {

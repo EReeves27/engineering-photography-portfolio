@@ -233,18 +233,6 @@ function buildGradPageInnerHtml() {
     })
     .join("");
 
-  var testi = p.testimonials
-    .map(function (t) {
-      return (
-        '<div class="testi"><div class="testi-text">' +
-        escapeHtml(t.text) +
-        '</div><div class="testi-name">' +
-        escapeHtml(t.attribution) +
-        "</div></div>"
-      );
-    })
-    .join("");
-
   var faq = p.faq
     .map(function (item) {
       return (
@@ -283,11 +271,6 @@ function buildGradPageInnerHtml() {
     escapeHtml(p.gallerySectionLabel) +
     '</div><div class="photo-collage-gallery" id="grad-gallery"></div></div>' +
     packagesSection +
-    '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
-    escapeHtml(p.testimonialsSectionLabel) +
-    '</div><div class="testimonial-row">' +
-    testi +
-    "</div></div>" +
     '<div class="grad-section" style="padding-top:0;"><div class="grad-sec-label">' +
     escapeHtml(p.faqSectionLabel) +
     '</div><div class="faq-list">' +

@@ -109,17 +109,6 @@ export const PHOTO_GRAD_PAGE = {
       features: ["3 hour session", "3 locations", "Solo photos for everyone", "Group photos", "Edited photos", "Online gallery"],
     },
   ],
-  testimonialsSectionLabel: "What past clients say",
-  testimonials: [
-    {
-      text: '"Review"',
-      attribution: "— Name, Class",
-    },
-    {
-      text: '"Review"',
-      attribution: "- Name, Class",
-    },
-  ],
   faqSectionLabel: "FAQ",
   faq: [
     {
