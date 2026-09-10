@@ -338,7 +338,7 @@ export const ENG_BIOGRAPHY = {
     {
       heading: "Where I'm coming from",
       body:
-        "I'm a third-year in Computer Engineering at UCSB based out of the Bay Area. Ever since I was a kid, I've been " +
+        "I'm a fourth-year in Computer Engineering at UCSB based out of the Bay Area. Ever since I was a kid, I've been " +
         "fascinated with opening things up and seeing how they work and problem solving. " + 
         "Whether it was replacing the memory sticks in an old iMac to breath new life " +
         "into it, or writing a little code to solve Worlde puzzles to try and gain an upper hand on my family, I've always tried " +
