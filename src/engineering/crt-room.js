@@ -1,91 +1,52 @@
 /**
  * =============================================================================
- *  CRT ROOM SCENE — vector illustration of a cozy retro setup
+ *  CRT ROOM SCENE — hand-authored pixel art (beach bungalow at sunset)
  * =============================================================================
- *  Returns a single inline <svg> string. The interactive screen lives inside a
- *  <foreignObject> at the monitor position (viewBox coords 800..1120 × 420..660)
- *  so it scales naturally with the room when the camera flies in.
+ *  The room is drawn into a 320×180 canvas shown with nearest-neighbour
+ *  scaling. One art pixel = ART (6) units of the 1920×1080 "viewBox" that the
+ *  HTML screen overlay (.crt-zoom-screen) and the camera fly-in use, so
+ *  MONITOR keeps its old meaning. applyCrtRoomLayoutVars snaps the scale so
+ *  every art pixel is a whole number of screen pixels.
  *
- *  Coordinate system: 1920 × 1080 viewBox. The monitor screen center sits at
- *  MONITOR.cx / MONITOR.cy so xMidYMid-slice rendering keeps it in the viewport
- *  center regardless of viewport aspect ratio.
+ *  Live bits layered over the canvas inside .crt-room-scene (1em = 1 art px):
+ *  - .crt-vinyl-slot hit areas over the five frames. spotify-vinyl.js fills in
+ *    track data and hands covers to setVinylCover(), which pixelates them
+ *    into the canvas.
+ *  - .crt-book-label spine titles on the shelf.
  * =============================================================================
  */
 
-const VIEW = { w: 1920, h: 1080 };
+const W = 320, H = 180, ART = 6;
+const VIEW = { w: W * ART, h: H * ART };
+
+/** Monitor screen rect in art px; the HTML overlay sits exactly on it. */
+const SCREEN = { x: 131, y: 59, w: 58, h: 42 };
+const MONITOR = {
+  cx: (SCREEN.x + SCREEN.w / 2) * ART,
+  cy: (SCREEN.y + SCREEN.h / 2) * ART,
+  screenW: SCREEN.w * ART,
+  screenH: SCREEN.h * ART,
+};
+
+/** Window glass (art px); horizon, beach line and sun are relative to it. */
+const WIN = { x: 16, y: 12, w: 76, h: 84 };
+const HORIZON = WIN.y + 52;
+const BEACH = WIN.y + 70;
+const SUN = { x: WIN.x + 54, y: HORIZON - 2, r: 8 };
+
+/** Wall frames (top-left of the 36px wood frame). Slot 0 = most recent track. */
+const FRAMES = [101, 142, 183, 224, 265].map((x) => ({ x, y: 4 }));
+const FRAME_LABELS = ["#c2553a", "#3a7ca5", "#d9a441", "#5f8a5a", "#8a5a9a"];
+const COVER = 28;
 
 /**
- * Global nudge for every anchored prop (desk items + wall decor). Change only
- * offsetX / offsetY to move the whole cluster together.
+ * Spine labels for books — edit here. Titles fill the visible spines in order
+ * (left of the monitor, right of it, then the stack on the tower). Titles in
+ * FILLER_TITLES are skipped: they're for the books hidden behind the monitor.
+ * There are 13 visible spines; extra titles won't show.
  */
-const LAYOUT = {
-  offsetX: 0,
-  offsetY: 0,
-};
-
-const DESK = {
-  surfaceY: 780,
-  glowCx: 1100,
-  glowCy: 930,
-  glowRx: 540,
-  glowRy: 180,
-};
-
-/** Interactive screen + bezel; HTML overlay aligns to this center. */
-const MONITOR = {
-  cx: 960,
-  cy: 600,
-  screenW: 340,
-  screenH: 250,
-  bezelOuterW: 412,
-  bezelOuterH: 320,
-  bezelInnerW: 360,
-  bezelInnerH: 268,
-  standNeckW: 60,
-  standNeckH: 14,
-};
-
-const WINDOW = {
-  cx: 340,
-  cy: 370,
-  outerW: 468,
-  outerH: 528,
-  innerW: 440,
-  innerH: 500,
-  glassW: 420,
-  glassH: 490,
-  sillW: 480,
-};
-
-const SPEAKER = { cx: 535, cy: 660, w: 170, h: 240 };
-const TOWER = { cx: 1580, cy: 685, w: 160, h: 290 };
-const LAMP = {
-  baseCx: 1380,
-  baseCy: 812,
-  poolCx: 1050,
-  poolCy: 880,
-  poolRx: 500,
-  poolRy: 190,
-  bulbCx: 1200,
-  bulbCy: 510,
-  bulbRx: 120,
-  bulbRy: 70,
-};
-const KEYBOARD = { cx: 960, cy: 897, w: 520, h: 120 };
-const MOUSE = { cx: 1270, cy: 895, ry: 26 };
-const MUG = { cx: 1480, cy: 870, h: 60, footLocalY: 10 };
-const CAT = {
-  cx: 550,
-  cy: 883,
-  scale: 0.55,
-  nativeAnchorX: 400,
-  nativeAnchorY: 340,
-};
-
-const WALL_SHELF = { cx: 1260, cy: 567, w: 1120, h: 14 };
-
-/** Spine labels for books — edit here or set BOOKS[i].title after load. */
-const BOOK_PLACEHOLDER_TITLES = [
+const FILLER_TITLES = new Set(["Filler", "hmm what is this??"]);
+const BOOK_TITLES = [
   "If Cats Disappeared from the World",
   "Filler",
   "Filler",
@@ -109,1199 +70,908 @@ const BOOK_PLACEHOLDER_TITLES = [
   "Ready Player One",
   "Starter Villain"
 ];
+const BOOK_COLORS = [
+  "#2f4a6b", "#c7684e", "#d9b25c", "#5d8a7a", "#e8dcc4", "#7a4a5e",
+  "#3f6b8a", "#b9845a", "#8fae9c", "#a14b3c", "#4f5d7a", "#c9a37a",
+];
+/** Shelf spans from just right of the window to just left of the tower. */
+const SHELF = { x: 98, y: 66, w: 154 };
+/** Things in front of the shelf that hide the lower part of some spines: [x0, x1, topY]. */
+const SHELF_OCCLUDERS = [[127, 193, 46], [119, 201, 51], [210, 240, 62]];
+// Spines left and right of the monitor are visible (titled); the run behind it is filler.
+const SHELF_RUNS = [
+  { x: 99, widths: [9, 8], titled: true },
+  { x: 116, widths: [7, 9, 6, 8, 7, 9, 6, 8, 7, 9, 10], titled: false },
+  { x: 202, widths: [6, 6, 6, 6, 6, 6, 6, 6], titled: true },
+];
+/** Books lying flat on top of the tower, bottom to top: [x, y, w, h]. */
+const TOWER_BOOKS = [[259, 52, 32, 5], [261, 48, 28, 4], [258, 43, 30, 5]];
 
-function buildShelfBooks(shelf) {
+function buildBooks() {
+  const titles = BOOK_TITLES.filter((t) => !FILLER_TITLES.has(t));
   const books = [];
-  const left = shelf.cx - shelf.w / 2 + 14;
-  const right = shelf.cx + shelf.w / 2 - 14;
-  const colors = [
-    "#6b3a2a", "#2a4a6a", "#3d5c3a", "#5a3a6a", "#7a4a2a",
-    "#2a5a5a", "#4a3a2a", "#3a3a5a", "#6a4a3a", "#2a3a4a",
-    "#5c4030", "#3a5268", "#4a5c38", "#6a3a50",
-  ];
-  let x = left;
-  let i = 0;
-  while (x < right - 8) {
-    const spineW = 45 + (i * 3) % 6;
-    const h = 150 + (i * 5) % 10;
-    books.push({
-      x: x + spineW * 0.5,
-      spineW,
-      h,
-      color: colors[i % colors.length],
-      title: BOOK_PLACEHOLDER_TITLES[i % BOOK_PLACEHOLDER_TITLES.length],
-    });
-    x += spineW + 2 + (i % 3);
-    i += 1;
+  let i = 0, ti = 0;
+  for (const run of SHELF_RUNS) {
+    let x = run.x;
+    for (const w of run.widths) {
+      const h = run.titled ? 20 + ((i * 3) % 4) : 18 + ((i * 7) % 6);
+      books.push({ i, x, w, h, color: BOOK_COLORS[i % BOOK_COLORS.length], title: run.titled ? titles[ti++] || "" : "" });
+      x += w; i++;
+    }
+  }
+  for (const [x, y, w, h] of TOWER_BOOKS) {
+    books.push({ i, x, y, w, h, flat: true, color: BOOK_COLORS[(i * 5) % BOOK_COLORS.length], title: titles[ti++] || "" });
+    i++;
   }
   return books;
 }
+const BOOKS = buildBooks();
 
-/**
- * Books on the wall shelf — spines face the viewer (toward the room).
- * `x` = horizontal center of the spine along the shelf (viewBox coords).
- */
-const BOOKS = buildShelfBooks(WALL_SHELF);
+// Keep key props inside x≈18..300 so 16:10 screens (which crop the sides) still show them.
+const CATX = 16, CATY = 99;
+/** Mug sits on the desk just in front of the speaker. */
+const MUGX = 99, MUGY = 125;
+const SPEAKER = { x: 94, y: 90, w: 22, h: 37 };
+/** Film camera between the cat and the speaker; clicking it opens the photography portfolio. */
+const CAMERA = { x: 76, y: 117, w: 17, h: 10 };
+/** Tower: front face FX..FX+33 from TT down to the desk; DX/DY is how far the case recedes. */
+const FX = 254, TT = 60, DX = 14, DY = 7;
+const FPS = 12;
 
-/**
- * Vinyl cubbies — single top row; cover art is a perfect square (`size` × `size`).
- * Live covers: Spotify via initSpotifyVinyl() (see docs/SPOTIFY.md).
- * Static fallback: set `imageHref`, e.g. "/images/vinyl/my-album.jpg" (under `public/`).
- */
-const VINYL_WALL = [
-  { cx: 720, cy: 200, size: 180, imageHref: "" },
-  { cx: 950, cy: 200, size: 180, imageHref: "" },
-  { cx: 1180, cy: 200, size: 180, imageHref: "" },
-  { cx: 1410, cy: 200, size: 180, imageHref: "" },
-  { cx: 1640, cy: 200, size: 180, imageHref: "" },
-];
-
-function escapeSvgAttr(s) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;");
-}
-
-function escapeSvgText(s) {
-  return escapeSvgAttr(s);
-}
-
-/**
- * Local Y of the cat's desk-contact point inside the scaled SVG (see cat()).
- * Shadow tracks CAT.cx / CAT.cy / CAT.scale / CAT.nativeAnchorY.
- */
-const CAT_DESK_FOOT_LOCAL_Y = 392;
-
-/** Bottom edge for props placed with gAtCenterTopLeft (center cy, height h). */
-function objectBottomY(cy, h) {
-  return cy + h / 2;
-}
-
-/**
- * Desk contact shadows — recomputed from the layout constants above.
- * Nudge LAYOUT.offsetX/Y or any object's cx/cy/size and its shadow follows.
- */
-function buildItemShadows() {
-  const m = MONITOR;
-  return [
-    {
-      cx: SPEAKER.cx,
-      cy: objectBottomY(SPEAKER.cy, SPEAKER.h) + 5,
-      rx: SPEAKER.w * 0.59,
-      ry: 9,
-    },
-    {
-      cx: m.cx,
-      cy: m.cy + m.bezelOuterH / 2 + 55,
-      rx: m.bezelOuterW * 0.46,
-      ry: 11,
-    },
-    {
-      cx: LAMP.baseCx,
-      cy: LAMP.baseCy + 11,
-      rx: 68,
-      ry: 10,
-    },
-    {
-      cx: TOWER.cx,
-      cy: objectBottomY(TOWER.cy, TOWER.h) + 8,
-      rx: TOWER.w * 0.58,
-      ry: 10,
-    },
-    {
-      cx: KEYBOARD.cx,
-      cy: objectBottomY(KEYBOARD.cy, KEYBOARD.h) + 1,
-      rx: KEYBOARD.w * 0.56,
-      ry: 10,
-    },
-    {
-      cx: MOUSE.cx,
-      cy: MOUSE.cy + MOUSE.ry - 9,
-      rx: 44,
-      ry: 7,
-    },
-    {
-      cx: MUG.cx,
-      cy: MUG.cy + MUG.footLocalY,
-      rx: 34,
-      ry: 7,
-    },
-    {
-      cx: CAT.cx,
-      cy: CAT.cy + (CAT_DESK_FOOT_LOCAL_Y - CAT.nativeAnchorY) * CAT.scale,
-      rx: 150,
-      ry: 9,
-    },
-  ];
-}
-
-/** Re-export layout knobs for other modules (e.g. CSS screen alignment). */
-export const CRT_ROOM_LAYOUT = {
-  LAYOUT,
-  VIEW,
-  MONITOR,
-  DESK,
-  WALL_SHELF,
-  BOOKS,
-  VINYL_WALL,
+const C = {
+  ol: "#1a1218",
+  wall: "#7aa39a", wallD: "#6c958c", wallL: "#88b0a6", wallS: "#557a72",
+  shelfL: "#b07a4f", shelfT: "#9a6642", shelf: "#7f5034", shelfD: "#4f2f1f",
+  // Sun-bleached driftwood.
+  deskTop: "#b5a28a", deskTopL: "#c9b9a2", deskGrain: "#9e8b73", deskEdge: "#8c7a65", deskEdgeL: "#d6c8b2",
+  deskFront: "#9c8a74", deskFrontD: "#76665a", deskFrontL: "#ae9c85", shadow: "#7e6c5a",
+  beigeH: "#efe2c4", beige: "#d9c7a3", beigeM: "#bba783", beigeD: "#8f7c5f", beigeDD: "#5e4f3c",
+  scr0: "#08130d", scr1: "#0f2218", scr2: "#16301f",
+  brass: "#a07a3c", brassL: "#c99a52", brassD: "#6e5228", arm: "#2c2732", armL: "#4d4656",
+  frame: "#ece5d6", frameL: "#fffaf0", frameD: "#bdb3a2",
+  palm: "#2b2340",
 };
 
+// ---------- canvases ----------
+const mk = () => {
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  return c;
+};
+const bg = mk(), winBack = mk(), winFront = mk();
+let ctx = null;
+let g = bg.getContext("2d");
+const use = (canvas) => { g = canvas.getContext("2d"); };
+
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => v / 16);
+const by = (x, y) => BAYER[(y & 3) * 4 + (x & 3)];
+
+// ---------- pixel primitives ----------
+const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+const px = (x, y, c) => rect(x, y, 1, 1, c);
+const INSETS = { 1: [1], 2: [2, 1], 3: [3, 1, 1], 4: [4, 2, 1, 1] };
+function rrect(x, y, w, h, r, c) {
+  const ins = INSETS[r] || [];
+  g.fillStyle = c;
+  for (let i = 0; i < h; i++) {
+    const d = Math.min(i, h - 1 - i);
+    const k = d < ins.length ? ins[d] : 0;
+    g.fillRect(x + k, y + i, w - 2 * k, 1);
+  }
+}
+function line(x0, y0, x1, y1, c, t = 1) {
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let e = dx + dy;
+  for (;;) {
+    rect(x0, y0, t, t, c);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * e;
+    if (e2 >= dy) { e += dy; x0 += sx; }
+    if (e2 <= dx) { e += dx; y0 += sy; }
+  }
+}
+function inPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function poly(pts, c) {
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  for (let y = Math.floor(Math.min(...ys)); y <= Math.max(...ys); y++)
+    for (let x = Math.floor(Math.min(...xs)); x <= Math.max(...xs); x++)
+      if (inPoly(x + 0.5, y + 0.5, pts)) px(x, y, c);
+}
+const inEll = (x, y, cx, cy, rx, ry) => { const a = (x + 0.5 - cx) / rx, b = (y + 0.5 - cy) / ry; return a * a + b * b <= 1; };
+function ell(cx, cy, rx, ry, c) {
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
+    for (let x = Math.floor(cx - rx); x <= cx + rx; x++) if (inEll(x, y, cx, cy, rx, ry)) px(x, y, c);
+}
+// Soft contact shadow: solid core, dithered falloff.
+function shadow(cx, cy, rx, ry) {
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
+    for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+      const a = (x + 0.5 - cx) / rx, b = (y + 0.5 - cy) / ry, d = a * a + b * b;
+      if (d <= 0.55 || (d <= 1 && by(x, y) < (1 - d) * 1.6)) px(x, y, C.shadow);
+    }
+}
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v) => Math.max(0, Math.min(255, Math.round(v * k)));
+  return "#" + ((1 << 24) | (ch(n >> 16) << 16) | (ch((n >> 8) & 255) << 8) | ch(n & 255)).toString(16).slice(1);
+}
+function isLight(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return (n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150;
+}
+// Smooth 2D value noise in [0,1].
+const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+function noise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const inGlass = (x, y) => x >= WIN.x && x < WIN.x + WIN.w && y >= WIN.y && y < WIN.y + WIN.h;
+
+// ---------- wall, window, shelf, frames ----------
+function drawWall() {
+  // Limewash plaster: soft cloudy mottling from two octaves of value noise, dithered into 3 tones.
+  for (let y = 0; y < 120; y++) for (let x = 0; x < W; x++) {
+    const n = noise(x / 26, y / 18) * 0.7 + noise(x / 9 + 40, y / 7) * 0.3 + (by(x, y) - 0.5) * 0.12;
+    px(x, y, n < 0.4 ? C.wallD : n > 0.6 ? C.wallL : C.wall);
+  }
+  for (let y = 0; y < 30; y++)
+    for (let x = 0; x < W; x++) if (by(x, y) < ((30 - y) / 30) * 0.6) px(x, y, C.wallS);
+  rect(0, 119, W, 1, C.ol);
+}
+
+/** Everything seen through the glass that never moves: sky, sun, headland, sea, beach. */
+function drawWindowBack() {
+  const { x, y, w, h } = WIN;
+  const SKY = ["#33335e", "#4f3f72", "#7c4a7c", "#b85c7a", "#e47c68", "#f5a35f", "#ffcf7d"];
+  for (let yy = y; yy < HORIZON; yy++) for (let xx = x; xx < x + w; xx++) {
+    const t = (yy - y) / (HORIZON - y);
+    const glow = Math.max(0, 1 - Math.hypot(xx - SUN.x, (yy - SUN.y) * 1.6) / 34);
+    const k = Math.floor(t * (SKY.length - 1) + glow * 2.2 + (by(xx, yy) - 0.5) * 0.9);
+    px(xx, yy, SKY[Math.max(0, Math.min(SKY.length - 1, k))]);
+  }
+  // The sun: a true circle, half sunk below the horizon.
+  for (let yy = SUN.y - SUN.r; yy < HORIZON; yy++)
+    for (let xx = SUN.x - SUN.r; xx <= SUN.x + SUN.r; xx++)
+      if (inEll(xx, yy, SUN.x + 0.5, SUN.y + 0.5, SUN.r, SUN.r))
+        px(xx, yy, inEll(xx, yy, SUN.x + 0.5, SUN.y + 0.5, SUN.r - 1.5, SUN.r - 1.5) ? "#fff3c4" : "#ffe08a");
+  // Distant headland on the left horizon.
+  for (let xx = x; xx < x + 30; xx++) {
+    const hgt = Math.round(Math.sin(((xx - x) / 30) * Math.PI) * 4);
+    rect(xx, HORIZON - hgt, 1, hgt, "#5b4572");
+  }
+  // Sea: lighter near the horizon, deeper toward the shore, with faint swell lines.
+  const SEA = ["#8a6a95", "#6d5a8e", "#545386", "#434a7c"];
+  for (let yy = HORIZON; yy < BEACH; yy++) for (let xx = x; xx < x + w; xx++) {
+    const k = Math.floor(((yy - HORIZON) / (BEACH - HORIZON)) * (SEA.length - 1) + (by(xx, yy) - 0.5) * 0.8);
+    px(xx, yy, SEA[Math.max(0, Math.min(SEA.length - 1, k))]);
+  }
+  for (let i = 0; i < 14; i++)
+    rect(x + ((i * 23) % (w - 10)), HORIZON + 2 + ((i * 5) % (BEACH - HORIZON - 3)), 4 + (i % 4) * 2, 1, "#9a7aa2");
+  // Beach: wet sand by the water, dry sand warming toward the bottom.
+  const SAND = ["#9c7a7e", "#c99a82", "#e0b48e", "#ecc79c"];
+  for (let yy = BEACH; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) {
+    const k = Math.floor(((yy - BEACH) / (y + h - BEACH)) * (SAND.length - 1) + 0.4 + (by(xx, yy) - 0.5) * 0.8);
+    px(xx, yy, SAND[Math.max(0, Math.min(SAND.length - 1, k))]);
+  }
+}
+
+/** In front of the moving window bits: palm, frame, mullions, sill, plant. */
+function drawWindowFront() {
+  const { x, y, w, h } = WIN;
+  // Palm silhouette framing the left pane: solid curved trunk, feathered drooping fronds.
+  const crown = [x + 20, y + 23];
+  for (let i = 0; i <= 120; i++) {
+    const t = i / 120, u = 1 - t;
+    const tx = u * u * (x + 10) + 2 * u * t * (x + 10) + t * t * crown[0];
+    const ty = u * u * (y + h) + 2 * u * t * (y + 45) + t * t * crown[1];
+    rect(Math.round(tx), Math.round(ty), t < 0.5 ? 3 : 2, 1, C.palm);
+  }
+  for (const [deg, len, droop] of [[-165, 17, 0.05], [-130, 14, 0.06], [-95, 9, 0.05], [-55, 14, 0.06], [-15, 17, 0.05], [25, 13, 0.07], [150, 13, 0.07]]) {
+    const a = (deg * Math.PI) / 180;
+    for (let s = 0; s <= len; s += 0.5) {
+      const fx = Math.round(crown[0] + Math.cos(a) * s), fy = Math.round(crown[1] + Math.sin(a) * s + droop * s * s);
+      const taper = 1 - s / len;
+      px(fx, fy, C.palm);
+      if (taper > 0.3) px(fx, fy + 1, C.palm);
+      // Leaflets hang off the underside, shorter toward the tip.
+      if (s > 2 && Math.round(s) % 2 === 0) for (let k = 2; k <= 1 + Math.ceil(taper * 3); k++) px(fx, fy + k, C.palm);
+    }
+  }
+  rect(crown[0] - 1, crown[1] - 1, 3, 3, C.palm);
+  // Glass sheen.
+  line(x + w - 20, y + 2, x + w - 34, y + 16, "rgba(255,255,255,.10)");
+  line(x + w - 15, y + 2, x + w - 26, y + 13, "rgba(255,255,255,.07)");
+  // Painted wood frame + cross mullions.
+  rect(x - 5, y - 5, w + 10, 5, C.ol); rect(x - 5, y + h, w + 10, 5, C.ol);
+  rect(x - 5, y, 5, h, C.ol); rect(x + w, y, 5, h, C.ol);
+  rect(x - 4, y - 4, w + 8, 4, C.frame); rect(x - 4, y + h, w + 8, 4, C.frame);
+  rect(x - 4, y, 4, h, C.frame); rect(x + w, y, 4, h, C.frame);
+  rect(x - 4, y - 4, w + 8, 1, C.frameL); rect(x - 4, y - 4, 1, h + 8, C.frameL);
+  rect(x - 1, y - 1, w + 2, 1, C.frameD); rect(x - 1, y, 1, h, C.frameD);
+  rect(x + 36, y, 3, h, C.frame); rect(x + 38, y, 1, h, C.frameD);
+  rect(x, y + 26, w, 3, C.frame); rect(x, y + 28, w, 1, C.frameD);
+  // Sill.
+  rect(x - 8, y + h + 4, w + 16, 5, C.ol);
+  rect(x - 7, y + h + 4, w + 14, 1, C.frameL);
+  rect(x - 7, y + h + 5, w + 14, 2, C.frame);
+  rect(x - 7, y + h + 7, w + 14, 1, C.frameD);
+  // Aloe in a terracotta pot on the sill (P = stem base x).
+  const P = x + 58, G = "#5f8a5a", GD = "#3f6440", GL = "#86b07a";
+  for (const [dx, ty] of [[-8, 80], [-5, 75], [0, 73], [5, 76], [9, 81], [-3, 79], [3, 79]]) line(P, 91, P + dx, ty, GD, 2);
+  for (const [dx, ty] of [[-7, 80], [-4, 76], [0, 74], [4, 77], [8, 81]]) line(P, 90, P + dx, ty, G);
+  for (const [dx, ty] of [[-6, 81], [-3, 77], [1, 75]]) px(P + dx, ty + 2, GL);
+  rrect(P - 5, 90, 12, 10, 1, C.ol);
+  rect(P - 4, 92, 10, 7, "#c0623f");
+  rect(P - 4, 92, 1, 7, "#d98060");
+  rect(P + 3, 92, 3, 7, "#9a4a30");
+  rect(P - 5, 90, 12, 2, "#d77a55");
+}
+
+// Floating wall shelf with books standing on it.
+function drawShelf() {
+  const { x, y, w } = SHELF;
+  for (const b of BOOKS) {
+    if (b.flat) continue;
+    const top = y - b.h, band = b.i % 3 === 0 ? "#e8c872" : shade(b.color, 1.35);
+    rect(b.x, top, b.w, b.h, C.ol);
+    rect(b.x + 1, top + 1, b.w - 2, b.h - 1, b.color);
+    rect(b.x + 1, top + 1, 1, b.h - 1, shade(b.color, 1.18));
+    rect(b.x + b.w - 2, top + 1, 1, b.h - 1, shade(b.color, 0.8));
+    rect(b.x + 1, top + 3, b.w - 2, 1, band);
+    rect(b.x + 1, y - 4, b.w - 2, 1, band);
+  }
+  // Board, brackets and its shadow on the wall.
+  for (let i = 0; i < w; i++) for (let j = 0; j < 3; j++) if (by(x + i, y + 5 + j) < (3 - j) / 4) px(x + i, y + 5 + j, C.wallS);
+  rect(x - 1, y - 1, w + 2, 6, C.ol);
+  rect(x, y, w, 1, C.shelfL); rect(x, y + 1, w, 1, C.shelfT);
+  rect(x, y + 2, w, 2, C.shelf); rect(x, y + 4, w, 1, C.shelfD);
+  for (const bx of [x + 8, x + w - 11]) {
+    rect(bx, y + 5, 3, 7, C.ol);
+    rect(bx + 1, y + 5, 1, 6, "#5a4a50");
+  }
+}
+
+function drawFrame(i) {
+  const { x, y } = FRAMES[i];
+  line(x + 4, y, x + 18, y - 3, "#5a4a40");
+  line(x + 18, y - 3, x + 32, y, "#5a4a40");
+  px(x + 18, y - 4, "#9a8f86");
+  for (let k = 0; k < 38; k++) for (let j = 0; j < 2; j++) {
+    if (by(x + 37 + j, y + 2 + k) < 0.5) px(x + 37 + j, y + 2 + k, C.wallS);
+    if (by(x + 2 + k, y + 37 + j) < 0.5) px(x + 2 + k, y + 37 + j, C.wallS);
+  }
+  rect(x - 1, y - 1, 38, 38, C.ol);
+  rect(x, y, 36, 36, "#6b4630");
+  rect(x, y, 36, 1, "#8f6040"); rect(x, y, 1, 36, "#8f6040");
+  rect(x, y + 35, 36, 1, "#3f281b"); rect(x + 35, y, 1, 36, "#3f281b");
+  rect(x + 3, y + 3, 30, 30, "#120d10");
+  // Fallback until the live cover (.crt-vinyl-cover canvas) loads on top: a pixel vinyl record.
+  const cx = x + 18, cy = y + 18;
+  rect(x + 4, y + 4, COVER, COVER, "#1b1720");
+  ell(cx, cy, 13, 13, "#0c0a0e");
+  for (const r of [11, 9, 7]) for (let a = 0; a < 360; a += 4) {
+    const t = (a * Math.PI) / 180;
+    px(Math.floor(cx + Math.cos(t) * r), Math.floor(cy + Math.sin(t) * r), "#24202a");
+  }
+  ell(cx, cy, 4, 4, FRAME_LABELS[i]);
+  px(cx - 1, cy - 1, "#0c0a0e");
+}
+
+// ---------- desk + objects ----------
+function drawDesk() {
+  rect(0, 120, W, 20, C.deskTop);
+  for (let i = 0; i < 46; i++) {
+    const y = 121 + ((i * 7) % 19), x = (i * 53) % W, len = 8 + ((i * 13) % 22);
+    rect(x, y, len, 1, i % 3 ? C.deskGrain : C.deskTopL);
+  }
+  rect(0, 140, W, 1, C.deskEdgeL);
+  rect(0, 141, W, 4, C.deskEdge);
+  rect(0, 145, W, 1, C.ol);
+  rect(0, 146, W, 34, C.deskFront);
+  rect(124, 146, 72, 34, "#4f4338");
+  for (const [x, w] of [[14, 98], [208, 98]]) {
+    rect(x, 152, w, 22, C.deskFrontD);
+    rect(x + 1, 153, w - 2, 20, C.deskFrontL);
+    rect(x + 1, 171, w - 2, 2, C.deskFront);
+    rect(x + w / 2 - 5, 159, 10, 2, "#b08850");
+    rect(x + w / 2 - 5, 161, 10, 1, "#6a5848");
+  }
+}
+
+function drawSpeaker() {
+  const { x, y, w, h } = SPEAKER, cx = x + w / 2;
+  rrect(x - 1, y - 1, w + 2, h + 2, 1, C.ol);
+  rect(x, y, w, h, "#8a6a4e");
+  rect(x, y, w, 1, "#a8876a"); rect(x, y, 1, h, "#a8876a"); rect(x + w - 1, y, 1, h, "#6a4f39");
+  rect(x + 2, y + 6, w - 4, h - 8, "#35303a");
+  for (let yy = y + 6; yy < y + h - 2; yy++)
+    for (let xx = x + 2; xx < x + w - 2; xx++) if ((xx + yy) % 2 === 0 && by(xx, yy) < 0.3) px(xx, yy, "#3e3944");
+  rect(x + 3, y + 1, w - 6, 4, C.ol);
+  rect(x + 4, y + 2, w - 8, 2, "#121a14");
+  ell(cx, y + 11.5, 3, 3, "#1e1a22");
+  ell(cx, y + 11.5, 1.6, 1.6, "#5a5560");
+  ell(cx, y + 25, 8, 8, "#1e1a22");
+  ell(cx, y + 25, 6.5, 6.5, "#2c2830");
+  ell(cx, y + 25, 3, 3, "#4a4552");
+  px(cx - 2, y + 23, "#6a6572");
+}
+
+function drawTower() {
+  const T = TT, R = FX + 34;
+  poly([[FX - 1, 128], [FX - 1, T - 1], [FX + DX, T - DY - 1], [R + DX + 1, T - DY - 1], [R + DX + 1, 128 - DY], [R, 128]], C.ol);
+  rect(FX, T, 34, 128 - T, C.beige);
+  rect(FX, T, 34, 1, C.beigeH); rect(FX, T, 1, 128 - T, C.beigeH);
+  rect(FX, 126, 34, 2, C.beigeD);
+  poly([[R, T], [R + DX, T - DY], [R + DX, 127 - DY], [R, 127]], C.beigeM);
+  poly([[FX, T], [FX + DX, T - DY], [R + DX, T - DY], [R, T]], C.beigeH);
+  // Side panel: seam + rear vents sell the depth.
+  line(R + 7, T - 3, R + 7, 124 - 3, C.beigeD);
+  for (let y = T + 8; y < T + 40; y += 3) line(R + 9, y - 5, R + 12, y - 6, C.beigeD);
+  rect(FX + 4, T + 5, 26, 8, C.ol); rect(FX + 5, T + 6, 24, 6, C.beigeM); rect(FX + 5, T + 6, 24, 1, C.beigeD); rect(FX + 6, T + 9, 22, 1, C.beigeDD);
+  rect(FX + 4, T + 16, 26, 7, C.ol); rect(FX + 5, T + 17, 24, 5, C.beige); rect(FX + 8, T + 19, 16, 1, C.ol); rect(FX + 25, T + 20, 3, 1, C.beigeD);
+  rect(FX + 6, T + 27, 9, 3, C.beigeD);
+  rrect(FX + 22, T + 26, 7, 6, 1, C.ol); rrect(FX + 23, T + 27, 5, 4, 1, C.beigeM); px(FX + 23, T + 27, C.beigeH);
+  rect(FX + 4, T + 35, 24, 5, "#3a3230");
+  for (const [x, w] of [[6, 4], [11, 7], [19, 6]]) rect(FX + x, T + 37, w, 1, "#c9b48a");
+  for (let y = T + 46; y <= 121; y += 2) rect(FX + 6, y, 22, 1, C.beigeD);
+}
+
+// Vintage rangefinder: chrome top plate, black leatherette body, big lens.
+function drawCamera() {
+  const { x, y, w, h } = CAMERA, CHROME = "#c9c6c0", CHROME_L = "#ecebe6", CHROME_D = "#8f8b85";
+  rect(x + 1, y - 4, 7, 4, C.ol); rect(x + 2, y - 3, 5, 3, CHROME); rect(x + 2, y - 3, 5, 1, CHROME_L);
+  rect(x + w - 6, y - 3, 4, 3, C.ol); rect(x + w - 5, y - 2, 2, 2, CHROME_D);
+  rrect(x - 1, y - 1, w + 2, h + 2, 1, C.ol);
+  rect(x, y, w, 3, CHROME);
+  rect(x, y, w, 1, CHROME_L);
+  rect(x, y + 3, w, h - 3, "#2a2629");
+  for (let yy = y + 4; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (by(xx, yy) < 0.2) px(xx, yy, "#3a343b");
+  rect(x + 2, y + 1, 3, 1, "#5a7a9a");
+  px(x + w - 3, y + 1, "#d04a3a");
+  const lx = x + w / 2 + 1, ly = y + h / 2 + 1;
+  ell(lx, ly, 4.6, 4.6, C.ol);
+  ell(lx, ly, 3.8, 3.8, "#8a8690");
+  ell(lx, ly, 2.8, 2.8, "#3a363d");
+  ell(lx, ly, 1.8, 1.8, "#2a3d5c");
+  px(Math.floor(lx) - 1, Math.floor(ly) - 1, "#9cc3e8");
+}
+
+// A short stack of books lying on the tower, spines facing the room. Each book
+// recedes up-right like the tower (BOOK_DX/DY): cover on top, page block on the side.
+const BOOK_DX = 8, BOOK_DY = 4;
+function drawTowerBooks() {
+  for (const b of BOOKS) {
+    if (!b.flat) continue;
+    const { x, y, w, h } = b, R = x + w;
+    const band = b.i % 2 ? "#e8c872" : shade(b.color, 1.35);
+    poly([[x - 1, y + h], [x - 1, y - 1], [x + BOOK_DX - 1, y - BOOK_DY - 1], [R + BOOK_DX + 1, y - BOOK_DY - 1], [R + BOOK_DX + 1, y + h - BOOK_DY], [R, y + h]], C.ol);
+    poly([[x, y], [x + BOOK_DX, y - BOOK_DY], [R + BOOK_DX, y - BOOK_DY], [R, y]], shade(b.color, 1.12));
+    poly([[R, y], [R + BOOK_DX, y - BOOK_DY], [R + BOOK_DX, y + h - 1 - BOOK_DY], [R, y + h - 1]], "#efe6d2");
+    for (let k = 1; k < h - 1; k += 2) line(R + 1, y + k, R + BOOK_DX - 1, y + k - BOOK_DY + 1, "#cfc3ab");
+    line(x, y, x + BOOK_DX, y - BOOK_DY, C.ol);
+    line(R, y, R + BOOK_DX, y - BOOK_DY, shade(b.color, 0.7));
+    rect(x, y, w, h, C.ol);
+    rect(x + 1, y + 1, w - 2, h - 2, b.color);
+    rect(x + 1, y + 1, w - 2, 1, shade(b.color, 1.18));
+    rect(x + 1, y + h - 2, w - 2, 1, shade(b.color, 0.8));
+    rect(x + 3, y + 1, 1, h - 2, band);
+    rect(R - 4, y + 1, 1, h - 2, band);
+  }
+}
+
+function drawMonitor() {
+  const S = SCREEN;
+  rrect(127, 46, 66, 8, 2, C.ol);
+  rrect(128, 47, 64, 7, 2, C.beigeM);
+  rect(130, 47, 60, 1, C.beige);
+  rrect(119, 51, 82, 68, 3, C.ol);
+  rrect(120, 52, 80, 66, 2, C.beige);
+  rect(122, 52, 76, 1, C.beigeH); rect(120, 54, 1, 62, C.beigeH);
+  rect(198, 54, 2, 62, C.beigeM); rect(122, 116, 76, 2, C.beigeD);
+  // Recessed bezel: shadowed top/left, lit bottom/right.
+  rrect(S.x - 5, S.y - 4, S.w + 10, S.h + 9, 2, C.beigeDD);
+  rect(S.x - 3, S.y + S.h + 4, S.w + 6, 1, C.beigeH); rect(S.x + S.w + 4, S.y - 2, 1, S.h + 5, C.beigeH);
+  rrect(S.x - 1, S.y - 1, S.w + 2, S.h + 2, 3, C.ol);
+  rrect(S.x, S.y, S.w, S.h, 3, C.scr0);
+  rrect(S.x + 1, S.y + 1, S.w - 2, S.h - 2, 3, C.scr1);
+  // Chin: badge, button, power LED.
+  rect(130, 108, 16, 4, C.beigeD);
+  for (const x of [132, 136, 140]) rect(x, 110, 2, 1, C.beigeH);
+  rrect(176, 108, 6, 4, 1, C.beigeD);
+  rect(186, 109, 2, 1, "#6dff8a");
+  rect(148, 118, 24, 4, C.beigeM); rect(148, 118, 24, 1, C.beigeDD);
+  rrect(137, 121, 46, 6, 1, C.ol);
+  rrect(138, 122, 44, 4, 1, C.beige);
+  rect(139, 122, 42, 1, C.beigeH); rect(138, 125, 44, 1, C.beigeD);
+}
+
+function drawKeyboard() {
+  rrect(117, 128, 88, 11, 1, C.ol);
+  rrect(118, 129, 86, 9, 1, C.beigeM);
+  rect(119, 129, 84, 1, C.beigeH);
+  rect(118, 136, 86, 2, C.beigeD);
+  for (let r = 0; r < 2; r++) for (let x = 120 + r * 2; x + 3 <= 202; x += 4) rect(x, 130 + r * 2, 3, 1, C.beigeH);
+  for (let x = 120; x <= 134; x += 4) rect(x, 134, 3, 1, C.beigeH);
+  rect(140, 134, 40, 1, C.beigeH);
+  for (let x = 184; x + 3 <= 202; x += 4) rect(x, 134, 3, 1, C.beigeH);
+}
+
+// Mouse cord runs back along the desk, behind the lamp base, into the tower.
+function drawMouseCable() {
+  const pts = [[218, 130], [218, 127], [221, 125], [232, 125], [248, 125], [258, 124], [264, 124]];
+  for (let i = 1; i < pts.length; i++) line(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], C.arm);
+}
+
+function drawMouse() {
+  rrect(206, 128, 26, 13, 1, C.ol);
+  rrect(207, 129, 24, 11, 1, "#2f2a3d");
+  rect(208, 129, 22, 1, "#3d3650");
+  rrect(213, 130, 11, 9, 3, C.ol);
+  rrect(214, 131, 9, 7, 2, C.beige);
+  rect(216, 131, 5, 1, C.beigeH);
+  rect(218, 131, 1, 3, C.beigeD);
+  rect(215, 134, 7, 1, C.beigeM);
+  rect(215, 137, 7, 1, C.beigeD);
+}
+
+function drawMug() {
+  const x = MUGX, y = MUGY;
+  rect(x + 11, y + 3, 4, 7, C.ol); rect(x + 12, y + 4, 2, 5, "#9a4a30"); rect(x + 12, y + 5, 1, 3, C.deskTop);
+  rrect(x, y, 12, 14, 1, C.ol);
+  rect(x + 1, y + 1, 10, 12, "#c0623f");
+  rect(x + 1, y + 1, 1, 12, "#d98060");
+  rect(x + 8, y + 1, 3, 12, "#9a4a30");
+  rect(x + 1, y + 1, 10, 1, "#e8d9c6");
+  rect(x + 2, y + 2, 8, 1, "#3b2318");
+}
+
+function drawLamp() {
+  rrect(231, 126, 22, 7, 2, C.ol);
+  rrect(232, 127, 20, 5, 2, C.arm);
+  rect(234, 127, 16, 1, C.armL);
+  line(241, 126, 248, 99, C.ol, 3);
+  line(242, 126, 249, 99, C.arm, 2);
+  line(249, 99, 234, 73, C.ol, 3);
+  line(249, 100, 234, 74, C.arm, 2);
+  rect(247, 97, 4, 4, C.ol); rect(248, 98, 2, 2, C.armL);
+  poly([[225, 63], [239, 73], [230, 90], [211, 81]], C.ol);
+  poly([[226, 65], [237, 73], [229, 88], [213, 80]], C.brass);
+  line(226, 65, 237, 73, C.brassL);
+  line(229, 87, 237, 74, C.brassD);
+  line(214, 80, 228, 87, "#ffd27a");
+  line(215, 79, 227, 85, "#fff3cf");
+}
+
+function drawStatic() {
+  use(winBack); g.clearRect(0, 0, W, H); drawWindowBack();
+  use(winFront); g.clearRect(0, 0, W, H); drawWindowFront();
+  use(bg);
+  drawWall();
+  g.drawImage(winBack, 0, 0);
+  g.drawImage(winFront, 0, 0);
+  drawShelf();
+  FRAMES.forEach((_, i) => drawFrame(i));
+  drawDesk();
+  shadow(160, 127, 30, 2); shadow(161, 139, 46, 1.6); shadow(MUGX + 6, MUGY + 14, 9, 1.6);
+  shadow(242, 133, 13, 1.6); shadow(280, 128, 28, 2.4); shadow(CATX + 32, 130, 24, 2.2);
+  shadow(SPEAKER.x + SPEAKER.w / 2, 128, 14, 1.6);
+  shadow(CAMERA.x + CAMERA.w / 2, CAMERA.y + CAMERA.h + 1, 10, 1.4);
+  drawMouseCable();
+  drawSpeaker(); drawCamera(); drawTower(); drawTowerBooks(); drawMonitor(); drawKeyboard(); drawMouse(); drawMug(); drawLamp();
+}
+
+// ---------- cat sprite: seal-point snowshoe (procedural so breathing swells the back) ----------
+const CW = 58, CH = 33, GND = 30;
+const CC = {
+  w: "#f4efe6", s: "#d9cfc1", S: "#b3a593", cr: "#d2b896", crD: "#b39673",
+  b1: "#4f3527", b2: "#6c4b36", b3: "#8c6a4c", b4: "#a98a69",
+  m: "#2b1e18", mL: "#45322a", eye: "#7cc4ef", eyeD: "#3f86c9", o: "#1c130f", wh: "#efe8dc",
+};
+const inTri = (x, y, t) => inPoly(x + 0.5, y + 0.5, t);
+const catCache = new Map();
+function catSprite(breath, twitch, ear, eyes) {
+  const key = breath + "|" + twitch + "|" + ear + "|" + eyes;
+  if (catCache.has(key)) return catCache.get(key);
+  const part = new Uint8Array(CW * CH), col = new Array(CW * CH).fill(null);
+  const set = (x, y, p, c) => { if (x >= 0 && y >= 0 && x < CW && y < CH) { part[y * CW + x] = p; col[y * CW + x] = c; } };
+  const at = (x, y) => (x >= 0 && y >= 0 && x < CW && y < CH ? part[y * CW + x] : 0);
+  // Body: bottom pinned to the desk, only the back rises.
+  const ry = 10 + breath * 0.25, bcy = GND + 1 - ry;
+  for (let y = 0; y <= GND; y++) for (let x = 0; x < CW; x++) {
+    if (!inEll(x, y, 28, bcy, 18.5, ry)) continue;
+    // Darker along the spine, lighter fawn toward the shoulder, white underneath.
+    const t = (y + 0.5 - (bcy - ry)) / (2 * ry) + (by(x, y) - 0.5) * 0.1 + Math.max(0, x - 34) * 0.012;
+    let c = t < 0.3 ? CC.b1 : t < 0.58 ? CC.b2 : t < 0.68 ? CC.b3 : CC.w;
+    if (c === CC.w && y >= GND - 1) c = CC.s;
+    set(x, y, 1, c);
+  }
+  // Rim light along the back from the window side.
+  for (let x = 0; x < 30; x++) for (let y = 1; y <= GND; y++)
+    if (at(x, y) === 1 && !at(x, y - 1)) { col[y * CW + x] = CC.b3; break; }
+  // Black tail wrapped along the front.
+  const P0 = [11, 21], P1 = [5, 33], P2 = [38, 28.5 - twitch];
+  for (let i = 0; i <= 50; i++) {
+    const t = i / 50, u = 1 - t;
+    const tx = u * u * P0[0] + 2 * u * t * P1[0] + t * t * P2[0];
+    const ty = u * u * P0[1] + 2 * u * t * P1[1] + t * t * P2[1];
+    const r = 2.5 - t * 0.6;
+    for (let y = Math.floor(ty - r); y <= Math.min(GND, ty + r); y++)
+      for (let x = Math.floor(tx - r); x <= tx + r; x++)
+        if (inEll(x, y, tx, ty, r, r)) set(x, y, 2, y + 0.5 < ty - 0.4 ? CC.mL : CC.m);
+  }
+  // White chest bib, then head: fawn base, dark mask, white muzzle + chin, dark ears.
+  for (let y = 0; y <= GND; y++) for (let x = 0; x < CW; x++) if (inEll(x, y, 45, 25, 7.5, 5.5)) set(x, y, 3, y >= GND ? CC.s : CC.w);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+    if (inEll(x, y, 46, 16.5, 8.6, 7.6)) {
+      let c = y + 0.5 < 12 ? CC.crD : CC.cr;
+      if (inEll(x, y, 46, 13, 1.6, 2.6)) c = CC.mL;
+      if (inEll(x, y, 46, 17.4, 5.4, 4.2)) c = inEll(x, y, 46, 17.4, 4.4, 3.4) ? CC.m : CC.mL;
+      if (inEll(x, y, 46, 21.4, 3.6, 2.2) || y >= 22) c = CC.w;
+      set(x, y, 3, c);
+    }
+    if (inTri(x, y, [[38.5, 12], [39.5, 3.5], [44.5, 9.5]]) || inTri(x, y, [[47.5, 9.5], [52.5 - ear, 3.5 + ear], [53.5, 12]])) set(x, y, 3, CC.m);
+  }
+  // Folded white paws.
+  for (let y = 0; y <= GND; y++) for (let x = 0; x < CW; x++)
+    if (inEll(x, y, 41, 30, 3.6, 1.7) || inEll(x, y, 48.5, 30, 3.6, 1.7)) set(x, y, 4, y >= GND ? CC.s : CC.w);
+  // Separate overlapping parts with shade instead of a hard line.
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+    const p = at(x, y);
+    if (p === 3 && at(x - 1, y) === 1) col[y * CW + x] = col[y * CW + x] === CC.w ? CC.S : CC.crD;
+    if (p === 4 && at(x, y - 1) === 3) col[y * CW + x] = CC.s;
+  }
+  set(41, 7, 3, CC.crD); set(51, 7, 3, CC.crD);
+  // Eyes: closed lids, or a sleepy half-open peek of blue.
+  for (const ex of [43, 49]) {
+    if (eyes) {
+      set(ex - 1, 16, 3, CC.o); set(ex, 16, 3, CC.o); set(ex + 1, 16, 3, CC.o);
+      set(ex - 1, 17, 3, CC.eye); set(ex, 17, 3, CC.eyeD); set(ex + 1, 17, 3, CC.eye);
+    } else {
+      // Closed lids read as a soft lighter crease on the dark mask.
+      set(ex - 1, 17, 3, CC.b3); set(ex, 18, 3, CC.b3); set(ex + 1, 17, 3, CC.b3);
+    }
+  }
+  set(45, 19, 3, CC.o); set(46, 19, 3, CC.o);
+  set(44, 21, 3, CC.S); set(47, 21, 3, CC.S);
+  // 1px outer outline, then whiskers outside it.
+  const out = col.slice();
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++)
+    if (!at(x, y) && (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1))) out[y * CW + x] = CC.o;
+  for (const [x, y] of [[35, 21], [34, 21], [35, 23], [56, 21], [57, 21], [56, 23]]) out[y * CW + x] = CC.wh;
+  const sc = document.createElement("canvas");
+  sc.width = CW; sc.height = CH;
+  const sg = sc.getContext("2d");
+  for (let i = 0; i < out.length; i++) if (out[i]) { sg.fillStyle = out[i]; sg.fillRect(i % CW, (i / CW) | 0, 1, 1); }
+  catCache.set(key, sc);
+  return sc;
+}
+
+// ---------- sunset clouds ----------
+function cloudSprite(w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const cg = c.getContext("2d");
+  const blobs = [[w * 0.25, h * 0.65, w * 0.25, h * 0.4], [w * 0.5, h * 0.45, w * 0.28, h * 0.55], [w * 0.75, h * 0.65, w * 0.25, h * 0.38]];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!blobs.some(([cx, cy, rx, ry]) => inEll(x, y, cx, cy, rx, ry))) continue;
+    const t = y / h + (by(x, y) - 0.5) * 0.2;
+    cg.fillStyle = t < 0.4 ? "#b06a86" : t < 0.75 ? "#e08a86" : "#ffbe8f";
+    cg.fillRect(x, y, 1, 1);
+  }
+  return c;
+}
+const CLOUDS = [
+  { w: 22, h: 6, y: WIN.y + 5, speed: 1.1, off: 0 },
+  { w: 16, h: 5, y: WIN.y + 14, speed: 0.7, off: 40 },
+  { w: 26, h: 7, y: WIN.y + 33, speed: 0.5, off: 15 },
+].map((c) => ({ ...c, sprite: cloudSprite(c.w, c.h) }));
+
+// ---------- light maps (dithered, quantized) ----------
+const IL = new Float32Array(W * H), IC = new Float32Array(W * H), IS = new Float32Array(W * H), IV = new Float32Array(W * H);
+(function buildLight() {
+  const S = [221, 84], E = [182, 130], ex = E[0] - S[0], ey = E[1] - S[1], len2 = ex * ex + ey * ey;
+  const sc = [SCREEN.x + SCREEN.w / 2, SCREEN.y + SCREEN.h / 2];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let l = 0;
+    if (y >= 120) { const a = (x - 178) / 74, b = (y - 133) / 13; l += Math.max(0, 1 - (a * a + b * b)); }
+    else {
+      const t = Math.max(0, Math.min(1, ((x - S[0]) * ex + (y - S[1]) * ey) / len2));
+      const d = Math.hypot(x - (S[0] + ex * t), y - (S[1] + ey * t)), w = 3 + t * 34;
+      if (t > 0) l += Math.max(0, 1 - d / w) * (1 - t * 0.3) * 0.5;
+    }
+    l += Math.pow(Math.max(0, 1 - Math.hypot(x - 221, y - 84) / 22), 1.5);
+    l += Math.max(0, 1 - Math.hypot(x - 232, y - 80) / 82) * 0.35;
+    IL[i] = Math.min(1.25, l);
+    IC[i] = Math.max(0, 1 - Math.hypot((x - sc[0]) / 1.25, y - sc[1]) / 72) * 0.9;
+    // The window is emissive: it lights the room but isn't darkened by vignette.
+    if (inGlass(x, y)) continue;
+    IS[i] = Math.max(0, 1 - Math.hypot(x - (WIN.x + WIN.w / 2), (y - (WIN.y + WIN.h / 2)) * 1.2) / 175) * 0.85;
+    const vx = (x - 160) / 160, vy = (y - 90) / 110;
+    IV[i] = Math.max(0, vx * vx + vy * vy - 0.35) * 1.4;
+  }
+})();
+
+function applyLight(crtF) {
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, o = i * 4, t = by(x, y);
+    let r = d[o], gg = d[o + 1], b = d[o + 2];
+    // Blend toward warm lamp light so pale surfaces glow instead of clipping to white.
+    const l = Math.min(4, Math.floor(IL[i] * 3 + t));
+    if (l) { r += (255 - r) * 0.13 * l + 4 * l; gg += (235 - gg) * 0.09 * l + 2 * l; b += (180 - b) * 0.03 * l; }
+    const lc = Math.floor(IC[i] * 2 * crtF + t);
+    if (lc) { gg += 9 * lc; b += 5 * lc; r += lc; }
+    const ls = Math.floor(IS[i] * 2.8 + t);
+    if (ls) { r += 14 * ls; gg += 5 * ls; b += 6 * ls; }
+    const lv = Math.floor(IV[i] * 3 + t);
+    if (lv) { const k = 1 - 0.13 * lv; r *= k; gg *= k; b *= k; }
+    // Global warm grade toward the sunset.
+    d[o] = r * 1.04 + 5; d[o + 1] = gg + 1; d[o + 2] = b * 0.9;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// ---------- animated bits ----------
+const steam = [];
+const motes = Array.from({ length: 16 }, (_, i) => ({
+  x: 180 + ((i * 37) % 50), y: 86 + ((i * 23) % 40), vx: ((i % 5) - 2) * 0.6, vy: -0.8 - (i % 3) * 0.4, ph: i * 1.7,
+}));
+
+/** Redraws only the glass area; the frame, sill and speaker in front stay as drawn in bg. */
+function drawWindowLive(t) {
+  const { x, y, w } = WIN;
+  g.save();
+  g.beginPath();
+  g.rect(WIN.x, WIN.y, WIN.w, WIN.h);
+  g.clip();
+  g.drawImage(winBack, 0, 0);
+  for (const c of CLOUDS) g.drawImage(c.sprite, Math.round(x - c.w + ((t * c.speed + c.off) % (w + c.w))), c.y);
+  // Sun glitter: broken horizontal dashes that shimmer down the sea.
+  for (let yy = HORIZON + 1; yy < BEACH; yy++) {
+    const d = yy - HORIZON, hw = Math.max(1, 6 - d * 0.25);
+    for (let xx = Math.floor(SUN.x - hw); xx <= SUN.x + hw; xx++) {
+      const edge = Math.abs(xx - SUN.x) / hw;
+      if (noise(xx * 0.45, yy * 2.1 + t * 1.2) > 0.5 + edge * 0.2) px(xx, yy, d < 6 ? "#ffe08a" : "#f5a35f");
+    }
+  }
+  for (let k = 0; k < 6; k++) {
+    const sx = x + ((k * 29 + Math.floor(t * 0.7) * 13) % w), sy = HORIZON + 3 + ((k * 7) % (BEACH - HORIZON - 4));
+    if (Math.sin(t * 3 + k * 2) > 0.6) px(sx, sy, "#e9b9b0");
+  }
+  // Waves wash up and slide back over the wet sand.
+  const reach = Math.round((Math.sin(t * 0.7) + 1) * 1.5);
+  if (reach) rect(x, BEACH, w, reach, "#4b5280");
+  for (let xx = x; xx < x + w; xx++) {
+    if (noise(xx * 0.3 + t * 0.3, 3) > 0.35) px(xx, BEACH + reach, "#f4e6dc");
+    if (noise(xx * 0.5 - t * 0.2, 9) > 0.6) px(xx, BEACH + reach - 1, "#c9c3d6");
+  }
+  // A couple of gulls drifting across.
+  for (let k = 0; k < 2; k++) {
+    const bx = Math.round(x - 10 + ((t * 4 + k * 45) % (w + 20))), byy = y + 16 + k * 5;
+    const flap = Math.floor(t * 3 + k) % 2;
+    const pts = flap ? [[-2, -1], [-1, 0], [0, 0], [1, 0], [2, -1]] : [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]];
+    for (const [dx, dy] of pts) px(bx + dx, byy + dy, "#3b2d4a");
+  }
+  g.drawImage(winFront, 0, 0);
+  g.restore();
+}
+
+function drawDynamic(t, dt) {
+  use(ctx.canvas);
+  drawWindowLive(t);
+  // CRT: slow rolling refresh band.
+  const S = SCREEN, band = S.y + ((t * 14) % (S.h + 14)) - 6;
+  for (let y = Math.max(S.y + 2, Math.floor(band)); y < Math.min(S.y + S.h - 2, band + 3); y++) rect(S.x + 2, y, S.w - 4, 1, C.scr2);
+  // Tower LEDs.
+  rect(FX + 7, TT + 28, 2, 1, "#6dff8a");
+  rect(FX + 11, TT + 28, 2, 1, Math.random() < 0.35 ? "#ffb347" : "#5a3a14");
+  // Speaker: EQ bars bounce, woofer pulses on the beat.
+  const { x: sx, y: sy } = SPEAKER;
+  for (let k = 0; k < 5; k++) {
+    const hgt = 1 + Math.round(((Math.sin(t * (5 + k * 1.3) + k * 1.7) + 1) / 2) * 1.4);
+    rect(sx + 5 + k * 3, sy + 4 - hgt, 2, hgt, hgt > 1 ? "#ffb347" : "#6dff8a");
+  }
+  if (Math.sin(t * 7.5) > 0.55) {
+    for (let a = 0; a < 360; a += 12) {
+      const r = (a * Math.PI) / 180;
+      px(Math.floor(sx + SPEAKER.w / 2 + Math.cos(r) * 5.5), Math.floor(sy + 25 + Math.sin(r) * 5.5), "#4a4552");
+    }
+  }
+  // Cat: breath swells the back, tail flicks, ear twitches, eyes peek open now and then.
+  const breath = Math.round(((1 - Math.cos((2 * Math.PI * t) / 4.2)) / 2) * 6);
+  const twitch = t % 7 < 0.35 ? 1 : 0;
+  const ear = t % 11 > 10.6 ? 1 : 0;
+  const eyes = t % 13 > 11.8 ? 1 : 0;
+  g.drawImage(catSprite(breath, twitch, ear, eyes), CATX, CATY);
+  // Mug steam.
+  if (dt && Math.random() < dt * 5) steam.push({ x: MUGX + 3 + Math.random() * 6, y: MUGY, age: 0, seed: Math.random() * 6 });
+  for (let i = steam.length - 1; i >= 0; i--) {
+    const p = steam[i];
+    p.age += dt; p.y -= dt * 6;
+    if (p.age > 3.2) { steam.splice(i, 1); continue; }
+    const k = p.age / 3.2, x = Math.round(p.x + Math.sin(t * 1.6 + p.seed) * (1 + k * 2));
+    px(x, Math.round(p.y), k < 0.35 ? "#d9cfc8" : k < 0.7 ? "#a99a99" : "#6e5f6c");
+  }
+  // Dust drifting through the lamp beam.
+  for (const m of motes) {
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    if (m.y < 84) { m.y = 128; m.x = 180 + Math.random() * 50; }
+    if (m.x < 176 || m.x > 234) m.vx *= -1;
+    const ix = Math.round(m.x), iy = Math.round(m.y);
+    if (IL[iy * W + ix] > 0.3 && Math.sin(t * 2 + m.ph) > -0.3) px(ix, iy, "#ffe9b8");
+  }
+}
+
+function renderFrame(t, dt) {
+  if (!ctx) return;
+  ctx.drawImage(bg, 0, 0);
+  drawDynamic(t, dt);
+  applyLight(0.92 + 0.08 * Math.sin(t * 9));
+}
+
+// ---------- live vinyl covers ----------
+/** Covers are drawn at half an art pixel (2× the room grid) so album art keeps more detail. */
+const COVER_RES = COVER * 2;
+const coverUrls = [];
+
+// Album art → COVER_RES² pixel art: step-down resize, then light ordered-dither posterize with a warm push.
+function pixelateCover(img, out) {
+  const mid = document.createElement("canvas");
+  mid.width = mid.height = 128;
+  const s = Math.min(img.naturalWidth, img.naturalHeight);
+  mid.getContext("2d").drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, 128, 128);
+  const x = out.getContext("2d");
+  x.imageSmoothingQuality = "high";
+  x.drawImage(mid, 0, 0, COVER_RES, COVER_RES);
+  const d = x.getImageData(0, 0, COVER_RES, COVER_RES), a = d.data, L = 20;
+  for (let i = 0; i < COVER_RES * COVER_RES; i++) {
+    const t = (by(i % COVER_RES, (i / COVER_RES) | 0) - 0.5) * 0.3;
+    for (let k = 0; k < 3; k++) a[i * 4 + k] = (Math.round((a[i * 4 + k] / 255) * (L - 1) + t) / (L - 1)) * 255;
+    a[i * 4] = a[i * 4] * 1.04 + 6; a[i * 4 + 2] *= 0.9;
+  }
+  x.putImageData(d, 0, 0);
+}
+
+/** Called by spotify-vinyl.js with each slot's cover URL. */
+export function setVinylCover(i, url) {
+  const out = document.querySelector('.crt-vinyl-slot[data-vinyl-idx="' + i + '"] .crt-vinyl-cover');
+  if (!out || !url || coverUrls[i] === url) return;
+  coverUrls[i] = url;
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    if (coverUrls[i] !== url) return;
+    try { pixelateCover(img, out); } catch { return; /* CORS-tainted: keep vinyl fallback */ }
+    out.hidden = false;
+  };
+  img.src = url;
+}
+
+// ---------- public API ----------
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 /**
- * Push monitor screen geometry into CSS custom properties so `.crt-zoom-screen`
- * tracks MONITOR.cx/cy + screen size under xMidYMid slice (same math as the SVG).
+ * Spine title box. Shelf spines are rotated to read bottom-to-top and skipped
+ * where mostly hidden; books lying flat read left-to-right.
+ */
+function bookLabelHtml(b) {
+  if (!b.title) return "";
+  const dark = isLight(b.color) ? " crt-book-label--dark" : "";
+  if (b.flat) {
+    return (
+      '<span class="crt-book-label crt-book-label--flat' + dark + '" style="left:' + (b.x + b.w / 2) + "em;top:" +
+      (b.y + b.h / 2) + "em;width:" + (b.w - 9) + "em;height:" + (b.h - 2) + 'em"><span>' + escapeHtml(b.title) + "</span></span>"
+    );
+  }
+  const top = SHELF.y - b.h + 2;
+  let bottom = SHELF.y - 2;
+  for (const [x0, x1, oy] of SHELF_OCCLUDERS) if (b.x < x1 && b.x + b.w > x0) bottom = Math.min(bottom, oy - 1);
+  const len = bottom - top;
+  if (len < 12) return "";
+  return (
+    '<span class="crt-book-label' + dark + '" style="left:' +
+    (b.x + b.w / 2) + "em;top:" + (top + bottom) / 2 + "em;width:" + len + "em;height:" + (b.w - 2) + 'em">' +
+    "<span>" + escapeHtml(b.title) + "</span></span>"
+  );
+}
+
+/**
+ * Room markup: the pixel canvas plus HTML layers that ride along with it
+ * (book titles, vinyl hit areas). Inside .crt-room-scene, 1em = 1 art pixel.
+ */
+export function crtRoomSceneHtml() {
+  const slots = FRAMES.map((f, i) =>
+    '<div class="crt-vinyl-slot" data-vinyl-idx="' + i + '" style="left:' + (f.x - 1) + "em;top:" + (f.y - 1) + 'em;width:38em;height:38em">' +
+      '<canvas class="crt-vinyl-cover" width="' + COVER_RES + '" height="' + COVER_RES + '" hidden></canvas>' +
+    "</div>"
+  ).join("");
+  return (
+    '<div class="crt-room-scene" id="crt-room-scene" style="transform-origin:' + MONITOR.cx / ART + "em " + MONITOR.cy / ART + 'em">' +
+      '<canvas class="crt-room-canvas" id="crt-room-canvas" width="' + W + '" height="' + H + '" aria-hidden="true"></canvas>' +
+      BOOKS.map(bookLabelHtml).join("") +
+      slots +
+      // sw() is the Engineering ⇄ Photography toggle (app.js).
+      '<button type="button" class="crt-camera-hit" onclick="sw()" data-label="Photography" aria-label="Open the photography portfolio" style="left:' +
+        (CAMERA.x - 2) + "em;top:" + (CAMERA.y - 5) + "em;width:" + (CAMERA.w + 4) + "em;height:" + (CAMERA.h + 7) + 'em"></button>' +
+    "</div>"
+  );
+}
+
+/**
+ * Push scene geometry into CSS custom properties. The scale is snapped so one
+ * art pixel is a whole number of screen pixels; .crt-zoom-screen and the scene
+ * both read --crt-slice-scale, so the HTML screen stays on the drawn monitor.
  * @param {HTMLElement} root — typically `#eng-stack-experience`
  */
 export function applyCrtRoomLayoutVars(root) {
   if (!root) return;
-  var m = MONITOR;
-  var vbCx = VIEW.w / 2;
-  var vbCy = VIEW.h / 2;
+  const raw = Math.max(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h);
+  const artPx = Math.max(1, Math.ceil(raw * ART - 0.01));
   root.style.setProperty("--crt-vb-w", String(VIEW.w));
   root.style.setProperty("--crt-vb-h", String(VIEW.h));
-  root.style.setProperty("--crt-vb-cx", String(vbCx));
-  root.style.setProperty("--crt-vb-cy", String(vbCy));
-  root.style.setProperty("--crt-monitor-cx", String(worldX(m.cx)));
-  root.style.setProperty("--crt-monitor-cy", String(worldY(m.cy)));
-  root.style.setProperty("--crt-screen-w", String(m.screenW));
-  root.style.setProperty("--crt-screen-h", String(m.screenH));
+  root.style.setProperty("--crt-vb-cx", String(VIEW.w / 2));
+  root.style.setProperty("--crt-vb-cy", String(VIEW.h / 2));
+  root.style.setProperty("--crt-monitor-cx", String(MONITOR.cx));
+  root.style.setProperty("--crt-monitor-cy", String(MONITOR.cy));
+  root.style.setProperty("--crt-screen-w", String(MONITOR.screenW));
+  root.style.setProperty("--crt-screen-h", String(MONITOR.screenH));
+  root.style.setProperty("--crt-art-px", artPx + "px");
+  root.style.setProperty("--crt-slice-scale", artPx / ART + "px");
 }
 
-function worldX(x) {
-  return x + LAYOUT.offsetX;
-}
+/** Largest spine-title size (in art px) before titles start shrinking to fit. */
+const LABEL_MAX_EM = 2.3, LABEL_MIN_EM = 0.8;
 
-function worldY(y) {
-  return y + LAYOUT.offsetY;
-}
-
-function gAtCenter(cx, cy, className, content) {
-  const cls = className ? ' class="' + className + '"' : "";
-  return (
-    "<g" +
-    cls +
-    ' transform="translate(' +
-    worldX(cx) +
-    "," +
-    worldY(cy) +
-    ')">' +
-    content +
-    "</g>"
-  );
-}
-
-/** Local origin at top-left of a w×h box centered on (cx, cy). */
-function gAtCenterTopLeft(cx, cy, w, h, className, content) {
-  const cls = className ? ' class="' + className + '"' : "";
-  const x = worldX(cx) - w / 2;
-  const y = worldY(cy) - h / 2;
-  return (
-    "<g" +
-    cls +
-    ' transform="translate(' +
-    x +
-    "," +
-    y +
-    ')">' +
-    content +
-    "</g>"
-  );
-}
-
-function rectFromCenter(cx, cy, w, h, extraAttrs) {
-  return (
-    '<rect x="' +
-    (worldX(cx) - w / 2) +
-    '" y="' +
-    (worldY(cy) - h / 2) +
-    '" width="' +
-    w +
-    '" height="' +
-    h +
-    '" ' +
-    (extraAttrs || "") +
-    "/>"
-  );
-}
-
-function ellipseAt(cx, cy, rx, ry, extraAttrs) {
-  return (
-    '<ellipse cx="' +
-    worldX(cx) +
-    '" cy="' +
-    worldY(cy) +
-    '" rx="' +
-    rx +
-    '" ry="' +
-    ry +
-    '" ' +
-    (extraAttrs || "") +
-    "/>"
-  );
-}
-
-function monitorScreenRect(extraAttrs) {
-  return rectFromCenter(
-    MONITOR.cx,
-    MONITOR.cy,
-    MONITOR.screenW,
-    MONITOR.screenH,
-    extraAttrs || 'class="crt-monitor-screen-bg" fill="#0a1a08"'
-  );
-}
-
-/**
- * Build the SVG room scene. The decorative monitor "screen" inside the SVG
- * is just visual — the real interactive screen is a separate HTML overlay
- * (.crt-zoom-screen) positioned on top of this SVG by render-from-config.js.
- *
- * @returns {string} a full <svg>…</svg> markup string.
- */
-export function crtRoomSceneSvg() {
-  return (
-    '<svg class="crt-room-svg" id="crt-room-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
-      defs() +
-      backdrop() +
-      window() +
-      wallDecor() +
-      desk() +
-      // Contact shadows sit on the desk, beneath every object.
-      itemShadows() +
-      speaker() +
-      lampGlow() +
-      tower() +
-      monitorFrame() +
-      // Decorative dark green screen inside the monitor — the HTML overlay
-      // will sit precisely on top of this rectangle at zoom=0 and grow from it.
-      monitorScreenRect() +
-      peripherals() +
-      cat() +
-      mug() +
-      lampChrome() +
-    '</svg>'
-  );
-}
-
-/* ── reusable defs (gradients, filters, etc.) ─────────────── */
-function defs() {
-  return (
-    '<defs>' +
-      // Wall gradient — deep warm brown with slight vignette
-      '<linearGradient id="rg-wall" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#2a1d15"/>' +
-        '<stop offset="60%" stop-color="#241812"/>' +
-        '<stop offset="100%" stop-color="#1c130d"/>' +
-      '</linearGradient>' +
-      // Wood desk gradient
-      '<linearGradient id="rg-desk" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#6e3f23"/>' +
-        '<stop offset="40%" stop-color="#5a3219"/>' +
-        '<stop offset="100%" stop-color="#3b1f0e"/>' +
-      '</linearGradient>' +
-      // Sunset sky gradient (top → bottom of window)
-      '<linearGradient id="rg-sunset" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#3a1850"/>' +
-        '<stop offset="25%" stop-color="#a23a5a"/>' +
-        '<stop offset="55%" stop-color="#f56a3a"/>' +
-        '<stop offset="80%" stop-color="#fdbb6b"/>' +
-        '<stop offset="100%" stop-color="#fde0a0"/>' +
-      '</linearGradient>' +
-      // Ocean gradient
-      '<linearGradient id="rg-ocean" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#7a3a3a"/>' +
-        '<stop offset="40%" stop-color="#3a2842"/>' +
-        '<stop offset="100%" stop-color="#1a1428"/>' +
-      '</linearGradient>' +
-      // Beige plastic (monitor/tower/keyboard)
-      '<linearGradient id="rg-beige" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#efd9ad"/>' +
-        '<stop offset="50%" stop-color="#d6bd8b"/>' +
-        '<stop offset="100%" stop-color="#a48553"/>' +
-      '</linearGradient>' +
-      // Lamp glow (radial, warm amber)
-      '<radialGradient id="rg-lamp" cx="50%" cy="50%" r="50%">' +
-        '<stop offset="0%" stop-color="#ffd28a" stop-opacity=".9"/>' +
-        '<stop offset="40%" stop-color="#ffb35a" stop-opacity=".55"/>' +
-        '<stop offset="100%" stop-color="#c25e1a" stop-opacity="0"/>' +
-      '</radialGradient>' +
-      // Sun on horizon
-      '<radialGradient id="rg-sun" cx="50%" cy="50%" r="50%">' +
-        '<stop offset="0%" stop-color="#fff6c8"/>' +
-        '<stop offset="60%" stop-color="#ffd07a"/>' +
-        '<stop offset="100%" stop-color="#ff8a48" stop-opacity="0"/>' +
-      '</radialGradient>' +
-      // Cat orange (legacy — kept for any other warm-orange use)
-      '<linearGradient id="rg-cat" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#d97a35"/>' +
-        '<stop offset="100%" stop-color="#8a4519"/>' +
-      '</linearGradient>' +
-      // === SleepingCat gradients (warm seal-point body / saddle / face mask) ===
-      '<radialGradient id="sc-bodyGrad" cx="50%" cy="30%" r="70%">' +
-        '<stop offset="0%"   stop-color="#fbf4e6"/>' +
-        '<stop offset="55%"  stop-color="#f1e6d3"/>' +
-        '<stop offset="100%" stop-color="#d9c4a3"/>' +
-      '</radialGradient>' +
-      '<radialGradient id="sc-saddleGrad" cx="50%" cy="40%" r="65%">' +
-        '<stop offset="0%"   stop-color="#7a5236" stop-opacity="0.95"/>' +
-        '<stop offset="60%"  stop-color="#5a3a26" stop-opacity="0.7"/>' +
-        '<stop offset="100%" stop-color="#5a3a26" stop-opacity="0"/>' +
-      '</radialGradient>' +
-      '<radialGradient id="sc-maskGrad" cx="50%" cy="50%" r="55%">' +
-        '<stop offset="0%"   stop-color="#3a2418"/>' +
-        '<stop offset="70%"  stop-color="#3a2418"/>' +
-        '<stop offset="100%" stop-color="#5a3a26" stop-opacity="0.4"/>' +
-      '</radialGradient>' +
-      // Reflection on desk (warm pool from lamp)
-      '<radialGradient id="rg-desk-glow" cx="50%" cy="50%" r="50%">' +
-        '<stop offset="0%" stop-color="#ffb35a" stop-opacity=".35"/>' +
-        '<stop offset="100%" stop-color="#ffb35a" stop-opacity="0"/>' +
-      '</radialGradient>' +
-      // Clip path for window interior — tracks WINDOW layout + LAYOUT offset
-      '<clipPath id="rg-window-clip">' +
-        '<rect x="' +
-        (worldX(WINDOW.cx) - WINDOW.glassW / 2) +
-        '" y="' +
-        (worldY(WINDOW.cy) - WINDOW.glassH / 2) +
-        '" width="' +
-        WINDOW.glassW +
-        '" height="' +
-        WINDOW.glassH +
-        '"/>' +
-      "</clipPath>" +
-      // Soft drop-shadow under desk items
-      '<radialGradient id="rg-shadow" cx="50%" cy="50%" r="50%">' +
-        '<stop offset="0%" stop-color="#000" stop-opacity=".55"/>' +
-        '<stop offset="100%" stop-color="#000" stop-opacity="0"/>' +
-      '</radialGradient>' +
-      // Wall vertical gradient — slightly darker at top, lighter near desk
-      '<linearGradient id="rg-wall-vignette" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%"  stop-color="#000" stop-opacity=".5"/>' +
-        '<stop offset="40%" stop-color="#000" stop-opacity="0"/>' +
-        '<stop offset="100%" stop-color="#000" stop-opacity=".25"/>' +
-      '</linearGradient>' +
-    '</defs>'
-  );
-}
-
-/* ── Backdrop: walls, ceiling shadow, baseboard ───────────── */
-function backdrop() {
-  return (
-    '<g class="crt-room-decor">' +
-      // Back wall
-      '<rect x="0" y="0" width="1920" height="780" fill="url(#rg-wall)"/>' +
-      // Subtle wall texture lines (wallpaper)
-      '<g stroke="#3a261b" stroke-width="1" opacity=".25">' +
-        '<line x1="0" y1="160" x2="1920" y2="160"/>' +
-        '<line x1="0" y1="320" x2="1920" y2="320"/>' +
-        '<line x1="0" y1="480" x2="1920" y2="480"/>' +
-        '<line x1="0" y1="640" x2="1920" y2="640"/>' +
-      '</g>' +
-      // Vignette at top (ceiling falls into shadow)
-      '<rect x="0" y="0" width="1920" height="180" fill="url(#rg-wall)" opacity=".6"/>' +
-      // Wall vignette gradient — adds depth without a hard line
-      '<rect x="0" y="0" width="1920" height="780" fill="url(#rg-wall-vignette)"/>' +
-      // Baseboard between wall and desk (slight crown molding feel)
-      '<rect x="0" y="768" width="1920" height="4"  fill="#3a2418"/>' +
-      '<rect x="0" y="772" width="1920" height="12" fill="#15100a"/>' +
-    '</g>'
-  );
-}
-
-/* ── Window with beach/sunset view ────────────────────────── */
-function window() {
-  const w = WINDOW;
-  const glassX = worldX(w.cx) - w.glassW / 2;
-  const glassY = worldY(w.cy) - w.glassH / 2;
-  const sunCx = w.glassW / 2;
-  const sunCy = 300;
-  return (
-    '<g class="crt-room-decor crt-window">' +
-      rectFromCenter(w.cx, w.cy, w.outerW, w.outerH, 'fill="#0c0805" rx="4"') +
-      rectFromCenter(w.cx, w.cy, w.innerW, w.innerH, 'fill="#0e0a06" rx="2"') +
-      '<g clip-path="url(#rg-window-clip)">' +
-        '<g transform="translate(' + glassX + "," + glassY + ')">' +
-          '<rect x="0" y="0" width="' + w.glassW + '" height="320" fill="url(#rg-sunset)"/>' +
-          '<circle class="crt-sun-glow" cx="' + sunCx + '" cy="' + sunCy + '" r="120" fill="url(#rg-sun)" opacity=".75"/>' +
-          '<ellipse cx="' + sunCx + '" cy="' + sunCy + '" rx="60" ry="38" fill="#fff8dc" opacity=".95"/>' +
-          '<g class="crt-clouds" opacity=".55">' +
-            '<ellipse class="crt-cloud crt-cloud--a" cx="70" cy="90" rx="60" ry="9" fill="#4a2238"/>' +
-            '<ellipse class="crt-cloud crt-cloud--b" cx="290" cy="50" rx="80" ry="11" fill="#3a1830"/>' +
-            '<ellipse class="crt-cloud crt-cloud--c" cx="190" cy="130" rx="50" ry="7" fill="#5a2840"/>' +
-          "</g>" +
-          '<g stroke="#fff8dc" stroke-width=".6" opacity=".4">' +
-            '<line x1="' + sunCx + '" y1="' + sunCy + '" x2="' + (sunCx - 160) + '" y2="' + sunCy + '"/>' +
-            '<line x1="' + sunCx + '" y1="' + sunCy + '" x2="' + (sunCx + 160) + '" y2="' + sunCy + '"/>' +
-          "</g>" +
-          '<rect x="0" y="320" width="' + w.glassW + '" height="120" fill="url(#rg-ocean)"/>' +
-          '<g opacity=".7">' +
-            '<rect x="' + (sunCx - 12) + '" y="320" width="24" height="120" fill="#ffb35a" opacity=".3"/>' +
-            '<rect x="' + (sunCx - 8) + '" y="330" width="16" height="100" fill="#fff8dc" opacity=".25"/>' +
-            '<g class="crt-sparkle">' +
-              '<rect x="' + (sunCx - 22) + '" y="348" width="44" height="2" fill="#fff8dc" opacity=".6"/>' +
-              '<rect x="' + (sunCx - 16) + '" y="368" width="32" height="2" fill="#fff8dc" opacity=".5"/>' +
-              '<rect x="' + (sunCx - 20) + '" y="388" width="40" height="2" fill="#fff8dc" opacity=".55"/>' +
-              '<rect x="' + (sunCx - 12) + '" y="410" width="24" height="2" fill="#fff8dc" opacity=".4"/>' +
-            "</g>" +
-          "</g>" +
-          '<rect x="0" y="440" width="' + w.glassW + '" height="50" fill="#5a3a20"/>' +
-        "</g>" +
-      "</g>" +
-      '<rect x="' + (worldX(w.cx) - 2) + '" y="' + (worldY(w.cy) - w.innerH / 2) + '" width="6" height="' + w.innerH + '" fill="#1a120c"/>' +
-      '<rect x="' + (worldX(w.cx) - w.innerW / 2) + '" y="' + (worldY(w.cy) + 248 - w.innerH / 2) + '" width="' + w.innerW + '" height="6" fill="#1a120c"/>' +
-      rectFromCenter(w.cx, w.cy + 262, w.sillW, 14, 'fill="#3a2418"') +
-      rectFromCenter(w.cx, w.cy + 269, w.sillW, 6, 'fill="#1a100a"') +
-    "</g>"
-  );
-}
-
-/* ── Wall decor: vinyl cubbies + bookshelf ─────────────────── */
-function wallDecor() {
-  let vinylSvg = "";
-  VINYL_WALL.forEach(function (slot, i) {
-    vinylSvg += vinylWallSlot(slot, i);
-  });
-
-  const shelf = WALL_SHELF;
-  const shelfTopY = shelf.cy - shelf.h / 2;
-  let booksSvg = "";
-  BOOKS.forEach(function (book) {
-    booksSvg += bookSpine(book, shelfTopY);
-  });
-
-  return (
-    '<g class="crt-room-decor">' +
-      vinylSvg +
-      rectFromCenter(shelf.cx, shelf.cy, shelf.w, shelf.h, 'fill="#3a2418"') +
-      rectFromCenter(shelf.cx, shelf.cy + 12, shelf.w, 4, 'fill="#1a100a"') +
-      rectFromCenter(shelf.cx, shelf.cy - 2, shelf.w, 3, 'fill="#5a3a20"') +
-      booksSvg +
-    "</g>"
-  );
-}
-
-/** Wall cubby with a square record sleeve (cover via VINYL_WALL[].imageHref). */
-function vinylWallSlot(slot, index) {
-  const cover = slot.size;
-  const pad = 8;
-  const lipH = 10;
-  const frameW = cover + pad * 2;
-  const frameH = cover + pad * 2 + lipH;
-  const px = worldX(slot.cx) - frameW / 2;
-  const py = worldY(slot.cy) - frameH / 2;
-  const coverX = pad;
-  const coverY = pad;
-  const lipY = coverY + cover;
-  const href = slot.imageHref ? String(slot.imageHref).trim() : "";
-  const clipId = "crt-vinyl-clip-" + index;
-
-  let sleeveSvg =
-    '<rect class="crt-vinyl-art-slot" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" fill="none" stroke="none"/>';
-  if (href) {
-    sleeveSvg =
-      '<defs><clipPath id="' + clipId + '"><rect x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" rx="1"/></clipPath></defs>' +
-      '<image class="crt-vinyl-cover" href="' + escapeSvgAttr(href) + '" x="' + coverX + '" y="' + coverY + '" width="' + cover + '" height="' + cover + '" preserveAspectRatio="xMidYMid slice" clip-path="url(#' + clipId + ')"/>';
-  }
-
-  return (
-    '<g class="crt-vinyl-slot" data-vinyl-idx="' + index + '" transform="translate(' + px + "," + py + ')">' +
-      '<rect x="2" y="3" width="' + frameW + '" height="' + frameH + '" fill="#000" opacity=".35" rx="2"/>' +
-      '<rect x="0" y="0" width="' + frameW + '" height="' + frameH + '" fill="#2a1810" rx="2"/>' +
-      '<rect x="4" y="4" width="' + (frameW - 8) + '" height="' + (frameH - 8) + '" fill="#3a2418" rx="1"/>' +
-      '<g class="crt-vinyl-sleeve">' +
-      sleeveSvg +
-      "</g>" +
-      '<rect x="' + (pad - 1) + '" y="' + lipY + '" width="' + (cover + 2) + '" height="6" fill="#4a3020" rx=".5"/>' +
-      '<rect x="' + coverX + '" y="' + (lipY + 6) + '" width="' + cover + '" height="4" fill="#120a06" opacity=".7" rx=".5"/>' +
-    "</g>"
-  );
-}
-
-/** Spine label font size from binding width (not shortened for long titles). */
-function spineFontSize(spineW) {
-  return Math.min(11, Math.max(8, spineW * 0.42));
-}
-
-/** Approximate horizontal text width before −90° rotation (≈ length along the spine). */
-function spineTextWidth(str, fontSize) {
-  return String(str).length * (fontSize * 0.62 + 0.35);
-}
-
-/** Break a title into lines that fit along the spine height; split long words if needed. */
-function wrapSpineTitle(title, spineH, fontSize) {
-  const maxLinePx = Math.max(fontSize * 2, spineH - 8);
-  const words = title.split(/\s+/).filter(Boolean);
-  const lines = [];
-  let current = "";
-
-  function pushLine(line) {
-    if (line) lines.push(line);
-  }
-
-  function pushWord(word) {
-    if (spineTextWidth(word, fontSize) <= maxLinePx) {
-      pushLine(word);
-      return;
+/** Shrink each spine title (binary search) until the whole title fits its spine. */
+function fitBookLabels() {
+  document.querySelectorAll(".crt-book-label > span").forEach((span) => {
+    const box = span.parentElement;
+    const fits = () => span.scrollWidth <= box.clientWidth + 0.5 && span.scrollHeight <= box.clientHeight + 0.5;
+    span.style.fontSize = LABEL_MAX_EM + "em";
+    if (fits()) return;
+    let lo = LABEL_MIN_EM, hi = LABEL_MAX_EM;
+    for (let k = 0; k < 8; k++) {
+      const mid = (lo + hi) / 2;
+      span.style.fontSize = mid + "em";
+      if (fits()) lo = mid; else hi = mid;
     }
-    let chunk = "";
-    for (let i = 0; i < word.length; i += 1) {
-      const next = chunk + word[i];
-      if (spineTextWidth(next, fontSize) <= maxLinePx) {
-        chunk = next;
-      } else {
-        pushLine(chunk);
-        chunk = word[i];
-      }
+    span.style.fontSize = lo + "em";
+  });
+}
+
+/** Start drawing the room. Animation pauses while the room is hidden after fly-in. */
+export function initCrtRoom() {
+  const canvas = document.getElementById("crt-room-canvas");
+  if (!canvas || ctx) return;
+  ctx = canvas.getContext("2d", { willReadFrequently: true });
+  drawStatic();
+  renderFrame(0, 0);
+  // Fit after the pixel font loads; refit on resize since pixel rounding changes with scale.
+  document.fonts.ready.then(fitBookLabels);
+  window.addEventListener("resize", fitBookLabels, { passive: true });
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const experience = document.getElementById("eng-stack-experience");
+  let last = 0, acc = 0;
+  function frame(now) {
+    const t = now / 1000, dt = Math.min(0.1, t - last);
+    last = t; acc += dt;
+    if (acc >= 1 / FPS && experience?.getAttribute("data-room") !== "off") {
+      acc = 0;
+      renderFrame(t, 1 / FPS);
     }
-    pushLine(chunk);
+    requestAnimationFrame(frame);
   }
-
-  words.forEach(function (word) {
-    const test = current ? current + " " + word : word;
-    if (spineTextWidth(test, fontSize) <= maxLinePx) {
-      current = test;
-    } else {
-      if (current) pushLine(current);
-      current = "";
-      if (spineTextWidth(word, fontSize) <= maxLinePx) {
-        current = word;
-      } else {
-        pushWord(word);
-      }
-    }
-  });
-  if (current) pushLine(current);
-  return lines;
-}
-
-/** SVG for spine title: wraps along the spine and stacks extra lines in columns. */
-function spineLabelSvg(x, spineTopY, spineW, spineH, title) {
-  const fontSize = spineFontSize(spineW);
-  const lines = wrapSpineTitle(title, spineH, fontSize);
-  if (lines.length === 0) return "";
-
-  const colStep = fontSize + 3;
-  const maxCols = Math.max(
-    1,
-    Math.min(lines.length, Math.floor((spineW - 2) / colStep))
-  );
-  const cols = [];
-  let c = 0;
-  for (let i = 0; i < maxCols; i += 1) cols.push([]);
-  lines.forEach(function (line) {
-    cols[c].push(line);
-    c = (c + 1) % maxCols;
-  });
-
-  const lineGap = 2;
-  const spineBottom = spineTopY + spineH;
-  const pad = 4;
-  let out = "";
-
-  for (let col = 0; col < maxCols; col += 1) {
-    const colLines = cols[col];
-    if (colLines.length === 0) continue;
-    const xCol =
-      x - ((maxCols - 1) * colStep) / 2 + col * colStep;
-    let cursor = spineBottom - pad;
-    colLines.forEach(function (line) {
-      const lw = spineTextWidth(line, fontSize);
-      const lineY = cursor - lw / 2;
-      cursor -= lw + lineGap;
-      out +=
-        '<text x="' + xCol + '" y="' + lineY + '" transform="rotate(-90 ' + xCol + " " + lineY + ')" text-anchor="middle" font-family="DM Mono, monospace" font-size="' + fontSize + '" fill="rgba(255,255,255,.88)" letter-spacing=".35">' +
-        escapeSvgText(line) +
-        "</text>";
-    });
-  }
-  return out;
-}
-
-/** Upright book with spine toward the viewer; optional spine title. */
-function bookSpine(book, shelfTopY) {
-  const x = worldX(book.x);
-  const w = book.spineW;
-  const h = book.h;
-  const y = worldY(shelfTopY) - h;
-  const title = book.title != null ? String(book.title).trim() : "";
-  const labelSvg = title ? spineLabelSvg(x, y, w, h, title) : "";
-  return (
-    '<g class="crt-book">' +
-      '<rect x="' + (x - w / 2) + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + book.color + '" rx=".5"/>' +
-      '<rect x="' + (x - w / 2 + 1) + '" y="' + y + '" width="1.5" height="' + h + '" fill="rgba(255,255,255,.14)"/>' +
-      '<rect x="' + (x - w / 2) + '" y="' + (y - 2) + '" width="' + w + '" height="2" fill="#e6dcc8" rx=".3"/>' +
-      labelSvg +
-    "</g>"
-  );
-}
-
-/* ── Desk surface ─────────────────────────────────────────── */
-function desk() {
-  return (
-    '<g>' +
-      // Desk surface (extends across full width)
-      '<rect x="0" y="780" width="1920" height="300" fill="url(#rg-desk)"/>' +
-      // Back edge of desk — slight shadow where wall meets the desk surface
-      '<rect x="0" y="780" width="1920" height="6" fill="#1a0c06" opacity=".7"/>' +
-      // Long ambient cast shadow under the wall (depth cue)
-      '<rect x="0" y="786" width="1920" height="14" fill="#1a0c06" opacity=".35"/>' +
-      // Wood grain lines on the desk top
-      '<g stroke="#3a1f0e" stroke-width="1" opacity=".35">' +
-        '<line x1="0" y1="820" x2="1920" y2="822"/>' +
-        '<line x1="0" y1="880" x2="1920" y2="876"/>' +
-        '<line x1="0" y1="940" x2="1920" y2="945"/>' +
-        '<line x1="0" y1="990" x2="1920" y2="995"/>' +
-      '</g>' +
-      // Visible front edge of the desk top (thin highlight + dark stripe to
-      // suggest the tabletop\'s thickness — without it the desk reads as floor).
-      '<rect x="0" y="1010" width="1920" height="2"  fill="#7a4524" opacity=".7"/>' +
-      '<rect x="0" y="1012" width="1920" height="14" fill="#1a0c06"/>' +
-      // Below the desk — darker "floor / under-desk" zone
-      '<rect x="0" y="1026" width="1920" height="54" fill="#0c0604"/>' +
-      ellipseAt(DESK.glowCx, DESK.glowCy, DESK.glowRx, DESK.glowRy, 'fill="url(#rg-desk-glow)"') +
-    '</g>'
-  );
-}
-
-/* ── Contact shadows under every object that sits on the desk ─
-   Drawn AFTER the desk so they sit on the surface, and BEFORE
-   the items so the items render on top of their own shadows.
-   ───────────────────────────────────────────────────────── */
-function itemShadows() {
-  let shadows = '<g class="crt-shadows" opacity=".7">';
-  buildItemShadows().forEach(function (s) {
-    shadows += ellipseAt(s.cx, s.cy, s.rx, s.ry, 'fill="#000" opacity=".5"');
-  });
-  shadows += "</g>";
-  return shadows;
-}
-
-/* ── Speaker (left of monitor) + plant on top ────────────── */
-function speaker() {
-  return gAtCenterTopLeft(SPEAKER.cx, SPEAKER.cy, SPEAKER.w, SPEAKER.h, "crt-room-decor",
-      // Plant pot (sitting on top of the speaker — speaker top is at local y=0,
-      // pot is 60 tall so we translate up by -60 to seat it on the speaker).
-      '<g transform="translate(-12, -60)">' +
-        // Pot
-        '<path d="M0 0 L8 60 H68 L76 0 Z" fill="#7a3a1a"/>' +
-        '<rect x="-4" y="-8" width="84" height="14" fill="#9c4a24" rx="2"/>' +
-        // Leaves (fans of long leaves)
-        '<g class="crt-leaves" fill="#3a6a3a">' +
-          '<path d="M38 0 Q10 -40 6 -90 Q22 -56 38 0 Z"/>' +
-          '<path d="M38 0 Q24 -60 38 -110 Q52 -60 38 0 Z" fill="#4a7a4a"/>' +
-          '<path d="M38 0 Q66 -40 70 -90 Q54 -56 38 0 Z"/>' +
-          '<path d="M38 0 Q12 -22 -4 -56 Q14 -26 38 0 Z" fill="#2a5a2a"/>' +
-          '<path d="M38 0 Q64 -22 80 -56 Q62 -26 38 0 Z" fill="#2a5a2a"/>' +
-        '</g>' +
-      '</g>' +
-      // Speaker body (3D-ish with subtle shading)
-      '<rect x="0" y="0" width="' + SPEAKER.w + '" height="' + SPEAKER.h + '" fill="#1a120c" rx="3"/>' +
-      '<rect x="2" y="2" width="' + (SPEAKER.w - 4) + '" height="' + (SPEAKER.h - 4) + '" fill="#241812" rx="2"/>' +
-      '<circle cx="' + (SPEAKER.w / 2) + '" cy="50" r="22" fill="#0a0604"/>' +
-      '<circle cx="' + (SPEAKER.w / 2) + '" cy="50" r="18" fill="none" stroke="#3a2418" stroke-width="1"/>' +
-      '<circle cx="' + (SPEAKER.w / 2) + '" cy="50" r="6" fill="#3a2418"/>' +
-      '<circle cx="' + (SPEAKER.w / 2) + '" cy="160" r="50" fill="#0a0604"/>' +
-      '<circle cx="' + (SPEAKER.w / 2) + '" cy="160" r="42" fill="none" stroke="#3a2418" stroke-width="1"/>' +
-      '<circle cx="' + (SPEAKER.w / 2) + '" cy="160" r="14" fill="#3a2418"/>' +
-      // LED level meter — bars sit inside a small dark display housing so
-      // they read as a screen mounted on the speaker, not floating shapes.
-      '<g transform="translate(110, 100)">' +
-        // Display housing (outer + inner glass)
-        '<rect x="0"  y="-25"  width="52" height="36" rx="3" fill="#050302" stroke="#3a2418" stroke-width="1"/>' +
-        '<rect x="3"  y="-22"  width="46" height="30" rx="2" fill="#0d0805"/>' +
-        // METER label above bars
-        '<text x="26" y="-29" text-anchor="middle" font-family="DM Mono, monospace" font-size="6" fill="#5a3a20" letter-spacing="1.5">VU</text>' +
-        // The bars themselves, anchored to the bottom of the inner glass
-        '<g class="crt-eq" transform="translate(10, 8)">' +
-          '<rect class="crt-eq-bar crt-eq-bar--1" x="0"  y="-25" width="6" height="24" fill="#5dcaa5"/>' +
-          '<rect class="crt-eq-bar crt-eq-bar--2" x="9"  y="-25" width="6" height="24" fill="#d49a3a"/>' +
-          '<rect class="crt-eq-bar crt-eq-bar--3" x="18" y="-25" width="6" height="24" fill="#5dcaa5"/>' +
-          '<rect class="crt-eq-bar crt-eq-bar--4" x="27" y="-25" width="6" height="24" fill="#d49a3a"/>' +
-        '</g>' +
-      '</g>' +
-      // Brand text
-      '<text x="20" y="232" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="2">HAN INC.</text>'
-  );
-}
-
-/* ── Lamp ──────────────────────────────────────────────────── */
-function lampGlow() {
-  return (
-    '<g class="crt-lamp-glow">' +
-      ellipseAt(LAMP.poolCx, LAMP.poolCy, LAMP.poolRx, LAMP.poolRy, 'fill="url(#rg-lamp)"') +
-      '<ellipse class="crt-bulb-glow" cx="' +
-      worldX(LAMP.bulbCx) +
-      '" cy="' +
-      worldY(LAMP.bulbCy) +
-      '" rx="' +
-      LAMP.bulbRx +
-      '" ry="' +
-      LAMP.bulbRy +
-      '" fill="url(#rg-lamp)" opacity=".85"/>' +
-    "</g>"
-  );
-}
-
-function lampChrome() {
-  return gAtCenter(LAMP.baseCx, LAMP.baseCy, "crt-room-decor",
-      // Soft contact shadow on the desk beneath the base
-      '<ellipse cx="0" cy="5" rx="62" ry="15" fill="#000" opacity=".4"/>' +
-      // Round weighted base (back rim slightly lighter for a 3D feel)
-      '<ellipse cx="0" cy="0"  rx="55" ry="14" fill="#1a120c"/>' +
-      '<ellipse cx="0" cy="-3" rx="50" ry="11" fill="#2a1f17"/>' +
-      '<ellipse cx="0" cy="-6" rx="42" ry="7"  fill="#3a2a1f"/>' +
-      // Pivot ball on top of the base where the stem attaches
-      '<circle cx="0" cy="-12" r="8" fill="#1a120c"/>' +
-      // Stem riser — rises FROM the pivot ball UP TO the arm start at y=-46
-      '<rect x="-4" y="-46" width="8" height="38" fill="#1a120c"/>' +
-      // Stem highlight (subtle 3D cylinder feel)
-      '<rect x="-1" y="-46" width="2" height="38" fill="#3a2a1f" opacity=".55"/>' +
-      // Top knuckle joint where the stem meets the arm
-      '<circle cx="0" cy="-46" r="7" fill="#2a1f17"/>' +
-      // Articulated arm: starts AT the top knuckle, rises up-and-left
-      '<line x1="0"   y1="-46"  x2="-50"  y2="-180" stroke="#1a120c" stroke-width="8" stroke-linecap="round"/>' +
-      '<line x1="-50" y1="-180" x2="-110" y2="-310" stroke="#1a120c" stroke-width="8" stroke-linecap="round"/>' +
-      // Elbow joint
-      '<circle cx="-50" cy="-180" r="9" fill="#2a1f17"/>' +
-      // Lampshade (cone, tilted down-and-left toward the desk pool)
-      '<g transform="translate(-110, -310) rotate(35)">' +
-        '<path d="M-44 -8 L44 -8 L60 60 L-60 60 Z" fill="#7a3a1a"/>' +
-        '<path d="M-44 -8 L44 -8 L42 0 L-42 0 Z" fill="#5a2812"/>' +
-        // Bulb glow strip seen from below the shade
-        '<rect x="-55" y="58" width="110" height="5" fill="#fff6c8" opacity=".9"/>' +
-      "</g>"
-  );
-}
-
-/* ── Computer tower (far right on desk) ───────────────────── */
-function tower() {
-  const tw = TOWER.w;
-  const th = TOWER.h;
-  return gAtCenterTopLeft(TOWER.cx, TOWER.cy, tw, th, "crt-room-decor",
-      '<rect x="0" y="0" width="' + tw + '" height="' + th + '" fill="url(#rg-beige)" rx="3"/>' +
-      '<rect x="0" y="0" width="2" height="' + th + '" fill="#fff" opacity=".25"/>' +
-      '<rect x="' + (tw - 2) + '" y="0" width="2" height="' + th + '" fill="#000" opacity=".15"/>' +
-      // 5.25" drive bay
-      '<rect x="20" y="22" width="120" height="18" fill="#0c0805" rx="1"/>' +
-      '<rect x="24" y="26" width="100" height="10" fill="#1a120c"/>' +
-      // 3.5" floppy bay
-      '<rect x="20" y="50" width="120" height="14" fill="#0c0805" rx="1"/>' +
-      '<rect x="24" y="54" width="80" height="6" fill="#1a120c"/>' +
-      // Drive LED (blinking)
-      '<circle class="crt-led" cx="138" cy="57" r="3" fill="#d49a3a"/>' +
-      // Vent grilles
-      '<g fill="#3a2418" opacity=".7">' +
-        '<rect x="20" y="80" width="120" height="2"/>' +
-        '<rect x="20" y="86" width="120" height="2"/>' +
-        '<rect x="20" y="92" width="120" height="2"/>' +
-        '<rect x="20" y="98" width="120" height="2"/>' +
-      '</g>' +
-      // Stylized brand label
-      '<rect x="20" y="120" width="120" height="20" fill="none" stroke="#3a2418" stroke-width=".8"/>' +
-      '<text x="80" y="134" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" fill="#3a2418" letter-spacing="3">Han-Reeves</text>' +
-      // Power button
-      '<circle cx="' + (tw - 30) + '" cy="' + (th - 30) + '" r="10" fill="#3a2418"/>' +
-      '<circle cx="' + (tw - 30) + '" cy="' + (th - 30) + '" r="7" fill="url(#rg-beige)"/>' +
-      '<circle class="crt-led" cx="30" cy="' + (th - 30) + '" r="3.5" fill="#8be07f" opacity=".9"/>' +
-      '<text x="42" y="' + (th - 27) + '" font-family="DM Mono, monospace" font-size="8" fill="#3a2418">PWR</text>'
-  );
-}
-
-/* ── Monitor frame around the screen (all geometry from MONITOR center) ─ */
-function monitorFrame() {
-  const m = MONITOR;
-  const mx = worldX(m.cx);
-  const my = worldY(m.cy);
-  const bezelBottom = my + m.bezelOuterH / 2;
-  return (
-    '<g class="crt-monitor-decor">' +
-      '<path d="M' +
-      (mx - 100) +
-      " " +
-      bezelBottom +
-      " L" +
-      (mx + 100) +
-      " " +
-      bezelBottom +
-      " L" +
-      (mx + 120) +
-      " " +
-      (bezelBottom + 38) +
-      " L" +
-      (mx - 120) +
-      " " +
-      (bezelBottom + 38) +
-      ' Z" fill="#a48553"/>' +
-      '<rect x="' +
-      (mx - m.screenW / 2) +
-      '" y="' +
-      (bezelBottom + 38) +
-      '" width="' +
-      m.screenW +
-      '" height="14" fill="#7a5e2e" rx="3"/>' +
-      '<rect x="' +
-      (mx - m.screenW / 2 + 4) +
-      '" y="' +
-      (bezelBottom + 50) +
-      '" width="' +
-      (m.screenW - 8) +
-      '" height="6" fill="#3a2812"/>' +
-      '<rect x="' +
-      (mx - m.standNeckW / 2) +
-      '" y="' +
-      (bezelBottom - 15) +
-      '" width="' +
-      m.standNeckW +
-      '" height="' +
-      m.standNeckH +
-      '" fill="#c2a474"/>' +
-      rectFromCenter(m.cx, m.cy, m.bezelOuterW, m.bezelOuterH, 'fill="url(#rg-beige)" rx="22"') +
-      rectFromCenter(m.cx, m.cy, m.bezelInnerW, m.bezelInnerH, 'fill="#1a120c" rx="14"') +
-      '<rect x="' +
-      (mx - m.bezelOuterW / 2 + 6) +
-      '" y="' +
-      (my - m.bezelOuterH / 2 + 6) +
-      '" width="' +
-      (m.bezelOuterW - 12) +
-      '" height="4" fill="#fff" opacity=".3" rx="2"/>' +
-      '<text x="' +
-      mx +
-      '" y="' +
-      (bezelBottom - 6) +
-      '" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" fill="#5a3a20" letter-spacing="3">ADell</text>' +
-      '<circle class="crt-led" cx="' +
-      (mx + m.bezelOuterW / 2 - 54) +
-      '" cy="' +
-      (bezelBottom - 10) +
-      '" r="3" fill="#8be07f"/>' +
-    "</g>"
-  );
-}
-
-/* ── Keyboard + mouse ─────────────────────────────────────── */
-function peripherals() {
-  const k = KEYBOARD;
-  const towerPlugX = worldX(TOWER.cx) - TOWER.w / 2 - worldX(MOUSE.cx);
-  const towerPlugY = worldY(DESK.surfaceY + 20) - worldY(MOUSE.cy);
-  const keyboardInner =
-    '<rect x="0" y="0" width="' +
-    k.w +
-    '" height="' +
-    k.h +
-    '" fill="url(#rg-beige)" rx="6"/>' +
-    '<rect x="0" y="0" width="' +
-    k.w +
-    '" height="3" fill="#fff" opacity=".25" rx="2"/>' +
-    keyboardKeys();
-  const mouseInner =
-    '<ellipse cx="0" cy="0" rx="38" ry="26" fill="url(#rg-beige)"/>' +
-    '<line x1="0" y1="-22" x2="0" y2="0" stroke="#a48553" stroke-width=".8" opacity=".55"/>' +
-    '<rect x="-3" y="-30" width="6" height="8" rx="1" fill="#3a2418"/>' +
-    '<path d="M0 -30 Q70 -55 150 -60 Q210 -65 ' +
-    towerPlugX +
-    " " +
-    towerPlugY +
-    '" stroke="#3a2418" stroke-width="2" fill="none" stroke-linecap="round"/>';
-  return (
-    '<g class="crt-room-decor">' +
-    gAtCenterTopLeft(k.cx, k.cy, k.w, k.h, "crt-room-decor", keyboardInner) +
-    gAtCenter(MOUSE.cx, MOUSE.cy, "crt-room-decor", mouseInner) +
-    "</g>"
-  );
-}
-
-function keyboardKeys() {
-  // 4 rows of small keys
-  let out = '';
-  const rows = [
-    { y: 16, count: 14 },
-    { y: 42, count: 14 },
-    { y: 68, count: 13 },
-    { y: 94, count: 9, offsetX: 50, wideEnds: true },
-  ];
-  rows.forEach((r) => {
-    const startX = (r.offsetX || 8);
-    const keyW = 30;
-    const gap = 4;
-    for (let i = 0; i < r.count; i++) {
-      const x = startX + i * (keyW + gap);
-      out += '<rect x="' + x + '" y="' + r.y + '" width="' + keyW + '" height="20" fill="#3a2418" rx="2" opacity=".7"/>';
-      out += '<rect x="' + (x + 1) + '" y="' + (r.y + 1) + '" width="' + (keyW - 2) + '" height="6" fill="#fff" opacity=".08" rx="1"/>';
-    }
-  });
-  // Space bar
-  out += '<rect x="170" y="94" width="200" height="20" fill="#3a2418" rx="2" opacity=".7"/>';
-  out += '<rect x="171" y="95" width="198" height="6" fill="#fff" opacity=".08" rx="1"/>';
-  return out;
-}
-
-/* ── Cat (sleeping, curled on desk) ───────────────────────── */
-function cat() {
-  const c = CAT;
-  const tx = worldX(c.cx) - c.nativeAnchorX * c.scale;
-  const ty = worldY(c.cy) - c.nativeAnchorY * c.scale;
-  return (
-    '<g class="crt-cat-wrap" transform="translate(' + tx + "," + ty + ") scale(" + c.scale + ')">' +
-      '<g class="sc-breathe">' +
-        // ── TAIL: dark seal-point, curled around the back ──
-        '<path d="M 580 340 C 640 320, 660 290, 630 260 C 600 235, 550 240, 520 270 C 495 295, 490 320, 510 340 Z" fill="#5a3a26"/>' +
-        '<path d="M 580 340 C 640 320, 660 290, 630 260 C 600 235, 550 240, 520 270" fill="none" stroke="#3a2418" stroke-width="2" opacity="0.5"/>' +
-        '<ellipse cx="625" cy="262" rx="22" ry="14" fill="#3a2418" transform="rotate(-25 625 262)"/>' +
-
-        // ── MAIN BODY: large curled-up oval ("loaf-curl" silhouette) ──
-        '<path d="M 220 360 C 200 290, 240 230, 320 215 C 410 200, 510 215, 580 250 C 640 280, 650 340, 620 380 C 580 410, 480 410, 380 405 C 290 400, 235 395, 220 360 Z" fill="url(#sc-bodyGrad)"/>' +
-
-        // ── SADDLE: brown back across the spine ──
-        '<path d="M 280 240 C 360 215, 470 218, 555 250 C 600 270, 615 310, 595 350 C 555 375, 470 380, 380 372 C 320 365, 285 340, 280 300 Z" fill="url(#sc-saddleGrad)"/>' +
-
-        // ── Belly / chest shadow curve ──
-        '<path d="M 240 360 C 280 395, 380 410, 470 405 C 540 400, 595 385, 615 365" fill="none" stroke="#d9c4a3" stroke-width="6" opacity="0.5" stroke-linecap="round"/>' +
-
-        // ── Hind-leg / hip curve hint on the right side ──
-        '<path d="M 560 270 C 615 280, 640 320, 625 365" fill="none" stroke="#5a3a26" stroke-width="3" opacity="0.35" stroke-linecap="round"/>' +
-
-        // ── FRONT PAWS: white, tucked under chin, peeking out at the front ──
-        '<g>' +
-          // Left front paw
-          '<ellipse cx="305" cy="385" rx="42" ry="22" fill="#fdfaf2"/>' +
-          '<ellipse cx="305" cy="385" rx="42" ry="22" fill="#e8e0cf" opacity="0.25"/>' +
-          '<path d="M 285 388 Q 290 395 295 388" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
-          '<path d="M 300 390 Q 305 397 310 390" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
-          '<path d="M 315 388 Q 320 395 325 388" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
-          // Right front paw (slightly behind)
-          '<ellipse cx="358" cy="392" rx="38" ry="20" fill="#fdfaf2"/>' +
-          '<ellipse cx="358" cy="392" rx="38" ry="20" fill="#e8e0cf" opacity="0.2"/>' +
-          '<path d="M 342 395 Q 347 401 352 395" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
-          '<path d="M 356 396 Q 361 402 366 396" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
-          '<path d="M 370 395 Q 375 401 380 395" fill="none" stroke="#e8e0cf" stroke-width="1.2"/>' +
-        '</g>' +
-
-        // ── WHITE CHEST BIB peeking between paws and chin ──
-        '<path d="M 305 370 C 320 360, 360 358, 380 368 C 380 385, 330 388, 305 380 Z" fill="#fdfaf2"/>' +
-
-        // ── HEAD (tucked down, resting on / near paws) ──
-        '<g>' +
-          // Head base shape (cream sides showing under mask)
-          '<ellipse cx="310" cy="335" rx="78" ry="62" fill="url(#sc-bodyGrad)"/>' +
-          // Dark seal-point face mask
-          '<path d="M 250 305 C 250 270, 285 250, 320 250 C 360 250, 385 275, 385 310 C 385 335, 370 350, 345 355 C 320 358, 285 355, 265 345 C 250 335, 245 320, 250 305 Z" fill="url(#sc-maskGrad)"/>' +
-          // White inverted-V blaze down the muzzle
-          '<path d="M 305 320 C 310 330, 318 340, 322 355 C 326 365, 330 372, 332 378 C 328 380, 318 380, 310 378 C 305 372, 300 360, 298 350 C 295 340, 298 328, 305 320 Z" fill="#fdfaf2"/>' +
-          // Chin
-          '<ellipse cx="325" cy="370" rx="28" ry="14" fill="#fdfaf2"/>' +
-          // Left ear (with twitch animation)
-          '<g class="sc-ear-twitch">' +
-            '<path d="M 258 295 L 248 250 L 285 275 Z" fill="#3a2418"/>' +
-            '<path d="M 262 285 L 258 262 L 278 277 Z" fill="#c98a7a" opacity="0.6"/>' +
-          '</g>' +
-          // Right ear
-          '<path d="M 365 290 L 380 248 L 348 270 Z" fill="#3a2418"/>' +
-          '<path d="M 363 282 L 372 258 L 354 272 Z" fill="#c98a7a" opacity="0.6"/>' +
-          // Closed eyes — left
-          '<path d="M 278 318 Q 288 314 298 318" fill="none" stroke="#1a0e08" stroke-width="2" stroke-linecap="round"/>' +
-          '<path d="M 278 318 Q 288 322 298 320" fill="none" stroke="#5a3a26" stroke-width="1" stroke-linecap="round" opacity="0.7"/>' +
-          '<path d="M 297 317 L 302 315" stroke="#1a0e08" stroke-width="1" stroke-linecap="round"/>' +
-          // Closed eyes — right
-          '<path d="M 338 318 Q 348 314 358 318" fill="none" stroke="#1a0e08" stroke-width="2" stroke-linecap="round"/>' +
-          '<path d="M 338 318 Q 348 322 358 320" fill="none" stroke="#5a3a26" stroke-width="1" stroke-linecap="round" opacity="0.7"/>' +
-          '<path d="M 339 317 L 334 315" stroke="#1a0e08" stroke-width="1" stroke-linecap="round"/>' +
-          // Nose (slightly heart-shaped) + highlight
-          '<path d="M 318 348 C 314 348, 312 351, 314 354 C 316 357, 320 358, 322 357 C 326 358, 330 357, 332 354 C 334 351, 332 348, 328 348 C 325 346, 321 346, 318 348 Z" fill="#1a0e08"/>' +
-          '<ellipse cx="320" cy="350" rx="2" ry="1.2" fill="#fff" opacity="0.4"/>' +
-          // Relaxed mouth
-          '<path d="M 323 358 Q 323 366 318 368" fill="none" stroke="#3a1a10" stroke-width="1.2" stroke-linecap="round"/>' +
-          '<path d="M 323 358 Q 323 366 328 368" fill="none" stroke="#3a1a10" stroke-width="1.2" stroke-linecap="round"/>' +
-          // Whiskers
-          '<g class="sc-whisker">' +
-            '<path d="M 295 355 Q 270 358 245 360"/>' +
-            '<path d="M 298 360 Q 270 365 248 370"/>' +
-            '<path d="M 300 365 Q 275 372 255 378"/>' +
-            '<path d="M 345 355 Q 370 357 395 358"/>' +
-            '<path d="M 343 360 Q 370 363 393 367"/>' +
-            '<path d="M 341 365 Q 365 370 385 375"/>' +
-          '</g>' +
-          // Cheek shading
-          '<ellipse cx="285" cy="355" rx="18" ry="8" fill="#e8e0cf" opacity="0.3"/>' +
-          '<ellipse cx="355" cy="355" rx="18" ry="8" fill="#e8e0cf" opacity="0.3"/>' +
-        '</g>' +
-
-        // ── Top-of-back warm rim highlight ──
-        '<path d="M 310 230 C 400 213, 490 215, 555 240" fill="none" stroke="#fbf4e6" stroke-width="6" opacity="0.55" stroke-linecap="round"/>' +
-
-        // ── A few stray fur tufts along the saddle edge ──
-        '<g stroke="#5a3a26" stroke-width="0.8" fill="none" opacity="0.5">' +
-          '<path d="M 350 218 l 2 -6"/>' +
-          '<path d="M 380 215 l 1 -7"/>' +
-          '<path d="M 420 214 l 2 -6"/>' +
-          '<path d="M 470 218 l 1 -7"/>' +
-          '<path d="M 510 225 l 3 -5"/>' +
-        '</g>' +
-      '</g>' + // close .sc-breathe
-    '</g>'   // close .crt-cat-wrap
-  );
-}
-
-/* === OLD STRETCHED-CAT CODE (replaced by SleepingCat above) ===
-   The previous brown stretched-cat implementation has been removed.
-   The block below was the in-progress edit that defined it; it is
-   intentionally left empty so the build still picks up the new cat. */
-function _catLegacyStretched_removed() {
-  // Brown snowshoe cat, stretched out on the desk with head resting on its
-  // extended front paws. Anchor at world (480, 880); cat extends right.
-  //
-  // Body length tightened from ~310 → ~250 wide.
-  // Paw anatomy fleshed out with visible legs, toe separators, toe beans,
-  // and subtle claw hints — both front paws and back paw.
-  //
-  // The TAIL flick uses SMIL <animateTransform> instead of CSS keyframes:
-  // SMIL composes correctly with the parent's CSS scale (the breathing
-  // animation on .crt-cat), so the tail no longer drifts off-axis.
-  return (
-    '<g class="crt-cat-anchor" transform="translate(480, 880)">' +
-    '<g class="crt-cat">' +
-      // ── BACK HAUNCH (drawn first; body overlaps onto it) ──
-      '<ellipse cx="190" cy="-18" rx="32" ry="38" fill="#6a4220"/>' +
-
-      // ── BODY — shorter stretched sausage lying flat on the desk ──
-      '<path d="' +
-        'M 30 22'  +              // belly-front under the head
-        ' Q 0 8 22 -22' +          // shoulder rise
-        ' Q 70 -50 130 -50' +      // back top (flat stretch)
-        ' Q 175 -50 198 -32' +     // up to rear haunch
-        ' Q 218 0 195 22' +        // around the rump to desk
-        ' L 30 22' +
-        ' Z' +
-      '" fill="#6a4220"/>' +
-
-      // Darker saddle along the spine
-      '<path d="' +
-        'M 60 -46' +
-        ' Q 130 -56 195 -40' +
-        ' Q 207 -26 188 -22' +
-        ' Q 130 -22 60 -26' +
-        ' Q 48 -40 60 -46' +
-        ' Z' +
-      '" fill="#4a2a14" opacity=".65"/>' +
-
-      // Cream belly strip visible along the bottom of the body
-      '<ellipse cx="115" cy="20" rx="85" ry="7" fill="#e8d4ac"/>' +
-
-      // ── BACK LEG + PAW (rump area, more defined) ──
-      // Upper back-leg curl visible above the paw
-      '<path d="M 180 -10 Q 195 0 215 12 Q 200 18 175 12 Z" fill="#5a3622"/>' +
-      // Back paw
-      '<ellipse cx="200" cy="22" rx="26" ry="8" fill="#f1e4cc"/>' +
-      // Toe separators on back paw
-      '<g stroke="#9a8870" stroke-width="1.1" opacity=".85">' +
-        '<line x1="183" y1="17" x2="183" y2="28"/>' +
-        '<line x1="192" y1="16" x2="192" y2="28"/>' +
-        '<line x1="201" y1="16" x2="201" y2="28"/>' +
-        '<line x1="210" y1="17" x2="210" y2="28"/>' +
-      '</g>' +
-      // Toe beans on back paw
-      '<g fill="#a8755a" opacity=".75">' +
-        '<ellipse cx="179" cy="25" rx="2.6" ry="1.8"/>' +
-        '<ellipse cx="188" cy="26" rx="2.6" ry="1.8"/>' +
-        '<ellipse cx="197" cy="26" rx="2.6" ry="1.8"/>' +
-        '<ellipse cx="206" cy="26" rx="2.6" ry="1.8"/>' +
-        '<ellipse cx="215" cy="25" rx="2.6" ry="1.8"/>' +
-      '</g>' +
-
-      // ── FRONT LEG (visible coming down from the body to the paws) ──
-      '<path d="M 25 6 Q 8 12 -15 16 L -22 20 Q 5 18 22 14 Z" fill="#5a3622"/>' +
-      // Second front leg shadow (further/behind leg)
-      '<path d="M 30 8 Q 18 14 -2 17 L -8 21 Q 14 19 30 16 Z" fill="#4a2812" opacity=".65"/>' +
-
-      // ── FRONT PAWS extended forward (head sits on these) ──
-      // Far paw (behind, slightly darker)
-      '<ellipse cx="-22" cy="21" rx="32" ry="7" fill="#e0ccac"/>' +
-      // Near paw (in front)
-      '<ellipse cx="-20" cy="24" rx="38" ry="8" fill="#f1e4cc"/>' +
-      // Toe separators on near paw — 5 toes, deeper definition
-      '<g stroke="#9a8870" stroke-width="1.2" opacity=".9">' +
-        '<line x1="-50" y1="19" x2="-50" y2="30"/>' +
-        '<line x1="-40" y1="18" x2="-40" y2="30"/>' +
-        '<line x1="-30" y1="17" x2="-30" y2="30"/>' +
-        '<line x1="-20" y1="17" x2="-20" y2="30"/>' +
-        '<line x1="-10" y1="18" x2="-10" y2="30"/>' +
-      '</g>' +
-      // Toe beans (pads) on near paw
-      '<g fill="#a8755a" opacity=".8">' +
-        '<ellipse cx="-54" cy="27" rx="2.8" ry="1.9"/>' +
-        '<ellipse cx="-45" cy="28" rx="2.8" ry="1.9"/>' +
-        '<ellipse cx="-35" cy="28.5" rx="2.8" ry="1.9"/>' +
-        '<ellipse cx="-25" cy="28.5" rx="2.8" ry="1.9"/>' +
-        '<ellipse cx="-15" cy="28" rx="2.8" ry="1.9"/>' +
-        '<ellipse cx="-5"  cy="27" rx="2.8" ry="1.9"/>' +
-      '</g>' +
-      // Tiny claw hints peeking from the front edge
-      '<g stroke="#3a2418" stroke-width=".9" opacity=".55" stroke-linecap="round">' +
-        '<line x1="-54" y1="30" x2="-56" y2="33"/>' +
-        '<line x1="-45" y1="31" x2="-47" y2="34"/>' +
-        '<line x1="-35" y1="32" x2="-37" y2="35"/>' +
-        '<line x1="-25" y1="32" x2="-27" y2="35"/>' +
-        '<line x1="-15" y1="31" x2="-17" y2="34"/>' +
-      '</g>' +
-
-      // ── HEAD — resting on the front paws ──
-      '<g transform="translate(8, 0)">' +
-        '<ellipse cx="0" cy="6" rx="32" ry="15" fill="#6a4220"/>' +
-        '<path d="M-32 -4 Q-30 -30 0 -34 Q30 -30 32 -4 Q26 12 0 12 Q-26 12 -32 -4 Z" fill="#3a2418"/>' +
-        '<path d="M-22 -10 Q0 -24 22 -10 Q12 -6 0 -6 Q-12 -6 -22 -10 Z" fill="#4a2e1a" opacity=".7"/>' +
-        '<path d="M-28 -18 L-36 -44 L-12 -30 Z" fill="#2a1810"/>' +
-        '<path d="M28 -18 L36 -44 L12 -30 Z" fill="#2a1810"/>' +
-        '<path d="M-26 -22 L-30 -36 L-18 -30 Z" fill="#a8755a"/>' +
-        '<path d="M26 -22 L30 -36 L18 -30 Z" fill="#a8755a"/>' +
-        '<ellipse cx="0" cy="6" rx="15" ry="9" fill="#f1e4cc"/>' +
-        '<path d="M-3.5 3 L3.5 3 L0 8 Z" fill="#2a1408"/>' +
-        '<path class="crt-cat-eye" d="M-16 -4 Q-11 -1 -6 -4" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-        '<path class="crt-cat-eye" d="M6 -4 Q11 -1 16 -4" stroke="#1a0e08" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-        '<path d="M-4 9 Q0 12 4 9" stroke="#1a0e08" stroke-width="1" fill="none" stroke-linecap="round"/>' +
-        '<g stroke="#fff" stroke-width="1" opacity=".9">' +
-          '<line x1="-34" y1="6"  x2="-12" y2="6"/>' +
-          '<line x1="-34" y1="10" x2="-12" y2="9"/>' +
-          '<line x1="34"  y1="6"  x2="12"  y2="6"/>' +
-          '<line x1="34"  y1="10" x2="12"  y2="9"/>' +
-        '</g>' +
-      '</g>' +
-
-      // ── TAIL ── SMIL animateTransform rotates around (0,0) of the
-      //   tail group's local coords, which is the tail base. This avoids
-      //   the CSS-vs-parent-transform mismatch that made the tail fly off.
-      '<g transform="translate(210, -22)">' +
-        '<g class="crt-cat-tail">' +
-          '<animateTransform attributeName="transform" attributeType="XML" type="rotate"' +
-            ' values="0; 0; 0; -7; 4; -2; 0"' +
-            ' keyTimes="0; 0.78; 0.83; 0.88; 0.92; 0.96; 1"' +
-            ' dur="9s" repeatCount="indefinite" />' +
-          '<path d="M0 0 Q45 -25 25 -65 Q5 -100 -50 -85" stroke="#4a2a14" stroke-width="22" fill="none" stroke-linecap="round"/>' +
-          '<circle cx="-50" cy="-85" r="13" fill="#1a0e08"/>' +
-        '</g>' +
-      '</g>' +
-
-      // ── Sleepy "z" glyphs above the head ──
-      '<g class="crt-cat-zzz" font-family="DM Mono, monospace" fill="#d49a3a" opacity=".85">' +
-        '<text class="crt-zzz crt-zzz--1" x="36" y="-66"  font-size="22">z</text>' +
-        '<text class="crt-zzz crt-zzz--2" x="56" y="-86"  font-size="17">z</text>' +
-        '<text class="crt-zzz crt-zzz--3" x="74" y="-104" font-size="13">z</text>' +
-      '</g>' +
-    '</g>' +  // close .crt-cat (animation wrapper)
-    '</g>'   // close .crt-cat-anchor (positional wrapper)
-  );
-}
-
-/* ── Coffee mug with rising steam ─────────────────────────── */
-function mug() {
-  return gAtCenter(
-    MUG.cx,
-    MUG.cy,
-    "crt-room-decor",
-    '<rect x="-26" y="-50" width="52" height="60" fill="#5a3a20" rx="3"/>' +
-      '<rect x="-22" y="-46" width="44" height="6" fill="#3a2418"/>' +
-      '<path d="M26 -36 Q44 -36 44 -20 Q44 -4 26 -4" stroke="#5a3a20" stroke-width="6" fill="none"/>' +
-      '<ellipse cx="0" cy="-46" rx="22" ry="4" fill="#2a1408"/>' +
-      '<g class="crt-steam" fill="none" stroke="#fff" stroke-width="2" opacity=".4" stroke-linecap="round">' +
-      '<path class="crt-steam-curl crt-steam-curl--a" d="M-10 -58 Q-14 -76 -6 -90 Q2 -104 -6 -118"/>' +
-      '<path class="crt-steam-curl crt-steam-curl--b" d="M6 -58 Q10 -78 2 -94 Q-6 -108 4 -124"/>' +
-      "</g>"
-  );
+  requestAnimationFrame(frame);
 }

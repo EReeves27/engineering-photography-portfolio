@@ -1387,10 +1387,12 @@ a.res-dl { color: #0d0d1a; }
   --crt-vb-cx: 960;
   --crt-vb-cy: 540;
   --crt-monitor-cx: 960;
-  --crt-monitor-cy: 600;
-  --crt-screen-w: 340;
-  --crt-screen-h: 250;
+  --crt-monitor-cy: 480;
+  --crt-screen-w: 348;
+  --crt-screen-h: 252;
+  /* JS snaps both so one art pixel = a whole number of screen pixels. */
   --crt-slice-scale: max(calc(100vw / var(--crt-vb-w)), calc(100vh / var(--crt-vb-h)));
+  --crt-art-px: calc(var(--crt-slice-scale) * 6);
 
   position: relative;
   background:
@@ -1430,10 +1432,9 @@ a.res-dl { color: #0d0d1a; }
 }
 
 /* ── CRT room stage ──────────────────────────────────────────
-   The room is a single inline SVG covering the viewport. The
-   interactive screen lives inside a <foreignObject> at the
-   monitor's viewBox coordinates, so scaling the SVG naturally
-   "flies the camera into" the monitor.
+   The room is a 320×180 pixel-art canvas (crt-room.js) centred on
+   the viewport and scaled to cover it, plus HTML layers riding on
+   it. Inside .crt-room-scene, 1em = 1 art pixel.
    ──────────────────────────────────────────────────────────── */
 .crt-room-stage {
   position: absolute;
@@ -1441,30 +1442,96 @@ a.res-dl { color: #0d0d1a; }
   overflow: hidden;
 }
 
-/* Camera fly-in: scale the entire SVG up to 8x as --zoom-progress goes 0→1.
-   transform-origin is the monitor center in viewport space (xMidYMid slice).
-   The whole SVG fades out by zoom≈0.7 so the HTML screen overlay takes over. */
-.crt-room-svg {
+/* Camera fly-in: scale the scene up to 8x as --zoom-progress goes 0→1,
+   around the monitor centre (transform-origin set inline in em).
+   The scene fades out by zoom≈0.7 so the HTML screen overlay takes over. */
+.crt-room-scene {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transform-origin:
-    calc(50vw + (var(--crt-monitor-cx) - var(--crt-vb-cx)) * var(--crt-slice-scale))
-    calc(50vh + (var(--crt-monitor-cy) - var(--crt-vb-cy)) * var(--crt-slice-scale));
+  font-size: var(--crt-art-px);
+  width: 320em;
+  height: 180em;
+  left: calc(50vw - var(--crt-vb-cx) * var(--crt-slice-scale));
+  top: calc(50vh - var(--crt-vb-cy) * var(--crt-slice-scale));
   transform: scale(calc(1 + var(--zoom-progress, 0) * 7));
   opacity: clamp(0, calc(1 - var(--zoom-progress, 0) * 1.4), 1);
   will-change: transform, opacity;
 }
-/* After fly-in completes: drop the invisible animated room from the compositor. */
-.eng-stack-experience[data-room="off"] .crt-room-svg {
+.crt-room-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+/* Book spine titles: box is sized along the spine, then turned to read bottom-to-top. */
+.crt-book-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-family: 'VT323', monospace;
+  color: #f3ead8;
+  text-align: center;
+  line-height: .85;
+}
+/* Font size is set per title by fitBookLabels() (crt-room.js) so the whole title fits. */
+.crt-book-label span {
+  font-size: 2.3em;
+  display: block;
+  overflow-wrap: break-word;
+}
+.crt-book-label--dark { color: #2a1f1a; }
+.crt-book-label--flat { transform: translate(-50%, -50%); }
+.crt-book-label--flat span { white-space: nowrap; }
+.crt-vinyl-slot { position: absolute; }
+/* Live cover, 2× the room's pixel grid, sitting in the frame's 28px opening. */
+.crt-vinyl-cover {
+  position: absolute;
+  left: 5em; top: 5em;
+  width: 28em; height: 28em;
+  image-rendering: pixelated;
+  filter: brightness(.9);
+}
+.crt-vinyl-cover[hidden] { display: none; }
+/* Desk camera → photography portfolio. Pixel label pops above it on hover/focus. */
+.crt-room-stage .crt-camera-hit {
+  position: absolute;
+  font: inherit; /* buttons don't inherit font-size; its em geometry needs 1em = 1 art px */
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+}
+.crt-camera-hit::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 50%; bottom: calc(100% + var(--crt-art-px) * 1.5);
+  transform: translateX(-50%);
+  padding: calc(var(--crt-art-px) * .4) calc(var(--crt-art-px) * 1.6) calc(var(--crt-art-px) * .6);
+  background: #1a1218;
+  border: calc(var(--crt-art-px) * .6) solid #f3e6cf;
+  box-shadow: calc(var(--crt-art-px) * .6) calc(var(--crt-art-px) * .6) 0 #0a0608;
+  font-family: 'VT323', monospace;
+  font-size: calc(var(--crt-art-px) * 3.6);
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: #ffb347;
+  opacity: 0;
+  transition: opacity .12s ease;
+  pointer-events: none;
+}
+.crt-camera-hit:hover::after,
+.crt-camera-hit:focus-visible::after { opacity: 1; }
+/* After fly-in completes: drop the invisible room from the compositor. */
+.eng-stack-experience[data-room="off"] .crt-room-scene {
   visibility: hidden;
   pointer-events: none;
   will-change: auto;
-  animation-play-state: paused;
-}
-.eng-stack-experience[data-room="off"] .crt-room-svg * {
-  animation-play-state: paused !important;
 }
 
 /* ── Zoom screen (HTML overlay on top of the SVG monitor) ────
@@ -1477,14 +1544,8 @@ a.res-dl { color: #0d0d1a; }
   z-index: 5;
   left: calc(50vw + (var(--crt-monitor-cx) - var(--crt-vb-cx)) * var(--crt-slice-scale));
   top: calc(50vh + (var(--crt-monitor-cy) - var(--crt-vb-cy)) * var(--crt-slice-scale));
-  --screen-w0: max(
-    calc(var(--crt-screen-w) * 100vw / var(--crt-vb-w)),
-    calc(var(--crt-screen-w) * 100vh / var(--crt-vb-h))
-  );
-  --screen-h0: max(
-    calc(var(--crt-screen-h) * 100vw / var(--crt-vb-w)),
-    calc(var(--crt-screen-h) * 100vh / var(--crt-vb-h))
-  );
+  --screen-w0: calc(var(--crt-screen-w) * var(--crt-slice-scale));
+  --screen-h0: calc(var(--crt-screen-h) * var(--crt-slice-scale));
   width: calc(var(--screen-w0) + (min(96vw, 1400px) - var(--screen-w0)) * var(--zoom-progress, 0));
   height: calc(var(--screen-h0) + (min(82vh, 880px) - var(--screen-h0)) * var(--zoom-progress, 0));
   transform: translate(-50%, -50%);
@@ -1554,49 +1615,56 @@ a.res-dl { color: #0d0d1a; }
   transform: translateY(0);
 }
 
-/* Boot panel — original phosphor terminal vibe.
+/* Boot panel — pixel phosphor terminal, sized in room art pixels (--crt-art-px)
+   so it reads as part of the pixel-art monitor.
    overflow:hidden so touch/finger scrolls reach the page (into the stack)
    instead of getting trapped in an empty scroll container. */
 .stack-layer-panel[data-layer="boot"] {
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 14px;
+  gap: 0;
+  padding: 0 calc(var(--crt-art-px) * 2);
   overflow: hidden;
 }
 .crt-boot {
-  display: flex; flex-direction: column; gap: 2px;
-  font-family: 'DM Mono', monospace; font-size: 12px;
-  line-height: 1.55;
+  display: flex; flex-direction: column;
+  font-family: 'VT323', monospace; font-size: calc(var(--crt-art-px) * 4.4);
+  line-height: 1.05;
+  color: #8dffa8;
+  text-shadow: 0 0 calc(var(--crt-art-px) * 1.2) rgba(110, 255, 150, .7);
+  animation: crt-flick 3.3s infinite steps(1);
 }
+@keyframes crt-flick { 0%, 100% { filter: none; } 47% { filter: brightness(.88); } 48% { filter: none; } }
 .crt-boot-line { opacity: 0; animation: crt-boot-line .35s ease-out forwards; }
 .crt-boot-line:nth-child(1) { animation-delay: .15s; }
 .crt-boot-line:nth-child(2) { animation-delay: .35s; }
 .crt-boot-line:nth-child(3) { animation-delay: .55s; }
-.crt-boot-line:nth-child(4) { animation-delay: .75s; font-weight: 600; }
+.crt-boot-line:nth-child(4) { animation-delay: .75s; }
 @keyframes crt-boot-line { from { opacity: 0; transform: translateX(-2px); } to { opacity: 1; transform: translateX(0); } }
 .crt-prompt {
-  margin-top: 6px;
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: .18em; text-transform: uppercase;
-  color: var(--crt-amber);
-  text-shadow: 0 0 6px rgba(212, 154, 58, .5);
+  margin-top: calc(var(--crt-art-px) * 2.2);
+  font-family: 'VT323', monospace; font-size: calc(var(--crt-art-px) * 4.4);
+  line-height: 1.05; text-transform: uppercase;
+  color: #ffb347;
+  text-shadow: 0 0 calc(var(--crt-art-px) * 1.2) rgba(255, 170, 60, .7);
   opacity: 0; animation: crt-boot-line .35s ease-out .95s forwards;
 }
 .crt-cursor {
-  display: inline-block; margin-left: 6px;
+  display: inline-block; margin-left: .4em;
   animation: crt-cursor 1s steps(1) infinite;
 }
 @keyframes crt-cursor { 50% { opacity: 0; } }
 .crt-scroll-cue {
-  margin-top: 22px;
-  font-family: 'DM Mono', monospace; font-size: 10.5px;
-  letter-spacing: .18em; text-transform: uppercase;
-  color: rgba(139, 224, 127, .7);
-  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: calc(var(--crt-art-px) * 3);
+  font-family: 'VT323', monospace; font-size: calc(var(--crt-art-px) * 3.4);
+  letter-spacing: .05em; text-transform: uppercase;
+  color: rgba(141, 255, 168, .7);
+  text-shadow: 0 0 calc(var(--crt-art-px)) rgba(110, 255, 150, .5);
+  display: inline-flex; align-items: center; gap: .3em;
   animation: crt-scroll-cue 1.8s ease-in-out infinite;
 }
-.crt-scroll-cue i { font-size: 14px; }
+.crt-scroll-cue i { font-size: 1em; }
 @keyframes crt-scroll-cue {
   0%, 100% { transform: translateY(0); opacity: .7; }
   50% { transform: translateY(3px); opacity: 1; }
@@ -2644,124 +2712,6 @@ a.res-dl { color: #0d0d1a; }
   border-bottom: .5px solid rgba(212, 154, 58, .25);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   CRT ROOM AMBIENT ANIMATIONS — cat, clouds, lamp, equalizer, etc.
-   ══════════════════════════════════════════════════════════════ */
-
-/* Drive LEDs blink at irregular intervals */
-.crt-room-svg .crt-led { animation: crt-led-blink 2.8s ease-in-out infinite; }
-.crt-room-svg .crt-led:nth-of-type(2) { animation-duration: 4.6s; animation-delay: .8s; }
-@keyframes crt-led-blink {
-  0%, 88%, 100% { opacity: .35; }
-  92%, 96%      { opacity: 1; }
-}
-
-/* Sun glow gentle pulse on the horizon */
-.crt-sun-glow { animation: crt-sun-pulse 5s ease-in-out infinite; transform-origin: 340px 430px; transform-box: fill-box; }
-@keyframes crt-sun-pulse {
-  0%, 100% { opacity: .65; transform: scale(1); }
-  50%      { opacity: .9;  transform: scale(1.06); }
-}
-
-/* Sparkles on the water flicker */
-.crt-sparkle rect { animation: crt-sparkle-flicker 1.8s ease-in-out infinite; }
-.crt-sparkle rect:nth-child(2) { animation-delay: .4s; }
-.crt-sparkle rect:nth-child(3) { animation-delay: .8s; }
-.crt-sparkle rect:nth-child(4) { animation-delay: 1.2s; }
-@keyframes crt-sparkle-flicker {
-  0%, 100% { opacity: .3; }
-  50%      { opacity: .9; }
-}
-
-/* Clouds drift slowly across the sky */
-.crt-cloud      { animation: crt-cloud-drift 60s linear infinite; }
-.crt-cloud--a   { animation-duration: 75s; animation-delay: -10s; }
-.crt-cloud--b   { animation-duration: 95s; animation-delay: -40s; }
-.crt-cloud--c   { animation-duration: 55s; animation-delay: -25s; }
-@keyframes crt-cloud-drift {
-  0%   { transform: translateX(-220px); }
-  100% { transform: translateX(380px); }
-}
-
-/* Plant leaves sway gently */
-.crt-leaves { animation: crt-leaves-sway 6s ease-in-out infinite; transform-origin: 38px 0; transform-box: fill-box; }
-@keyframes crt-leaves-sway {
-  0%, 100% { transform: rotate(-1.2deg); }
-  50%      { transform: rotate(1.4deg); }
-}
-
-/* Lamp glow pulses softly — origin sits at the centre of the desk pool. */
-.crt-lamp-glow {
-  animation: crt-lamp-pulse 3.6s ease-in-out infinite;
-  transform-origin: 1050px 880px;
-  transform-box: view-box;
-}
-@keyframes crt-lamp-pulse {
-  0%, 100% { opacity: .85; transform: scale(1); }
-  50%      { opacity: 1;   transform: scale(1.04); }
-}
-
-/* Speaker equalizer bars dance */
-.crt-eq-bar {
-  transform-origin: bottom;
-  transform-box: fill-box;
-  animation: crt-eq-bounce 0.7s ease-in-out infinite;
-}
-.crt-eq-bar--1 { animation-duration: .55s; }
-.crt-eq-bar--2 { animation-duration: .70s; animation-delay: .12s; }
-.crt-eq-bar--3 { animation-duration: .85s; animation-delay: .25s; }
-.crt-eq-bar--4 { animation-duration: .65s; animation-delay: .18s; }
-@keyframes crt-eq-bounce {
-  0%, 100% { transform: scaleY(0.3); }
-  50%      { transform: scaleY(1.0); }
-}
-
-/* ── SleepingCat animations ──────────────────────────────────
-   The cat illustration lives inside <g.crt-cat-wrap> which applies
-   `transform="translate(417, 710) scale(0.45)"`. The cat's NATIVE
-   body-centre (400, 340) therefore ends up at viewport (597, 863);
-   the left-ear pivot (322, 282) ends up at viewport (562, 837).
-   Transform-origins below are pinned to those viewport coords so
-   the animations pivot from the right point. */
-.sc-breathe {
-  transform-origin: 597px 863px;
-  animation: sc-breathe 4.2s ease-in-out infinite;
-}
-@keyframes sc-breathe {
-  0%, 100% { transform: scale(1, 1); }
-  50%      { transform: scale(1.012, 1.018); }
-}
-.sc-ear-twitch {
-  transform-origin: 562px 837px;
-  animation: sc-ear 7s ease-in-out infinite;
-}
-@keyframes sc-ear {
-  0%, 92%, 100% { transform: rotate(0deg); }
-  94%           { transform: rotate(-6deg); }
-  96%           { transform: rotate(2deg); }
-  98%           { transform: rotate(-3deg); }
-}
-.sc-whisker {
-  stroke: #fbf4e6;
-  stroke-width: 1.1;
-  fill: none;
-  stroke-linecap: round;
-  opacity: 0.85;
-}
-
-/* Mug steam curls upward */
-.crt-steam-curl {
-  stroke-dasharray: 60 80;
-  animation: crt-steam-rise 3.5s ease-out infinite;
-}
-.crt-steam-curl--a { animation-delay: 0s; }
-.crt-steam-curl--b { animation-delay: 1.6s; }
-@keyframes crt-steam-rise {
-  0%   { opacity: 0; stroke-dashoffset: 80; transform: translateY(0); }
-  20%  { opacity: .55; }
-  100% { opacity: 0; stroke-dashoffset: -60; transform: translateY(-10px); }
-}
-
 /* The room stage as a whole is non-interactive (clicks go to the screen overlay) */
 .crt-room-stage { pointer-events: none; }
 .crt-room-stage * { pointer-events: none; }
@@ -2778,11 +2728,10 @@ a.res-dl { color: #0d0d1a; }
   position: absolute;
   z-index: 50;
   max-width: 220px;
-  padding: 8px 12px;
-  background: rgba(7, 7, 13, .92);
-  border: .5px solid rgba(212, 154, 58, .35);
-  border-radius: 8px;
-  backdrop-filter: blur(8px);
+  padding: 5px 12px 6px;
+  background: #1a1218;
+  border: 3px solid #f3e6cf;
+  box-shadow: 3px 3px 0 #0a0608;
   text-align: center;
   pointer-events: none;
   opacity: 0;
@@ -2794,21 +2743,19 @@ a.res-dl { color: #0d0d1a; }
 .crt-vinyl-tooltip:not([hidden]) { opacity: 1; }
 .crt-vinyl-tooltip-title {
   display: block;
-  font-family: 'Syne', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #d9e6d2;
-  line-height: 1.35;
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  color: #f3e6cf;
+  line-height: 1.05;
   transition: opacity .35s ease;
 }
 .crt-vinyl-tooltip-artist {
   display: block;
   margin-top: 2px;
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  letter-spacing: .04em;
-  color: #9a8878;
-  line-height: 1.35;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: #ffb347;
+  line-height: 1.05;
   transition: opacity .35s ease;
 }
 /* Touch: box visible immediately; name/artist fade in after JS delay */

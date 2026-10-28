@@ -5,7 +5,7 @@ import {
   ENG_BIOGRAPHY,
   ENG_RESUME,
 } from "./config.js";
-import { applyCrtRoomLayoutVars, crtRoomSceneSvg } from "./crt-room.js";
+import { applyCrtRoomLayoutVars, crtRoomSceneHtml, initCrtRoom } from "./crt-room.js";
 import { assetUrl } from "../asset-url.js";
 
 function escapeHtml(s) {
@@ -368,9 +368,9 @@ function stackProgressHtml() {
 
 function buildEngHomeInnerHtml() {
   // The boot panel + all 6 layer panels render into an HTML overlay
-  // (.crt-zoom-screen) that sits on top of the SVG room. The overlay
-  // is sized to overlap the SVG monitor at zoom=0 and grows to fill
-  // the viewport as the camera flies in.
+  // (.crt-zoom-screen) that sits on top of the pixel room. The overlay
+  // is sized to overlap the drawn monitor screen at zoom=0 and grows to
+  // fill the viewport as the camera flies in.
   var layerPanels = ENG_STACK.layers.map(layerPanelHtml).join("");
 
   return (
@@ -378,7 +378,7 @@ function buildEngHomeInnerHtml() {
       '<div class="stack-scroll-region" id="stack-scroll-region">' +
         '<div class="stack-sticky-stage" id="stack-sticky-stage">' +
           '<div class="crt-room-stage" id="crt-room-stage">' +
-            crtRoomSceneSvg() +
+            crtRoomSceneHtml() +
           '</div>' +
           '<div class="crt-zoom-screen" id="crt-zoom-screen">' +
             '<div class="crt-scanlines" aria-hidden="true"></div>' +
@@ -607,6 +607,7 @@ export function mountEngineeringFromConfig() {
   var pe = document.getElementById("pe");
   if (pe) pe.innerHTML = buildEngHomeInnerHtml();
   applyCrtRoomLayoutVars(document.getElementById("eng-stack-experience"));
+  initCrtRoom();
 
   var res = document.getElementById("page-resume");
   if (res) res.innerHTML =
