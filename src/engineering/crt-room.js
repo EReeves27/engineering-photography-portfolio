@@ -8,7 +8,7 @@
  *  MONITOR keeps its old meaning. applyCrtRoomLayoutVars snaps the scale so
  *  every art pixel is a whole number of screen pixels.
  *
- *  Live bits layered over the canvas inside .crt-room-scene (1em = 1 art px):
+ *  Live bits layered over the canvas inside .crt-diorama (1em = 1 art px):
  *  - .crt-vinyl-slot hit areas over the five frames. spotify-vinyl.js fills in
  *    track data and hands covers to setVinylCover(), which pixelates them
  *    into the canvas.
@@ -905,17 +905,21 @@ function buildLight() {
   lg.putImageData(img, 0, 0);
 }
 
-/** Multiply a canvas by `light` (a canvas or CSS colour, at 1/LIGHT_SCALE) and scale back up, without reading pixels. */
-function lightCanvas(target, light) {
+/**
+ * Multiply a canvas by `light` (a canvas or CSS colour, at 1/LIGHT_SCALE) and scale back up, without reading pixels.
+ * `scratch` must be at least as big as `target`; covers pass their own so cross-origin art never touches the room's.
+ */
+function lightCanvas(target, light, scratch = copyCv) {
   const tg = target.getContext("2d"), w = target.width, h = target.height;
   tg.globalCompositeOperation = "multiply";
   if (typeof light === "string") { tg.fillStyle = light; tg.fillRect(0, 0, w, h); }
   else tg.drawImage(light, 0, 0);
   // LIGHT_SCALE is 2: add the result onto itself once.
-  copyCv.getContext("2d").clearRect(0, 0, w, h);
-  copyCv.getContext("2d").drawImage(target, 0, 0);
+  const sg = scratch.getContext("2d");
+  sg.clearRect(0, 0, w, h);
+  sg.drawImage(target, 0, 0);
   tg.globalCompositeOperation = "lighter";
-  tg.drawImage(copyCv, 0, 0, w, h, 0, 0, w, h);
+  tg.drawImage(scratch, 0, 0, w, h, 0, 0, w, h);
   tg.globalCompositeOperation = "source-over";
 }
 
@@ -1039,7 +1043,9 @@ function pixelateCover(img, out, slot) {
   const x = out.getContext("2d");
   x.imageSmoothingQuality = "high";
   x.drawImage(mid, 0, 0, COVER_RES, COVER_RES);
-  lightCanvas(out, "rgb(" + light.join(",") + ")");
+  const scratch = document.createElement("canvas");
+  scratch.width = scratch.height = COVER_RES;
+  lightCanvas(out, "rgb(" + light.join(",") + ")", scratch);
 }
 
 /** Called by spotify-vinyl.js with each slot's cover URL. */
@@ -1089,7 +1095,7 @@ function bookLabelHtml(b) {
 
 /**
  * Room markup: the pixel canvas plus HTML layers that ride along with it
- * (book titles, vinyl hit areas). Inside .crt-room-scene, 1em = 1 art pixel.
+ * (book titles, vinyl hit areas). Inside .crt-diorama, 1em = 1 art pixel.
  */
 export function crtRoomSceneHtml() {
   const slots = FRAMES.map((f, i) =>
@@ -1098,7 +1104,7 @@ export function crtRoomSceneHtml() {
     "</div>"
   ).join("");
   return (
-    '<div class="crt-room-scene" id="crt-room-scene" style="transform-origin:' + MONITOR.cx / ART + "em " + MONITOR.cy / ART + 'em">' +
+    '<div class="crt-diorama" id="crt-diorama" style="transform-origin:' + MONITOR.cx / ART + "em " + MONITOR.cy / ART + 'em">' +
       '<canvas class="crt-room-canvas" id="crt-room-canvas" width="' + W + '" height="' + H + '" aria-hidden="true"></canvas>' +
       BOOKS.map(bookLabelHtml).join("") +
       slots +
@@ -1218,7 +1224,7 @@ function showRoomDebug() {
   const lines = [
     "ctx: " + (ctx ? ctx.constructor.name : String(ctx)),
     "canvas: " + (canvas ? canvas.width + "x" + canvas.height + " in DOM=" + document.contains(canvas) : "missing"),
-    style("crt-room-stage"), style("crt-room-scene"), style("crt-room-canvas"),
+    style("crt-room-stage"), style("crt-diorama"), style("crt-room-canvas"),
     "artPx=" + artPx + " pad=" + [padX, padTop, padBottom].join(","),
     "centre pixel rgba: " + probe,
     "errors: " + (roomErrors.length ? roomErrors.join(" | ") : "none"),

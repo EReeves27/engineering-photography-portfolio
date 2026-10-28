@@ -1434,7 +1434,7 @@ a.res-dl { color: #0d0d1a; }
 /* ── CRT room stage ──────────────────────────────────────────
    The room is a 320×180 pixel-art canvas (crt-room.js) centred on
    the viewport and scaled to cover it, plus HTML layers riding on
-   it. Inside .crt-room-scene, 1em = 1 art pixel.
+   it. Inside .crt-diorama, 1em = 1 art pixel.
    ──────────────────────────────────────────────────────────── */
 .crt-room-stage {
   position: absolute;
@@ -1445,7 +1445,7 @@ a.res-dl { color: #0d0d1a; }
 /* Camera fly-in: scale the scene up to 8x as --zoom-progress goes 0→1,
    around the monitor centre (transform-origin set inline in em).
    The scene fades out by zoom≈0.7 so the HTML screen overlay takes over. */
-.crt-room-scene {
+.crt-diorama {
   position: absolute;
   font-size: var(--crt-art-px);
   width: 320em;
@@ -1527,7 +1527,7 @@ a.res-dl { color: #0d0d1a; }
 .crt-camera-hit:hover::after,
 .crt-camera-hit:focus-visible::after { opacity: 1; }
 /* After fly-in completes: drop the invisible room from the compositor. */
-.eng-stack-experience[data-room="off"] .crt-room-scene {
+.eng-stack-experience[data-room="off"] .crt-diorama {
   visibility: hidden;
   pointer-events: none;
   will-change: auto;
