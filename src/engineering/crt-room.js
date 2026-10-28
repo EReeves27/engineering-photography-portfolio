@@ -1196,13 +1196,57 @@ function fitBookLabels() {
   });
 }
 
+/**
+ * Diagnostics for devices we can't inspect (e.g. a mobile ad blocker hiding the
+ * room): load the page with ?crtdebug to get a readout of the room's state.
+ */
+const roomErrors = [];
+function showRoomDebug() {
+  if (!/[?&]crtdebug/.test(window.location.search)) return;
+  const canvas = document.getElementById("crt-room-canvas");
+  const style = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return id + ": missing";
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    return id + ": display=" + cs.display + " visibility=" + cs.visibility + " opacity=" + cs.opacity +
+      " rect=" + [r.x, r.y, r.width, r.height].map(Math.round).join(",");
+  };
+  let probe = "n/a";
+  try {
+    if (ctx) probe = Array.from(ctx.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data).join(",");
+  } catch (e) { probe = "threw " + e.name; }
+  const lines = [
+    "ctx: " + (ctx ? ctx.constructor.name : String(ctx)),
+    "canvas: " + (canvas ? canvas.width + "x" + canvas.height + " in DOM=" + document.contains(canvas) : "missing"),
+    style("crt-room-stage"), style("crt-room-scene"), style("crt-room-canvas"),
+    "artPx=" + artPx + " pad=" + [padX, padTop, padBottom].join(","),
+    "centre pixel rgba: " + probe,
+    "errors: " + (roomErrors.length ? roomErrors.join(" | ") : "none"),
+    "ua: " + navigator.userAgent,
+  ];
+  const box = document.createElement("pre");
+  box.textContent = lines.join("\n");
+  Object.assign(box.style, {
+    position: "fixed", left: "8px", right: "8px", bottom: "8px", zIndex: "99999", margin: "0", padding: "8px",
+    background: "rgba(0,0,0,.85)", color: "#8dffa8", font: "11px/1.35 monospace", whiteSpace: "pre-wrap", wordBreak: "break-all",
+  });
+  document.body.appendChild(box);
+}
+window.addEventListener("error", (e) => roomErrors.push(e.message));
+
 /** Start drawing the room. Animation pauses while the room is hidden after fly-in. */
 export function initCrtRoom() {
   const canvas = document.getElementById("crt-room-canvas");
   if (!canvas || ctx) return;
-  ctx = canvas.getContext("2d");
-  padX = -1; // force the first layout
-  layoutCanvas();
+  setTimeout(showRoomDebug, 2000);
+  try {
+    ctx = canvas.getContext("2d");
+    padX = -1; // force the first layout
+    layoutCanvas();
+  } catch (e) {
+    roomErrors.push("init: " + e.message);
+    return;
+  }
   // Fit after the pixel font loads; refit on resize since pixel rounding changes with scale.
   document.fonts.ready.then(fitBookLabels);
   window.addEventListener("resize", fitBookLabels, { passive: true });
