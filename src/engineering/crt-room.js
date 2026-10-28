@@ -1104,8 +1104,8 @@ export function crtRoomSceneHtml() {
     "</div>"
   ).join("");
   return (
-    '<div class="crt-diorama" id="crt-diorama" style="transform-origin:' + MONITOR.cx / ART + "em " + MONITOR.cy / ART + 'em">' +
-      '<canvas class="crt-room-canvas" id="crt-room-canvas" width="' + W + '" height="' + H + '" aria-hidden="true"></canvas>' +
+    '<div class="crt-diorama" id="eng-crt-diorama" style="transform-origin:' + MONITOR.cx / ART + "em " + MONITOR.cy / ART + 'em">' +
+      '<canvas class="crt-room-canvas" id="eng-crt-room-canvas" width="' + W + '" height="' + H + '" aria-hidden="true"></canvas>' +
       BOOKS.map(bookLabelHtml).join("") +
       slots +
       // sw() is the Engineering ⇄ Photography toggle (app.js).
@@ -1209,7 +1209,7 @@ function fitBookLabels() {
 const roomErrors = [];
 function showRoomDebug() {
   if (!/[?&]crtdebug/.test(window.location.search)) return;
-  const canvas = document.getElementById("crt-room-canvas");
+  const canvas = document.getElementById("eng-crt-room-canvas");
   const style = (id) => {
     const el = document.getElementById(id);
     if (!el) return id + ": missing";
@@ -1224,7 +1224,7 @@ function showRoomDebug() {
   const lines = [
     "ctx: " + (ctx ? ctx.constructor.name : String(ctx)),
     "canvas: " + (canvas ? canvas.width + "x" + canvas.height + " in DOM=" + document.contains(canvas) : "missing"),
-    style("crt-room-stage"), style("crt-diorama"), style("crt-room-canvas"),
+    style("eng-crt-room-stage"), style("eng-crt-diorama"), style("eng-crt-room-canvas"),
     "artPx=" + artPx + " pad=" + [padX, padTop, padBottom].join(","),
     "centre pixel rgba: " + probe,
     "errors: " + (roomErrors.length ? roomErrors.join(" | ") : "none"),
@@ -1242,7 +1242,7 @@ window.addEventListener("error", (e) => roomErrors.push(e.message));
 
 /** Start drawing the room. Animation pauses while the room is hidden after fly-in. */
 export function initCrtRoom() {
-  const canvas = document.getElementById("crt-room-canvas");
+  const canvas = document.getElementById("eng-crt-room-canvas");
   if (!canvas || ctx) return;
   setTimeout(showRoomDebug, 2000);
   try {

@@ -47,7 +47,7 @@ function initVinylTooltips() {
   if (vinylTooltipsBound) return;
 
   const stage = document.getElementById("stack-sticky-stage");
-  const tooltip = document.getElementById("crt-vinyl-tooltip");
+  const tooltip = document.getElementById("eng-crt-vinyl-tooltip");
   if (!stage || !tooltip) return;
 
   const titleEl = tooltip.querySelector(".crt-vinyl-tooltip-title");

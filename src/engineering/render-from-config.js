@@ -377,10 +377,10 @@ function buildEngHomeInnerHtml() {
     '<div class="eng-stack-experience" id="eng-stack-experience">' +
       '<div class="stack-scroll-region" id="stack-scroll-region">' +
         '<div class="stack-sticky-stage" id="stack-sticky-stage">' +
-          '<div class="crt-room-stage" id="crt-room-stage">' +
+          '<div class="crt-room-stage" id="eng-crt-room-stage">' +
             crtRoomSceneHtml() +
           '</div>' +
-          '<div class="crt-zoom-screen" id="crt-zoom-screen">' +
+          '<div class="crt-zoom-screen" id="eng-crt-zoom-screen">' +
             '<div class="crt-scanlines" aria-hidden="true"></div>' +
             '<div class="crt-glow" aria-hidden="true"></div>' +
             '<div class="stack-layer-deck" id="stack-layer-deck">' +
@@ -388,14 +388,14 @@ function buildEngHomeInnerHtml() {
               layerPanels +
             '</div>' +
           '</div>' +
-          '<div id="crt-vinyl-tooltip" class="crt-vinyl-tooltip" hidden>' +
+          '<div id="eng-crt-vinyl-tooltip" class="crt-vinyl-tooltip" hidden>' +
             '<span class="crt-vinyl-tooltip-title"></span>' +
             '<span class="crt-vinyl-tooltip-artist"></span>' +
           '</div>' +
         '</div>' +
       '</div>' +
       stackProgressHtml() +
-      '<button type="button" class="stack-reassemble" id="crt-reassemble" aria-label="Back to top">' +
+      '<button type="button" class="stack-reassemble" id="eng-crt-reassemble" aria-label="Back to top">' +
         '<i class="ti ti-arrow-up"></i> Reassemble' +
       '</button>' +
     '</div>'

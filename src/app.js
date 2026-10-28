@@ -1181,7 +1181,7 @@ function initStackExperience() {
   // Mobile: finger pans on the CRT screen often get trapped by overflow:auto
   // panels. Forward vertical touch to the page when the active panel can't
   // scroll further (or doesn't overflow), so you can still scroll into the stack.
-  var zoomScreen = document.getElementById("crt-zoom-screen");
+  var zoomScreen = document.getElementById("eng-crt-zoom-screen");
   if (zoomScreen) {
     var touchLastY = null;
     zoomScreen.addEventListener(
@@ -1237,7 +1237,7 @@ function initStackExperience() {
   }
 
   // Reassemble button: scroll back to the very top of the page.
-  var reset = document.getElementById("crt-reassemble");
+  var reset = document.getElementById("eng-crt-reassemble");
   if (reset) {
     reset.addEventListener("click", function () {
       window.scrollTo({ top: 0, behavior: "smooth" });
