@@ -1100,12 +1100,14 @@ export function crtRoomSceneHtml() {
 /** The desk's outer edges (outline included) are the frame: they span the window edge to edge. */
 const DESK_SPAN = DESK_X1 - DESK_X0 + 2;
 /**
- * Vertical framing: the span from the roof peak down past the rug is centred
- * (ANCHOR_Y) mid-way down the space below the fixed nav bar; whatever doesn't
- * fit above or below is cropped equally.
+ * Band that must always be on screen: from the picture lights over the vinyl
+ * frames down to the desk's front edge. It's centred (ANCHOR_Y) mid-way down
+ * the space below the fixed nav bar; extra height shows roof above and
+ * drawers/rug below.
  */
-const FIT_TOP = -ROOF_H, FIT_BOTTOM = FLOOR_Y + 22;
-const ANCHOR_Y = (FIT_TOP + FIT_BOTTOM) / 2;
+const BAND_TOP = FRAMES[0].y - 6, BAND_BOTTOM = 150;
+const BAND_H = BAND_BOTTOM - BAND_TOP;
+const ANCHOR_Y = (BAND_TOP + BAND_BOTTOM) / 2;
 /** Smallest scale: keeps the monitor's boot text legible. */
 const MIN_ART_PX = 3;
 /**
@@ -1142,10 +1144,12 @@ function layoutCanvas() {
  */
 export function applyCrtRoomLayoutVars(root) {
   if (!root) return;
-  // Zoom so the desk spans the window exactly (fractional scale), but never so far
-  // out that the monitor's boot text gets unreadable (portrait phones crop the desk ends).
+  // Zoom so the desk spans the window exactly (fractional scale), unless that would
+  // push the frames or desk items off screen on a wide, short window; then zoom out
+  // just enough to fit them. Never so far out that the monitor's boot text gets
+  // unreadable (portrait phones crop the desk ends).
   stageTop = Math.max(0, root.getBoundingClientRect().top + window.scrollY);
-  artPx = Math.max(MIN_ART_PX, window.innerWidth / DESK_SPAN);
+  artPx = Math.max(MIN_ART_PX, Math.min(window.innerWidth / DESK_SPAN, (window.innerHeight - stageTop) / BAND_H));
   layoutCanvas();
   root.style.setProperty("--crt-vb-w", String(VIEW.w));
   root.style.setProperty("--crt-vb-h", String(VIEW.h));
