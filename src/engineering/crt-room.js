@@ -1097,13 +1097,14 @@ export function crtRoomSceneHtml() {
   );
 }
 
+/** The desk's outer edges (outline included) are the frame: they span the window edge to edge. */
+const DESK_SPAN = DESK_X1 - DESK_X0 + 2;
 /**
- * Room area that must stay on screen: window sill through tower side, and from
- * the roof peak down past the rug. Its centre (ANCHOR_Y) sits mid-way down the
- * space below the fixed nav bar.
+ * Vertical framing: the span from the roof peak down past the rug is centred
+ * (ANCHOR_Y) mid-way down the space below the fixed nav bar; whatever doesn't
+ * fit above or below is cropped equally.
  */
 const FIT_TOP = -ROOF_H, FIT_BOTTOM = FLOOR_Y + 22;
-const FIT = { w: DESK_X1 - DESK_X0 + 4, h: FIT_BOTTOM - FIT_TOP };
 const ANCHOR_Y = (FIT_TOP + FIT_BOTTOM) / 2;
 /** Smallest scale: keeps the monitor's boot text legible. */
 const MIN_ART_PX = 3;
@@ -1135,17 +1136,16 @@ function layoutCanvas() {
 }
 
 /**
- * Push scene geometry into CSS custom properties. The scale is snapped so one
- * art pixel is a whole number of screen pixels; .crt-zoom-screen and the scene
- * both read --crt-slice-scale, so the HTML screen stays on the drawn monitor.
+ * Push scene geometry into CSS custom properties. .crt-zoom-screen and the
+ * scene both read --crt-slice-scale, so the HTML screen stays on the drawn monitor.
  * @param {HTMLElement} root — typically `#eng-stack-experience`
  */
 export function applyCrtRoomLayoutVars(root) {
   if (!root) return;
-  // Zoom out as far as whole pixels allow while the whole room still fits,
-  // but never so far that the monitor's boot text gets unreadable (portrait phones).
+  // Zoom so the desk spans the window exactly (fractional scale), but never so far
+  // out that the monitor's boot text gets unreadable (portrait phones crop the desk ends).
   stageTop = Math.max(0, root.getBoundingClientRect().top + window.scrollY);
-  artPx = Math.max(MIN_ART_PX, Math.floor(Math.min(window.innerWidth / FIT.w, (window.innerHeight - stageTop) / FIT.h)));
+  artPx = Math.max(MIN_ART_PX, window.innerWidth / DESK_SPAN);
   layoutCanvas();
   root.style.setProperty("--crt-vb-w", String(VIEW.w));
   root.style.setProperty("--crt-vb-h", String(VIEW.h));
