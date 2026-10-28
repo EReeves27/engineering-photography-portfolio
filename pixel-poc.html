@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Room POC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#6c958c 50%,#9c8a74 50%)}
+  #stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(320px*var(--s));height:calc(180px*var(--s))}
+  #c{width:100%;height:100%;display:block;image-rendering:pixelated}
+  /* Live HTML screen anchored to the canvas screen rect (126,51 68x48 in a 320x180 grid). */
+  .screen{position:absolute;left:39.375%;top:28.333%;width:21.25%;height:26.667%;border-radius:calc(var(--s)*3px);overflow:hidden;
+    font-family:VT323,monospace;font-size:calc(var(--s)*4.4px);line-height:1.05;color:#8dffa8;
+    text-shadow:0 0 calc(var(--s)*1.2px) rgba(110,255,150,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;cursor:pointer;animation:flick 3.3s infinite steps(1)}
+  .screen::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(to bottom,rgba(0,0,0,.3) 0 calc(var(--s)*.5px),transparent calc(var(--s)*.5px) calc(var(--s)*1px))}
+  .amber{color:#ffb347;text-shadow:0 0 calc(var(--s)*1.2px) rgba(255,170,60,.7);margin-top:.5em}
+  .blink{animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  @keyframes flick{0%,100%{opacity:1}47%{opacity:.93}48%{opacity:1}}
+  /* Vinyl hover: invisible hit area over each frame + pixel-styled track tooltip below it. */
+  .vinyl-hit{position:absolute;cursor:pointer;outline:none}
+  .vinyl-tip{position:absolute;transform:translateX(-50%);max-width:calc(var(--s)*80px);width:max-content;pointer-events:none;
+    font-family:VT323,monospace;font-size:calc(var(--s)*4.4px);line-height:1;text-align:center;color:#f3e6cf;
+    background:#1a1218;border:calc(var(--s)*1px) solid #f3e6cf;box-shadow:calc(var(--s)*1px) calc(var(--s)*1px) 0 #0a0608;
+    padding:calc(var(--s)*1.5px) calc(var(--s)*3px)}
+  .vinyl-tip .artist{color:#ffb347;margin-top:calc(var(--s)*1px)}
+  .tag{position:fixed;left:12px;top:10px;z-index:5;font:15px/1.2 VT323,monospace;color:#c9b9d6;background:rgba(18,13,24,.75);padding:4px 8px;border:1px solid #3a2b45}
+</style>
+</head>
+<body>
+<div class="tag">PIXEL POC · monitor · desk · cat</div>
+<div id="stage">
+  <canvas id="c" width="320" height="180"></canvas>
+  <div class="screen" id="scr">
+    <div>HanOS BIOS — POST OK</div>
+    <div>MEM 640K · CPU OK</div>
+    <div>MOUNT /stack .... OK</div>
+    <div>READY.</div>
+    <div class="amber">CLICK TO BOOT <span class="blink">_</span></div>
+  </div>
+</div>
+<script>
+const W = 320, H = 180;
+const C = {
+  ol: "#1a1218",
+  wall: "#7aa39a", wallD: "#6c958c", wallL: "#88b0a6", wallS: "#557a72",
+  shelfL: "#b07a4f", shelfT: "#9a6642", shelf: "#7f5034", shelfD: "#4f2f1f",
+  // Sun-bleached driftwood.
+  deskTop: "#b5a28a", deskTopL: "#c9b9a2", deskGrain: "#9e8b73", deskEdge: "#8c7a65", deskEdgeL: "#d6c8b2",
+  deskFront: "#9c8a74", deskFrontD: "#76665a", deskFrontL: "#ae9c85", shadow: "#7e6c5a",
+  beigeH: "#efe2c4", beige: "#d9c7a3", beigeM: "#bba783", beigeD: "#8f7c5f", beigeDD: "#5e4f3c",
+  scr0: "#08130d", scr1: "#0f2218", scr2: "#16301f",
+  brass: "#a07a3c", brassL: "#c99a52", brassD: "#6e5228", arm: "#2c2732", armL: "#4d4656",
+};
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => v / 16);
+const by = (x, y) => BAYER[(y & 3) * 4 + (x & 3)];
+
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d", { willReadFrequently: true });
+const bg = document.createElement("canvas");
+bg.width = W; bg.height = H;
+let g = bg.getContext("2d");
+
+// ---------- pixel primitives ----------
+const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+const px = (x, y, c) => rect(x, y, 1, 1, c);
+const INSETS = { 1: [1], 2: [2, 1], 3: [3, 1, 1], 4: [4, 2, 1, 1] };
+function rrect(x, y, w, h, r, c) {
+  const ins = INSETS[r] || [];
+  g.fillStyle = c;
+  for (let i = 0; i < h; i++) {
+    const d = Math.min(i, h - 1 - i);
+    const k = d < ins.length ? ins[d] : 0;
+    g.fillRect(x + k, y + i, w - 2 * k, 1);
+  }
+}
+function line(x0, y0, x1, y1, c, t = 1) {
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let e = dx + dy;
+  for (;;) {
+    rect(x0, y0, t, t, c);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * e;
+    if (e2 >= dy) { e += dy; x0 += sx; }
+    if (e2 <= dx) { e += dx; y0 += sy; }
+  }
+}
+function inPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function poly(pts, c) {
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  for (let y = Math.floor(Math.min(...ys)); y <= Math.max(...ys); y++)
+    for (let x = Math.floor(Math.min(...xs)); x <= Math.max(...xs); x++)
+      if (inPoly(x + 0.5, y + 0.5, pts)) px(x, y, c);
+}
+const inEll = (x, y, cx, cy, rx, ry) => { const a = (x + 0.5 - cx) / rx, b = (y + 0.5 - cy) / ry; return a * a + b * b <= 1; };
+function ell(cx, cy, rx, ry, c) {
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
+    for (let x = Math.floor(cx - rx); x <= cx + rx; x++) if (inEll(x, y, cx, cy, rx, ry)) px(x, y, c);
+}
+// Soft contact shadow: solid core, dithered falloff.
+function shadow(cx, cy, rx, ry) {
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++)
+    for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+      const a = (x + 0.5 - cx) / rx, b = (y + 0.5 - cy) / ry, d = a * a + b * b;
+      if (d <= 0.55 || (d <= 1 && by(x, y) < (1 - d) * 1.6)) px(x, y, C.shadow);
+    }
+}
+
+// Smooth 2D value noise in [0,1].
+const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+function noise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+
+// ---------- static scene ----------
+function drawWall() {
+  // Limewash plaster: soft cloudy mottling from two octaves of value noise, dithered into 3 tones.
+  for (let y = 0; y < 120; y++) for (let x = 0; x < W; x++) {
+    const n = noise(x / 26, y / 18) * 0.7 + noise(x / 9 + 40, y / 7) * 0.3 + (by(x, y) - 0.5) * 0.12;
+    px(x, y, n < 0.4 ? C.wallD : n > 0.6 ? C.wallL : C.wall);
+  }
+  for (let y = 0; y < 34; y++)
+    for (let x = 0; x < W; x++) if (by(x, y) < ((34 - y) / 34) * 0.7) px(x, y, C.wallS);
+  rect(0, 119, W, 1, C.ol);
+}
+
+// Floating wall shelf; the books go here in the full room.
+function drawShelf(x, y, w) {
+  for (let i = 0; i < w; i++) for (let j = 0; j < 3; j++) if (by(x + i, y + 5 + j) < (3 - j) / 4) px(x + i, y + 5 + j, C.wallS);
+  rect(x - 1, y - 1, w + 2, 6, C.ol);
+  rect(x, y, w, 1, C.shelfL); rect(x, y + 1, w, 1, C.shelfT);
+  rect(x, y + 2, w, 2, C.shelf); rect(x, y + 4, w, 1, C.shelfD);
+  for (const bx of [x + 12, x + w - 15]) {
+    rect(bx, y + 5, 3, 7, C.ol);
+    rect(bx + 1, y + 5, 1, 6, "#5a4a50");
+  }
+}
+
+function drawFrame(x, y, label, cover) {
+  line(x + 4, y, x + 21, y - 5, "#5a4a40");
+  line(x + 21, y - 5, x + 38, y, "#5a4a40");
+  px(x + 21, y - 6, "#9a8f86");
+  for (let i = 0; i < 44; i++) for (let j = 0; j < 2; j++) {
+    if (by(x + 43 + j, y + 2 + i) < 0.5) px(x + 43 + j, y + 2 + i, C.wallS);
+    if (by(x + 2 + i, y + 43 + j) < 0.5) px(x + 2 + i, y + 43 + j, C.wallS);
+  }
+  rect(x - 1, y - 1, 44, 44, C.ol);
+  rect(x, y, 42, 42, "#6b4630");
+  rect(x, y, 42, 1, "#8f6040"); rect(x, y, 1, 42, "#8f6040");
+  rect(x, y + 41, 42, 1, "#3f281b"); rect(x + 41, y, 1, 42, "#3f281b");
+  rect(x + 3, y + 3, 36, 36, "#120d10");
+  if (cover) {
+    g.drawImage(cover, x + 5, y + 5);
+    line(x + 6, y + 10, x + 10, y + 6, "rgba(255,236,210,.28)");
+    return;
+  }
+  // Fallback until the live cover loads: a pixel vinyl record.
+  const cx = x + 21, cy = y + 21;
+  rect(x + 5, y + 5, 32, 32, "#1b1720");
+  ell(cx, cy, 15, 15, "#0c0a0e");
+  for (const r of [13, 10.5, 8]) for (let a = 0; a < 360; a += 4) {
+    const t = (a * Math.PI) / 180;
+    px(Math.floor(cx + Math.cos(t) * r), Math.floor(cy + Math.sin(t) * r), "#24202a");
+  }
+  ell(cx, cy, 5, 5, label);
+  px(cx - 1, cy - 1, "#0c0a0e");
+}
+
+function drawDesk() {
+  rect(0, 120, W, 20, C.deskTop);
+  for (let i = 0; i < 46; i++) {
+    const y = 121 + ((i * 7) % 19), x = (i * 53) % W, len = 8 + ((i * 13) % 22);
+    rect(x, y, len, 1, i % 3 ? C.deskGrain : C.deskTopL);
+  }
+  rect(0, 140, W, 1, C.deskEdgeL);
+  rect(0, 141, W, 4, C.deskEdge);
+  rect(0, 145, W, 1, C.ol);
+  rect(0, 146, W, 34, C.deskFront);
+  rect(124, 146, 72, 34, "#4f4338");
+  for (const [x, w] of [[14, 98], [208, 98]]) {
+    rect(x, 152, w, 22, C.deskFrontD);
+    rect(x + 1, 153, w - 2, 20, C.deskFrontL);
+    rect(x + 1, 171, w - 2, 2, C.deskFront);
+    rect(x + w / 2 - 5, 159, 10, 2, "#b08850");
+    rect(x + w / 2 - 5, 161, 10, 1, "#6a5848");
+  }
+}
+
+// Tower: front face FX..FX+33 from TT down to the desk; DX/DY is how far the
+// case recedes front-to-back (drawn as a long side panel + top).
+const FX = 254, TT = 60, DX = 14, DY = 7;
+function drawTower() {
+  const T = TT, R = FX + 34;
+  poly([[FX - 1, 128], [FX - 1, T - 1], [FX + DX, T - DY - 1], [R + DX + 1, T - DY - 1], [R + DX + 1, 128 - DY], [R, 128]], C.ol);
+  rect(FX, T, 34, 128 - T, C.beige);
+  rect(FX, T, 34, 1, C.beigeH); rect(FX, T, 1, 128 - T, C.beigeH);
+  rect(FX, 126, 34, 2, C.beigeD);
+  poly([[R, T], [R + DX, T - DY], [R + DX, 127 - DY], [R, 127]], C.beigeM);
+  poly([[FX, T], [FX + DX, T - DY], [R + DX, T - DY], [R, T]], C.beigeH);
+  // Side panel: seam + rear vents sell the depth.
+  line(R + 7, T - 3, R + 7, 124 - 3, C.beigeD);
+  for (let y = T + 8; y < T + 40; y += 3) line(R + 9, y - 5, R + 12, y - 6, C.beigeD);
+  rect(FX + 4, T + 5, 26, 8, C.ol); rect(FX + 5, T + 6, 24, 6, C.beigeM); rect(FX + 5, T + 6, 24, 1, C.beigeD); rect(FX + 6, T + 9, 22, 1, C.beigeDD);
+  rect(FX + 4, T + 16, 26, 7, C.ol); rect(FX + 5, T + 17, 24, 5, C.beige); rect(FX + 8, T + 19, 16, 1, C.ol); rect(FX + 25, T + 20, 3, 1, C.beigeD);
+  rect(FX + 6, T + 27, 9, 3, C.beigeD);
+  rrect(FX + 22, T + 26, 7, 6, 1, C.ol); rrect(FX + 23, T + 27, 5, 4, 1, C.beigeM); px(FX + 23, T + 27, C.beigeH);
+  rect(FX + 4, T + 35, 24, 5, "#3a3230");
+  for (const [x, w] of [[6, 4], [11, 7], [19, 6]]) rect(FX + x, T + 37, w, 1, "#c9b48a");
+  for (let y = T + 46; y <= 121; y += 2) rect(FX + 6, y, 22, 1, C.beigeD);
+}
+
+function drawMonitor() {
+  rrect(123, 35, 74, 9, 2, C.ol);
+  rrect(124, 36, 72, 8, 2, C.beigeM);
+  rect(126, 36, 68, 1, C.beige);
+  rrect(113, 41, 94, 78, 3, C.ol);
+  rrect(114, 42, 92, 76, 2, C.beige);
+  rect(116, 42, 88, 1, C.beigeH); rect(114, 44, 1, 72, C.beigeH);
+  rect(204, 44, 2, 72, C.beigeM); rect(116, 116, 88, 2, C.beigeD);
+  // Recessed bezel: shadowed top/left, lit bottom/right.
+  rrect(121, 47, 78, 56, 2, C.beigeDD);
+  rect(123, 102, 74, 1, C.beigeH); rect(198, 49, 1, 52, C.beigeH);
+  rrect(125, 50, 70, 50, 3, C.ol);
+  rrect(126, 51, 68, 48, 3, C.scr0);
+  rrect(127, 52, 66, 46, 3, C.scr1);
+  // Chin: badge, button, power LED.
+  rect(126, 106, 18, 5, C.beigeD);
+  for (const x of [128, 132, 136, 140]) rect(x, 108, 2, 1, C.beigeH);
+  rrect(180, 106, 6, 4, 1, C.beigeD);
+  rect(189, 107, 2, 1, "#6dff8a");
+  rect(148, 118, 24, 4, C.beigeM); rect(148, 118, 24, 1, C.beigeDD);
+  rrect(135, 121, 50, 6, 1, C.ol);
+  rrect(136, 122, 48, 4, 1, C.beige);
+  rect(137, 122, 46, 1, C.beigeH); rect(136, 125, 48, 1, C.beigeD);
+}
+
+function drawKeyboard() {
+  rrect(117, 128, 88, 11, 1, C.ol);
+  rrect(118, 129, 86, 9, 1, C.beigeM);
+  rect(119, 129, 84, 1, C.beigeH);
+  rect(118, 136, 86, 2, C.beigeD);
+  for (let r = 0; r < 2; r++) for (let x = 120 + r * 2; x + 3 <= 202; x += 4) rect(x, 130 + r * 2, 3, 1, C.beigeH);
+  for (let x = 120; x <= 134; x += 4) rect(x, 134, 3, 1, C.beigeH);
+  rect(140, 134, 40, 1, C.beigeH);
+  for (let x = 184; x + 3 <= 202; x += 4) rect(x, 134, 3, 1, C.beigeH);
+}
+
+function drawMouse() {
+  rrect(206, 128, 26, 13, 1, C.ol);
+  rrect(207, 129, 24, 11, 1, "#2f2a3d");
+  rect(208, 129, 22, 1, "#3d3650");
+  rrect(213, 130, 11, 9, 3, C.ol);
+  rrect(214, 131, 9, 7, 2, C.beige);
+  rect(216, 131, 5, 1, C.beigeH);
+  rect(218, 131, 1, 3, C.beigeD);
+  rect(215, 134, 7, 1, C.beigeM);
+  rect(215, 137, 7, 1, C.beigeD);
+}
+
+function drawMug() {
+  rect(98, 124, 4, 7, C.ol); rect(99, 125, 2, 5, "#9a4a30"); rect(99, 126, 1, 3, C.deskTop);
+  rrect(87, 121, 12, 14, 1, C.ol);
+  rect(88, 122, 10, 12, "#c0623f");
+  rect(88, 122, 1, 12, "#d98060");
+  rect(95, 122, 3, 12, "#9a4a30");
+  rect(88, 122, 10, 1, "#e8d9c6");
+  rect(89, 123, 8, 1, "#3b2318");
+}
+
+function drawLamp() {
+  rrect(231, 126, 22, 7, 2, C.ol);
+  rrect(232, 127, 20, 5, 2, C.arm);
+  rect(234, 127, 16, 1, C.armL);
+  line(241, 126, 248, 99, C.ol, 3);
+  line(242, 126, 249, 99, C.arm, 2);
+  line(249, 99, 234, 73, C.ol, 3);
+  line(249, 100, 234, 74, C.arm, 2);
+  rect(247, 97, 4, 4, C.ol); rect(248, 98, 2, 2, C.armL);
+  const head = [[226, 65], [237, 73], [229, 88], [213, 80]];
+  poly([[225, 63], [239, 73], [230, 90], [211, 81]], C.ol);
+  poly(head, C.brass);
+  line(226, 65, 237, 73, C.brassL);
+  line(229, 87, 237, 74, C.brassD);
+  line(214, 80, 228, 87, "#ffd27a");
+  line(215, 79, 227, 85, "#fff3cf");
+}
+
+// Mouse cord runs back along the desk, behind the lamp base, into the tower.
+function drawMouseCable() {
+  const pts = [[218, 130], [218, 127], [221, 125], [232, 125], [248, 125], [258, 124], [264, 124]];
+  for (let i = 1; i < pts.length; i++) line(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], C.arm);
+}
+
+const FRAMES = [[34, 16, "#c2553a"], [216, 10, "#3a7ca5"]];
+const covers = [null, null];
+const BG = bg.getContext("2d");
+function drawStatic() {
+  g = BG;
+  drawWall();
+  drawShelf(86, 30, 120);
+  FRAMES.forEach(([x, y, label], i) => drawFrame(x, y, label, covers[i]));
+  drawDesk();
+  shadow(160, 127, 32, 2); shadow(161, 139, 46, 1.6); shadow(93, 135, 9, 1.6);
+  shadow(242, 133, 13, 1.6); shadow(280, 128, 28, 2.4); shadow(46, 130, 24, 2.2);
+  drawMouseCable();
+  drawTower(); drawMonitor(); drawKeyboard(); drawMouse(); drawMug(); drawLamp();
+}
+
+// Album art → 32x32 pixel art: step-down resize, then ordered-dither posterize with a warm push.
+function pixelateCover(img) {
+  const mid = document.createElement("canvas");
+  mid.width = mid.height = 128;
+  const s = Math.min(img.naturalWidth, img.naturalHeight);
+  mid.getContext("2d").drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, 128, 128);
+  const c = document.createElement("canvas");
+  c.width = c.height = 32;
+  const x = c.getContext("2d");
+  x.imageSmoothingQuality = "high";
+  x.drawImage(mid, 0, 0, 32, 32);
+  const d = x.getImageData(0, 0, 32, 32), a = d.data, L = 14;
+  for (let i = 0; i < 1024; i++) {
+    const t = (by(i % 32, i >> 5) - 0.5) * 0.4;
+    for (let k = 0; k < 3; k++) a[i * 4 + k] = (Math.round((a[i * 4 + k] / 255) * (L - 1) + t) / (L - 1)) * 255;
+    a[i * 4] = a[i * 4] * 1.04 + 6; a[i * 4 + 2] *= 0.9;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+
+// ---------- cat sprite: seal-point snowshoe (procedural so breathing swells the back) ----------
+const CW = 58, CH = 33, CATX = 14, CATY = 99, GND = 30;
+const CC = {
+  w: "#f4efe6", s: "#d9cfc1", S: "#b3a593", cr: "#d2b896", crD: "#b39673",
+  b1: "#4f3527", b2: "#6c4b36", b3: "#8c6a4c", b4: "#a98a69",
+  m: "#2b1e18", mL: "#45322a", eye: "#7cc4ef", eyeD: "#3f86c9", o: "#1c130f", wh: "#efe8dc",
+};
+const inTri = (x, y, t) => inPoly(x + 0.5, y + 0.5, t);
+const catCache = new Map();
+function catSprite(breath, twitch, ear, eyes) {
+  const key = breath + "|" + twitch + "|" + ear + "|" + eyes;
+  if (catCache.has(key)) return catCache.get(key);
+  const part = new Uint8Array(CW * CH), col = new Array(CW * CH).fill(null);
+  const set = (x, y, p, c) => { if (x >= 0 && y >= 0 && x < CW && y < CH) { part[y * CW + x] = p; col[y * CW + x] = c; } };
+  const at = (x, y) => (x >= 0 && y >= 0 && x < CW && y < CH ? part[y * CW + x] : 0);
+  // Body: bottom pinned to the desk, only the back rises. Seal-brown back fading to fawn, white belly.
+  const ry = 10 + breath * 0.25, bcy = GND + 1 - ry;
+  for (let y = 0; y <= GND; y++) for (let x = 0; x < CW; x++) {
+    if (!inEll(x, y, 28, bcy, 18.5, ry)) continue;
+    // Darker along the spine, lighter fawn toward the shoulder, white underneath.
+    const t = (y + 0.5 - (bcy - ry)) / (2 * ry) + (by(x, y) - 0.5) * 0.1 + Math.max(0, x - 34) * 0.012;
+    let c = t < 0.3 ? CC.b1 : t < 0.58 ? CC.b2 : t < 0.68 ? CC.b3 : CC.w;
+    if (c === CC.w && y >= GND - 1) c = CC.s;
+    set(x, y, 1, c);
+  }
+  // Rim light along the back from the window side.
+  for (let x = 0; x < 30; x++) for (let y = 1; y <= GND; y++)
+    if (at(x, y) === 1 && !at(x, y - 1)) { col[y * CW + x] = CC.b3; break; }
+  // Black tail wrapped along the front.
+  const P0 = [11, 21], P1 = [5, 33], P2 = [38, 28.5 - twitch];
+  for (let i = 0; i <= 50; i++) {
+    const t = i / 50, u = 1 - t;
+    const tx = u * u * P0[0] + 2 * u * t * P1[0] + t * t * P2[0];
+    const ty = u * u * P0[1] + 2 * u * t * P1[1] + t * t * P2[1];
+    const r = 2.5 - t * 0.6;
+    for (let y = Math.floor(ty - r); y <= Math.min(GND, ty + r); y++)
+      for (let x = Math.floor(tx - r); x <= tx + r; x++)
+        if (inEll(x, y, tx, ty, r, r)) set(x, y, 2, y + 0.5 < ty - 0.4 ? CC.mL : CC.m);
+  }
+  // White chest bib, then head: fawn base, dark mask, white muzzle + chin, dark ears.
+  for (let y = 0; y <= GND; y++) for (let x = 0; x < CW; x++) if (inEll(x, y, 45, 25, 7.5, 5.5)) set(x, y, 3, y >= GND ? CC.s : CC.w);
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+    if (inEll(x, y, 46, 16.5, 8.6, 7.6)) {
+      let c = y + 0.5 < 12 ? CC.crD : CC.cr;
+      if (inEll(x, y, 46, 13, 1.6, 2.6)) c = CC.mL;
+      if (inEll(x, y, 46, 17.4, 5.4, 4.2)) c = inEll(x, y, 46, 17.4, 4.4, 3.4) ? CC.m : CC.mL;
+      if (inEll(x, y, 46, 21.4, 3.6, 2.2) || y >= 22) c = CC.w;
+      set(x, y, 3, c);
+    }
+    if (inTri(x, y, [[38.5, 12], [39.5, 3.5], [44.5, 9.5]]) || inTri(x, y, [[47.5, 9.5], [52.5 - ear, 3.5 + ear], [53.5, 12]])) set(x, y, 3, CC.m);
+  }
+  // Folded white paws.
+  for (let y = 0; y <= GND; y++) for (let x = 0; x < CW; x++)
+    if (inEll(x, y, 41, 30, 3.6, 1.7) || inEll(x, y, 48.5, 30, 3.6, 1.7)) set(x, y, 4, y >= GND ? CC.s : CC.w);
+  // Separate overlapping parts with shade instead of a hard line.
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+    const p = at(x, y);
+    if (p === 3 && at(x - 1, y) === 1) col[y * CW + x] = col[y * CW + x] === CC.w ? CC.S : CC.crD;
+    if (p === 4 && at(x, y - 1) === 3) col[y * CW + x] = CC.s;
+  }
+  set(41, 7, 3, CC.crD); set(51, 7, 3, CC.crD);
+  // Eyes: closed lids, or a sleepy half-open peek of blue.
+  for (const ex of [43, 49]) {
+    if (eyes) {
+      set(ex - 1, 16, 3, CC.o); set(ex, 16, 3, CC.o); set(ex + 1, 16, 3, CC.o);
+      set(ex - 1, 17, 3, CC.eye); set(ex, 17, 3, CC.eyeD); set(ex + 1, 17, 3, CC.eye);
+    } else {
+      // Closed lids read as a soft lighter crease on the dark mask.
+      set(ex - 1, 17, 3, CC.b3); set(ex, 18, 3, CC.b3); set(ex + 1, 17, 3, CC.b3);
+    }
+  }
+  set(45, 19, 3, CC.o); set(46, 19, 3, CC.o);
+  set(44, 21, 3, CC.S); set(47, 21, 3, CC.S);
+  // 1px outer outline.
+  const out = col.slice();
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++)
+    if (!at(x, y) && (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1))) out[y * CW + x] = CC.o;
+  for (const [x, y] of [[35, 21], [34, 21], [35, 23], [56, 21], [57, 21], [56, 23]]) out[y * CW + x] = CC.wh;
+  const sc = document.createElement("canvas");
+  sc.width = CW; sc.height = CH;
+  const sg = sc.getContext("2d");
+  for (let i = 0; i < out.length; i++) if (out[i]) { sg.fillStyle = out[i]; sg.fillRect(i % CW, (i / CW) | 0, 1, 1); }
+  catCache.set(key, sc);
+  return sc;
+}
+
+// ---------- light maps (dithered, quantized) ----------
+const IL = new Float32Array(W * H), IC = new Float32Array(W * H), IS = new Float32Array(W * H), IV = new Float32Array(W * H);
+(function buildLight() {
+  const S = [221, 84], E = [182, 130], ex = E[0] - S[0], ey = E[1] - S[1], len2 = ex * ex + ey * ey;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let l = 0;
+    if (y >= 120) { const a = (x - 178) / 74, b = (y - 133) / 13; l += Math.max(0, 1 - (a * a + b * b)); }
+    else {
+      const t = Math.max(0, Math.min(1, ((x - S[0]) * ex + (y - S[1]) * ey) / len2));
+      const d = Math.hypot(x - (S[0] + ex * t), y - (S[1] + ey * t)), w = 3 + t * 34;
+      if (t > 0) l += Math.max(0, 1 - d / w) * (1 - t * 0.3) * 0.5;
+    }
+    l += Math.pow(Math.max(0, 1 - Math.hypot(x - 221, y - 84) / 22), 1.5);
+    l += Math.max(0, 1 - Math.hypot(x - 232, y - 80) / 82) * 0.35;
+    IL[i] = Math.min(1.25, l);
+    IC[i] = Math.max(0, 1 - Math.hypot((x - 160) / 1.25, y - 76) / 72) * 0.9;
+    IS[i] = Math.max(0, 1 - Math.hypot(x + 30, (y - 50) * 1.3) / 170) * 0.8;
+    const vx = (x - 160) / 160, vy = (y - 95) / 110;
+    IV[i] = Math.max(0, vx * vx + vy * vy - 0.35) * 1.4;
+  }
+})();
+
+function applyLight(crtF) {
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, o = i * 4, t = by(x, y);
+    let r = d[o], gg = d[o + 1], b = d[o + 2];
+    const l = Math.min(4, Math.floor(IL[i] * 3 + t));
+    // Blend toward warm lamp light so pale surfaces glow instead of clipping to white.
+    if (l) { r += (255 - r) * 0.13 * l + 4 * l; gg += (235 - gg) * 0.09 * l + 2 * l; b += (180 - b) * 0.03 * l; }
+    const lc = Math.floor(IC[i] * 2 * crtF + t);
+    if (lc) { gg += 9 * lc; b += 5 * lc; r += lc; }
+    const ls = Math.floor(IS[i] * 2.8 + t);
+    if (ls) { r += 14 * ls; gg += 5 * ls; b += 6 * ls; }
+    const lv = Math.floor(IV[i] * 3 + t);
+    if (lv) { const k = 1 - 0.13 * lv; r *= k; gg *= k; b *= k; }
+    // Global warm grade toward the coming sunset.
+    d[o] = r * 1.04 + 5; d[o + 1] = gg * 1.0 + 1; d[o + 2] = b * 0.9;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// ---------- animated bits ----------
+const steam = [];
+const motes = Array.from({ length: 16 }, (_, i) => ({
+  x: 180 + ((i * 37) % 50), y: 86 + ((i * 23) % 40), vx: ((i % 5) - 2) * 0.6, vy: -0.8 - (i % 3) * 0.4, ph: i * 1.7,
+}));
+
+function drawDynamic(t, dt) {
+  g = ctx;
+  // CRT: slow rolling refresh band.
+  const band = 51 + ((t * 14) % 62) - 6;
+  for (let y = Math.max(53, Math.floor(band)); y < Math.min(97, band + 3); y++) rect(128, y, 64, 1, C.scr2);
+  // Tower LEDs.
+  rect(FX + 7, TT + 28, 2, 1, "#6dff8a");
+  rect(FX + 11, TT + 28, 2, 1, Math.random() < 0.35 ? "#ffb347" : "#5a3a14");
+  // Cat: breath swells the back, tail flicks, ear twitches now and then.
+  const breath = Math.round(((1 - Math.cos((2 * Math.PI * t) / 4.2)) / 2) * 6);
+  const twitch = t % 7 < 0.35 ? 1 : 0;
+  const ear = t % 11 > 10.6 ? 1 : 0;
+  const eyes = t % 13 > 11.8 ? 1 : 0;
+  ctx.drawImage(catSprite(breath, twitch, ear, eyes), CATX, CATY);
+  // Mug steam.
+  if (Math.random() < dt * 5) steam.push({ x: 90 + Math.random() * 6, y: 121, age: 0, seed: Math.random() * 6 });
+  for (let i = steam.length - 1; i >= 0; i--) {
+    const p = steam[i];
+    p.age += dt; p.y -= dt * 6;
+    if (p.age > 3.2) { steam.splice(i, 1); continue; }
+    const k = p.age / 3.2, x = Math.round(p.x + Math.sin(t * 1.6 + p.seed) * (1 + k * 2));
+    px(x, Math.round(p.y), k < 0.35 ? "#d9cfc8" : k < 0.7 ? "#a99a99" : "#6e5f6c");
+  }
+  // Dust drifting through the lamp beam.
+  for (const m of motes) {
+    m.x += m.vx * dt; m.y += m.vy * dt;
+    if (m.y < 84) { m.y = 128; m.x = 180 + Math.random() * 50; }
+    if (m.x < 176 || m.x > 234) m.vx *= -1;
+    const ix = Math.round(m.x), iy = Math.round(m.y);
+    if (IL[iy * W + ix] > 0.3 && Math.sin(t * 2 + m.ph) > -0.3) px(ix, iy, "#ffe9b8");
+  }
+}
+
+drawStatic();
+let last = 0, acc = 0;
+function frame(now) {
+  const t = now / 1000, dt = Math.min(0.1, t - last);
+  last = t; acc += dt;
+  if (acc >= 1 / 12) {
+    acc = 0;
+    ctx.drawImage(bg, 0, 0);
+    drawDynamic(t, 1 / 12);
+    applyLight(0.92 + 0.08 * Math.sin(t * 9));
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- integer-ish scaling to cover the viewport ----------
+function fit() {
+  const s = Math.max(1, Math.round(Math.max(innerWidth / W, innerHeight / H)));
+  document.getElementById("stage").style.setProperty("--s", s);
+}
+addEventListener("resize", fit);
+fit();
+
+// ---------- vinyl hover: song + artist (hover on desktop, tap on touch) ----------
+const tracks = [null, null];
+const stage = document.getElementById("stage");
+const tip = document.createElement("div");
+tip.className = "vinyl-tip";
+tip.hidden = true;
+stage.appendChild(tip);
+const pct = (v, total) => (v / total) * 100 + "%";
+function showTip(i) {
+  const tr = tracks[i];
+  if (!tr || !tr.name) return;
+  const [x, y] = FRAMES[i];
+  tip.innerHTML = "";
+  const title = document.createElement("div");
+  title.textContent = tr.name;
+  tip.appendChild(title);
+  if (tr.artist) {
+    const artist = document.createElement("div");
+    artist.className = "artist";
+    artist.textContent = tr.artist;
+    tip.appendChild(artist);
+  }
+  tip.style.left = pct(x + 21, W);
+  tip.style.top = pct(y + 47, H);
+  tip.hidden = false;
+}
+const hideTip = () => { tip.hidden = true; };
+const fineHover = matchMedia("(hover: hover) and (pointer: fine)").matches;
+FRAMES.forEach(([x, y], i) => {
+  const hit = document.createElement("div");
+  hit.className = "vinyl-hit";
+  hit.tabIndex = 0;
+  Object.assign(hit.style, { left: pct(x - 1, W), top: pct(y - 1, H), width: pct(44, W), height: pct(44, H) });
+  hit.addEventListener("mouseenter", () => showTip(i));
+  hit.addEventListener("mouseleave", hideTip);
+  hit.addEventListener("focus", () => showTip(i));
+  hit.addEventListener("blur", hideTip);
+  hit.addEventListener("click", (e) => {
+    if (fineHover) return;
+    e.stopPropagation();
+    tip.hidden ? showTip(i) : hideTip();
+  });
+  stage.appendChild(hit);
+});
+document.addEventListener("click", hideTip);
+
+// ---------- live Spotify covers ----------
+fetch("https://eng-spotify-vinyl.ethanhreeves.workers.dev/recent")
+  .then((r) => r.json())
+  .then((d) => {
+    const list = Array.isArray(d) ? d : d.tracks || d.items || d.recent || [];
+    const withCovers = list.filter((t) => t.coverUrl || t.cover || t.image);
+    const urls = withCovers.map((t) => t.coverUrl || t.cover || t.image);
+    withCovers.slice(0, FRAMES.length).forEach((t, i) => { tracks[i] = { name: t.name || "", artist: t.artist || "" }; });
+    urls.slice(0, FRAMES.length).forEach((url, i) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try { covers[i] = pixelateCover(img); drawStatic(); } catch { /* CORS-tainted: keep vinyl fallback */ }
+      };
+      img.src = url;
+    });
+  })
+  .catch(() => {});
+
+document.getElementById("scr").addEventListener("click", (e) => {
+  e.currentTarget.innerHTML = "<div>&gt; booting stack...</div><div>loading L1–L6</div><div class='amber'>OK <span class='blink'>_</span></div>";
+});
+</script>
+</body>
+</html>

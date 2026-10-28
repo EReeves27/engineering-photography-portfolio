@@ -866,40 +866,57 @@ function sunI(x, y) {
 const lightAt = (x, y, k) =>
   AMBIENT[k] + LAMP_LIGHT[k] * lampI(x, y) * LAMP_GAIN + SUN_LIGHT[k] * sunI(x, y) * SUN_GAIN + PIC_LIGHT[k] * picI(x, y) * PIC_GAIN;
 
-let IL, IC, IS, IP, IV, EM;
+/**
+ * The light reaching each pixel is baked into lightCv once per layout and
+ * applied with canvas blend modes (multiply, then add to double it), so
+ * rendering never reads pixels back. Some mobile ad blockers' anti-fingerprinting
+ * blanks canvas readback, which would otherwise wipe the room.
+ * Light is stored at 1/LIGHT_SCALE so values above 1 (brightening) fit in 0..255.
+ */
+const LIGHT_SCALE = 2;
+const lightCv = document.createElement("canvas"), copyCv = document.createElement("canvas");
+/** Lamp light per canvas pixel; the lamp beam's dust motes only show where it's bright. */
+let IL;
 function buildLight() {
   const cw = bg.width, ch = bg.height;
-  IL = new Float32Array(cw * ch); IC = new Float32Array(cw * ch); IS = new Float32Array(cw * ch);
-  IP = new Float32Array(cw * ch); IV = new Float32Array(cw * ch); EM = new Uint8Array(cw * ch);
+  lightCv.width = copyCv.width = cw;
+  lightCv.height = copyCv.height = ch;
+  const lg = lightCv.getContext("2d"), img = lg.createImageData(cw, ch), d = img.data;
+  IL = new Float32Array(cw * ch);
   const sc = [SCREEN.x + SCREEN.w / 2, SCREEN.y + SCREEN.h / 2];
   for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) {
-    const i = cy * cw + cx, x = cx - padX, y = cy - padTop;
+    const i = cy * cw + cx, o = i * 4, x = cx - padX, y = cy - padTop;
+    d[o + 3] = 255;
     // Light sources keep their own colour.
-    if (inGlass(x, y) || inPoly(x + 0.5, y + 0.5, LAMP_HEAD) || isPicBulb(x, y)) { EM[i] = 1; continue; }
+    if (inGlass(x, y) || inPoly(x + 0.5, y + 0.5, LAMP_HEAD) || isPicBulb(x, y)) {
+      d[o] = d[o + 1] = d[o + 2] = 255 / LIGHT_SCALE;
+      continue;
+    }
+    // Dithered 12-step light levels keep falloffs smooth but pixel-y.
+    const t = by(cx, cy), q = (v) => Math.floor(Math.min(1.2, v) * 12 + t) / 12;
     IL[i] = lampI(x, y);
-    IS[i] = sunI(x, y);
-    IP[i] = picI(x, y);
-    IC[i] = Math.max(0, 1 - Math.hypot((x - sc[0]) / 1.25, y - sc[1]) / 72) * 0.9;
+    const l = q(IL[i]) * LAMP_GAIN, s = q(sunI(x, y)) * SUN_GAIN, p = q(picI(x, y)) * PIC_GAIN;
+    const c = q(Math.max(0, 1 - Math.hypot((x - sc[0]) / 1.25, y - sc[1]) / 72) * 0.9) * CRT_GAIN;
     const vx = (cx - cw / 2) / (cw / 2), vy = (cy - ch / 2) / (ch * 0.61);
-    IV[i] = Math.max(0, vx * vx + vy * vy - 0.35) * 1.4;
+    const v = 1 - 0.08 * Math.min(4, Math.floor(Math.max(0, vx * vx + vy * vy - 0.35) * 1.4 * 3 + t));
+    for (let k = 0; k < 3; k++)
+      d[o + k] = (v * (AMBIENT[k] + LAMP_LIGHT[k] * l + SUN_LIGHT[k] * s + CRT_LIGHT[k] * c + PIC_LIGHT[k] * p) * 255) / LIGHT_SCALE;
   }
+  lg.putImageData(img, 0, 0);
 }
 
-function applyLight(crtF) {
-  const cw = bg.width, ch = bg.height;
-  const img = ctx.getImageData(0, 0, cw, ch), d = img.data;
-  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
-    const i = y * cw + x;
-    if (EM[i]) continue;
-    const o = i * 4, t = by(x, y);
-    // Dithered 12-step light levels keep falloffs smooth but pixel-y.
-    const q = (v) => Math.floor(Math.min(1.2, v) * 12 + t) / 12;
-    const l = q(IL[i]) * LAMP_GAIN, s = q(IS[i]) * SUN_GAIN, c = q(IC[i] * crtF) * CRT_GAIN, p = q(IP[i]) * PIC_GAIN;
-    const v = 1 - 0.08 * Math.min(4, Math.floor(IV[i] * 3 + t));
-    for (let k = 0; k < 3; k++)
-      d[o + k] = d[o + k] * v * (AMBIENT[k] + LAMP_LIGHT[k] * l + SUN_LIGHT[k] * s + CRT_LIGHT[k] * c + PIC_LIGHT[k] * p);
-  }
-  ctx.putImageData(img, 0, 0);
+/** Multiply a canvas by `light` (a canvas or CSS colour, at 1/LIGHT_SCALE) and scale back up, without reading pixels. */
+function lightCanvas(target, light) {
+  const tg = target.getContext("2d"), w = target.width, h = target.height;
+  tg.globalCompositeOperation = "multiply";
+  if (typeof light === "string") { tg.fillStyle = light; tg.fillRect(0, 0, w, h); }
+  else tg.drawImage(light, 0, 0);
+  // LIGHT_SCALE is 2: add the result onto itself once.
+  copyCv.getContext("2d").clearRect(0, 0, w, h);
+  copyCv.getContext("2d").drawImage(target, 0, 0);
+  tg.globalCompositeOperation = "lighter";
+  tg.drawImage(copyCv, 0, 0, w, h, 0, 0, w, h);
+  tg.globalCompositeOperation = "source-over";
 }
 
 // ---------- animated bits ----------
@@ -1002,7 +1019,7 @@ function renderFrame(t, dt) {
   ctx.setTransform(1, 0, 0, 1, padX, padTop);
   drawDynamic(t, dt);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  applyLight(0.92 + 0.08 * Math.sin(t * 9));
+  lightCanvas(ctx.canvas, lightCv);
 }
 
 // ---------- live vinyl covers ----------
@@ -1010,10 +1027,11 @@ function renderFrame(t, dt) {
 const COVER_RES = COVER * 2;
 const coverUrls = [];
 
-// Album art → COVER_RES² pixel art: step-down resize, then light ordered-dither posterize with a warm push.
+// Album art → COVER_RES² pixels (step-down resize keeps it clean), lit like the room.
 function pixelateCover(img, out, slot) {
   // Covers sit above the canvas, so light them by hand with the light reaching their frame.
-  const f = FRAMES[slot], light = [0, 1, 2].map((k) => lightAt(f.x + 18, f.y + 18, k));
+  const f = FRAMES[slot];
+  const light = [0, 1, 2].map((k) => Math.round(Math.min(255, (lightAt(f.x + 18, f.y + 18, k) * 255) / LIGHT_SCALE)));
   const mid = document.createElement("canvas");
   mid.width = mid.height = 128;
   const s = Math.min(img.naturalWidth, img.naturalHeight);
@@ -1021,13 +1039,7 @@ function pixelateCover(img, out, slot) {
   const x = out.getContext("2d");
   x.imageSmoothingQuality = "high";
   x.drawImage(mid, 0, 0, COVER_RES, COVER_RES);
-  const d = x.getImageData(0, 0, COVER_RES, COVER_RES), a = d.data, L = 20;
-  for (let i = 0; i < COVER_RES * COVER_RES; i++) {
-    const t = (by(i % COVER_RES, (i / COVER_RES) | 0) - 0.5) * 0.3;
-    for (let k = 0; k < 3; k++) a[i * 4 + k] = (Math.round((a[i * 4 + k] / 255) * (L - 1) + t) / (L - 1)) * 255;
-    for (let k = 0; k < 3; k++) a[i * 4 + k] *= light[k];
-  }
-  x.putImageData(d, 0, 0);
+  lightCanvas(out, "rgb(" + light.join(",") + ")");
 }
 
 /** Called by spotify-vinyl.js with each slot's cover URL. */
@@ -1035,11 +1047,11 @@ export function setVinylCover(i, url) {
   const out = document.querySelector('.crt-vinyl-slot[data-vinyl-idx="' + i + '"] .crt-vinyl-cover');
   if (!out || !url || coverUrls[i] === url) return;
   coverUrls[i] = url;
+  // No pixel readback anywhere, so the cover doesn't need CORS.
   const img = new Image();
-  img.crossOrigin = "anonymous";
   img.onload = () => {
     if (coverUrls[i] !== url) return;
-    try { pixelateCover(img, out, i); } catch { return; /* CORS-tainted: keep vinyl fallback */ }
+    pixelateCover(img, out, i);
     out.hidden = false;
   };
   img.src = url;
@@ -1188,7 +1200,7 @@ function fitBookLabels() {
 export function initCrtRoom() {
   const canvas = document.getElementById("crt-room-canvas");
   if (!canvas || ctx) return;
-  ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx = canvas.getContext("2d");
   padX = -1; // force the first layout
   layoutCanvas();
   // Fit after the pixel font loads; refit on resize since pixel rounding changes with scale.
