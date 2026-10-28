@@ -1492,7 +1492,6 @@ a.res-dl { color: #0d0d1a; }
   left: 5em; top: 5em;
   width: 28em; height: 28em;
   image-rendering: pixelated;
-  filter: brightness(.9);
 }
 .crt-vinyl-cover[hidden] { display: none; }
 /* Desk camera → photography portfolio. Pixel label pops above it on hover/focus. */

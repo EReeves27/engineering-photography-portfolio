@@ -32,6 +32,7 @@ const MONITOR = {
 const WIN = { x: 16, y: 12, w: 76, h: 84 };
 const HORIZON = WIN.y + 52;
 const BEACH = WIN.y + 70;
+/** The setting sun, seen through the window; it's also the room's main light source. */
 const SUN = { x: WIN.x + 54, y: HORIZON - 2, r: 8 };
 
 /** Wall frames (top-left of the 36px wood frame). Slot 0 = most recent track. */
@@ -108,6 +109,21 @@ function buildBooks() {
 const BOOKS = buildBooks();
 
 // Keep key props inside x≈18..300 so 16:10 screens (which crop the sides) still show them.
+/** Cabin roof: tie beam rows BEAM_Y..BEAM_Y+3 just above the window and frames; Λ peak ROOF_H above the room top. */
+const ROOF_H = 30, BEAM_Y = -6;
+/** Rafters meet the tie beam this far either side of centre, which sets the roof pitch. */
+const ROOF_HALF = 150;
+/** White-painted ceiling boards and timbers. */
+const ROOF_PAINT = {
+  board: "#f4f1ec", board2: "#e9e4dc", seam: "#cfc7ba",
+  timber: "#e4ddd1", lit: "#fbf9f5", shade: "#b5ab9c",
+};
+/** Where the wall and desk meet the floor (the rug sits below this). */
+const FLOOR_Y = 196;
+/** Desk extent (it ends just past the room's props) and its two drawer pedestals [x0, x1). */
+const DESK_X0 = 2, DESK_X1 = 318;
+const PEDESTALS = [[DESK_X0 + 3, 118], [202, DESK_X1 - 3]];
+
 const CATX = 16, CATY = 99;
 /** Mug sits on the desk just in front of the speaker. */
 const MUGX = 99, MUGY = 125;
@@ -120,11 +136,13 @@ const FPS = 12;
 
 const C = {
   ol: "#1a1218",
-  wall: "#7aa39a", wallD: "#6c958c", wallL: "#88b0a6", wallS: "#557a72",
+  // Warm off-white plaster; reads peach-tan in the room's amber dusk light.
+  wall: "#f0e1cd", wallD: "#e6d5bf", wallL: "#f6eadb", wallS: "#c9b296",
   shelfL: "#b07a4f", shelfT: "#9a6642", shelf: "#7f5034", shelfD: "#4f2f1f",
-  // Sun-bleached driftwood.
-  deskTop: "#b5a28a", deskTopL: "#c9b9a2", deskGrain: "#9e8b73", deskEdge: "#8c7a65", deskEdgeL: "#d6c8b2",
-  deskFront: "#9c8a74", deskFrontD: "#76665a", deskFrontL: "#ae9c85", shadow: "#7e6c5a",
+  // Dark oak.
+  deskTop: "#7a4a32", deskTopL: "#8f5a3b", deskGrain: "#6a3f2b", deskEdge: "#5a3424", deskEdgeL: "#a06a45",
+  deskFront: "#3e2419", deskFrontD: "#2a170f", deskFrontL: "#4d2e20", shadow: "#3d2418",
+  deskHole: "#1e110c", deskHandleD: "#5e3f22",
   beigeH: "#efe2c4", beige: "#d9c7a3", beigeM: "#bba783", beigeD: "#8f7c5f", beigeDD: "#5e4f3c",
   scr0: "#08130d", scr1: "#0f2218", scr2: "#16301f",
   brass: "#a07a3c", brassL: "#c99a52", brassD: "#6e5228", arm: "#2c2732", armL: "#4d4656",
@@ -140,6 +158,8 @@ const mk = () => {
 };
 const bg = mk(), winBack = mk(), winFront = mk();
 let ctx = null;
+/** Screen px per art px, and how far the canvas extends past the room on each side (art px). */
+let artPx = 0, padX = 0, padTop = 0, padBottom = 0, lastT = 0;
 let g = bg.getContext("2d");
 const use = (canvas) => { g = canvas.getContext("2d"); };
 
@@ -217,15 +237,102 @@ function noise(x, y) {
 const inGlass = (x, y) => x >= WIN.x && x < WIN.x + WIN.w && y >= WIN.y && y < WIN.y + WIN.h;
 
 // ---------- wall, window, shelf, frames ----------
+// Wall, desk and floor span the whole canvas (room coords run from -padX/-padTop past each edge).
 function drawWall() {
+  const x0 = -padX, x1 = W + padX, y0 = -padTop;
   // Limewash plaster: soft cloudy mottling from two octaves of value noise, dithered into 3 tones.
-  for (let y = 0; y < 120; y++) for (let x = 0; x < W; x++) {
+  for (let y = y0; y < FLOOR_Y; y++) for (let x = x0; x < x1; x++) {
     const n = noise(x / 26, y / 18) * 0.7 + noise(x / 9 + 40, y / 7) * 0.3 + (by(x, y) - 0.5) * 0.12;
     px(x, y, n < 0.4 ? C.wallD : n > 0.6 ? C.wallL : C.wall);
   }
-  for (let y = 0; y < 30; y++)
-    for (let x = 0; x < W; x++) if (by(x, y) < ((30 - y) / 30) * 0.6) px(x, y, C.wallS);
-  rect(0, 119, W, 1, C.ol);
+  // Wood baseboard where the wall meets the floor.
+  rect(x0, FLOOR_Y - 5, x1 - x0, 1, C.ol);
+  rect(x0, FLOOR_Y - 4, x1 - x0, 4, "#6b4630");
+  rect(x0, FLOOR_Y - 4, x1 - x0, 1, "#8f6040");
+}
+
+// Cabin roof: the limewash wall continues up into a gable that rises to a Λ peak,
+// with dark pine ceiling boards outside it, heavy rafters along the Λ, a ridge
+// beam overhead, a king post, and a tie beam across the top of the wall.
+function drawRoof() {
+  const x0 = -padX, x1 = W + padX, y0 = -padTop, cx = W / 2;
+  if (y0 >= BEAM_Y + 4) return;
+  // Peak sits at the top of the view so the gable fills whatever height the window gives it.
+  const peakY = Math.min(-ROOF_H + 2, y0 + 2);
+  const rafterY = (x) => BEAM_Y + (peakY - BEAM_Y) * Math.max(0, 1 - Math.abs(x + 0.5 - cx) / ROOF_HALF);
+  // White-painted boards and timbers; soft grey shading keeps the Λ readable.
+  const R = ROOF_PAINT;
+  for (let y = y0; y < BEAM_Y; y++) for (let x = x0; x < x1; x++) {
+    const ry = rafterY(x);
+    if (y < ry) px(x, y, Math.floor(ry - y) % 4 === 0 ? R.seam : by(x, y) < 0.12 ? R.board2 : R.board);
+  }
+  // Ridge beam running overhead from the peak.
+  if (y0 < peakY) {
+    rect(cx - 4, y0, 8, peakY - y0, C.ol);
+    rect(cx - 3, y0, 6, peakY - y0, R.timber);
+    rect(cx - 3, y0, 1, peakY - y0, R.lit);
+    rect(cx + 2, y0, 1, peakY - y0, R.shade);
+  }
+  // Rafters along the Λ, outlined so white-on-white still reads.
+  const pk = Math.round(peakY), lx = cx - ROOF_HALF, rx = cx + ROOF_HALF;
+  line(lx, BEAM_Y - 1, cx, pk - 1, C.ol, 4);
+  line(cx, pk - 1, rx, BEAM_Y - 1, C.ol, 4);
+  line(lx, BEAM_Y, cx, pk, R.timber, 3);
+  line(cx, pk, rx, BEAM_Y, R.timber, 3);
+  line(lx, BEAM_Y, cx, pk, R.lit);
+  line(cx, pk, rx, BEAM_Y, R.lit);
+  line(lx, BEAM_Y + 2, cx, pk + 2, R.shade);
+  line(cx, pk + 2, rx, BEAM_Y + 2, R.shade);
+  // King post from the tie beam up to the peak.
+  rect(cx - 3, pk, 6, BEAM_Y - pk, C.ol);
+  rect(cx - 2, pk, 4, BEAM_Y - pk, R.timber);
+  rect(cx - 2, pk, 1, BEAM_Y - pk, R.lit);
+  rect(cx + 1, pk, 1, BEAM_Y - pk, R.shade);
+  // Tie beam and the shadow it casts on the wall.
+  rect(x0, BEAM_Y - 1, x1 - x0, 1, C.ol);
+  rect(x0, BEAM_Y, x1 - x0, 4, R.timber);
+  rect(x0, BEAM_Y, x1 - x0, 1, R.lit);
+  rect(x0, BEAM_Y + 3, x1 - x0, 1, R.shade);
+  rect(x0, BEAM_Y + 4, x1 - x0, 1, C.ol);
+  for (let y = BEAM_Y + 5; y < BEAM_Y + 11; y++)
+    for (let x = x0; x < x1; x++) if (by(x, y) < ((BEAM_Y + 11 - y) / 6) * 0.6) px(x, y, C.wallS);
+}
+
+// Whitewashed floorboards below the desk with an inset rug, shaded where the desk overhangs.
+function drawFloor() {
+  const x0 = -padX, x1 = W + padX, y1 = H + padBottom, F = FLOOR_Y;
+  rect(x0, F, x1 - x0, y1 - F, "#cbbba3");
+  for (let y = F + 2, row = 0; y < y1; y += 6, row++) {
+    rect(x0, y, x1 - x0, 1, "#a9997f");
+    // Long staggered planks with a little grain so they read as wood, not tile.
+    for (let x = x0 + ((row * 41) % 89); x < x1; x += 89) rect(x, y + 1, 1, 5, "#a9997f");
+    for (let k = 0; k < (x1 - x0) / 9; k++) {
+      const gx = x0 + ((row * 29 + k * 47) % (x1 - x0)), gy = y + 2 + ((row + k) % 3);
+      if (gy < y1) rect(gx, gy, 3 + (k % 4), 1, "#bdad94");
+    }
+  }
+  // Striped woven rug with fringed ends, inset so floorboards show all around it.
+  // Sized to the floor that's on screen at rest (the stage's bottom stageTop px start below the fold).
+  const fh = y1 - Math.floor(stageTop / artPx) - F;
+  if (fh >= 16) {
+    const mx = Math.max(14, Math.round((x1 - x0) * 0.14));
+    let rx0 = x0 + mx, rx1 = x1 - mx;
+    if (rx1 - rx0 > 300) { rx0 = W / 2 - 150; rx1 = W / 2 + 150; }
+    const ry0 = F + 5, ry1 = ry0 + Math.min(fh - 9, 40);
+    for (let y = ry0 + 1; y < ry1 - 1; y += 2) { rect(rx0 - 3, y, 3, 1, "#efe3cc"); rect(rx1, y, 3, 1, "#efe3cc"); }
+    rect(rx0, ry0, rx1 - rx0, ry1 - ry0, C.ol);
+    rect(rx0 + 1, ry0 + 1, rx1 - rx0 - 2, ry1 - ry0 - 2, "#c7684e");
+    for (let y = ry0 + 3; y < ry1 - 3; y++) for (let x = rx0 + 3; x < rx1 - 3; x++) {
+      const band = (y - ry0 - 3) % 8;
+      px(x, y, band < 2 ? "#2f4a6b" : band === 4 ? "#5d8a7a" : by(x, y) < 0.12 ? "#d6c8ae" : "#e8dcc4");
+    }
+  }
+  // Contact shadow along the baseboard, deeper under the desk.
+  for (let y = F; y < Math.min(y1, F + 5); y++)
+    for (let x = x0; x < x1; x++) {
+      const depth = x >= DESK_X0 - 2 && x < DESK_X1 + 2 ? 5 : 2;
+      if (by(x, y) < ((F + depth - y) / 5) * 0.7) px(x, y, "#8f7f68");
+    }
 }
 
 /** Everything seen through the glass that never moves: sky, sun, headland, sea, beach. */
@@ -340,11 +447,18 @@ function drawShelf() {
   }
 }
 
+/** Picture light over frame i: brass bar on a short arm from the roof beam, glowing underside. */
+const picLight = (i) => ({ x: FRAMES[i].x + 9, w: 19, y: FRAMES[i].y - 4 });
+function drawPictureLight(i) {
+  const L = picLight(i), ax = FRAMES[i].x + 17;
+  rect(ax, BEAM_Y + 4, 2, L.y - BEAM_Y - 4, C.ol);
+  rect(L.x - 1, L.y, L.w + 2, 3, C.ol);
+  rect(L.x, L.y + 1, L.w, 1, C.brassL);
+  rect(L.x + 1, L.y + 2, L.w - 2, 1, "#fff1c4");
+}
+
 function drawFrame(i) {
   const { x, y } = FRAMES[i];
-  line(x + 4, y, x + 18, y - 3, "#5a4a40");
-  line(x + 18, y - 3, x + 32, y, "#5a4a40");
-  px(x + 18, y - 4, "#9a8f86");
   for (let k = 0; k < 38; k++) for (let j = 0; j < 2; j++) {
     if (by(x + 37 + j, y + 2 + k) < 0.5) px(x + 37 + j, y + 2 + k, C.wallS);
     if (by(x + 2 + k, y + 37 + j) < 0.5) px(x + 2 + k, y + 37 + j, C.wallS);
@@ -354,6 +468,7 @@ function drawFrame(i) {
   rect(x, y, 36, 1, "#8f6040"); rect(x, y, 1, 36, "#8f6040");
   rect(x, y + 35, 36, 1, "#3f281b"); rect(x + 35, y, 1, 36, "#3f281b");
   rect(x + 3, y + 3, 30, 30, "#120d10");
+  drawPictureLight(i);
   // Fallback until the live cover (.crt-vinyl-cover canvas) loads on top: a pixel vinyl record.
   const cx = x + 18, cy = y + 18;
   rect(x + 4, y + 4, COVER, COVER, "#1b1720");
@@ -367,23 +482,32 @@ function drawFrame(i) {
 }
 
 // ---------- desk + objects ----------
+// Oak desk with finished ends: a top slab over two three-drawer pedestals, kneehole between.
 function drawDesk() {
-  rect(0, 120, W, 20, C.deskTop);
+  const x0 = DESK_X0, dw = DESK_X1 - DESK_X0;
+  rect(x0 - 1, 119, dw + 2, 27, C.ol);
+  rect(x0, 120, dw, 20, C.deskTop);
   for (let i = 0; i < 46; i++) {
-    const y = 121 + ((i * 7) % 19), x = (i * 53) % W, len = 8 + ((i * 13) % 22);
+    const y = 121 + ((i * 7) % 19), x = x0 + ((i * 53) % dw), len = Math.min(8 + ((i * 13) % 22), x0 + dw - x);
     rect(x, y, len, 1, i % 3 ? C.deskGrain : C.deskTopL);
   }
-  rect(0, 140, W, 1, C.deskEdgeL);
-  rect(0, 141, W, 4, C.deskEdge);
-  rect(0, 145, W, 1, C.ol);
-  rect(0, 146, W, 34, C.deskFront);
-  rect(124, 146, 72, 34, "#4f4338");
-  for (const [x, w] of [[14, 98], [208, 98]]) {
-    rect(x, 152, w, 22, C.deskFrontD);
-    rect(x + 1, 153, w - 2, 20, C.deskFrontL);
-    rect(x + 1, 171, w - 2, 2, C.deskFront);
-    rect(x + w / 2 - 5, 159, 10, 2, "#b08850");
-    rect(x + w / 2 - 5, 161, 10, 1, "#6a5848");
+  rect(x0, 140, dw, 1, C.deskEdgeL);
+  rect(x0, 141, dw, 4, C.deskEdge);
+  // Kneehole: shadowed back panel between the pedestals.
+  rect(PEDESTALS[0][1], 146, PEDESTALS[1][0] - PEDESTALS[0][1], FLOOR_Y - 146, C.deskHole);
+  const dh = Math.floor((FLOOR_Y - 152) / 3);
+  for (const [p0, p1] of PEDESTALS) {
+    rect(p0 - 1, 146, p1 - p0 + 2, FLOOR_Y - 146, C.ol);
+    rect(p0, 146, p1 - p0, FLOOR_Y - 150, C.deskFront);
+    rect(p0 + 1, FLOOR_Y - 4, p1 - p0 - 2, 4, C.deskFrontD);
+    for (let k = 0; k < 3; k++) {
+      const x = p0 + 3, y = 148 + k * dh, w = p1 - p0 - 6;
+      rect(x, y, w, dh - 2, C.deskFrontD);
+      rect(x + 1, y + 1, w - 2, dh - 4, C.deskFrontL);
+      rect(x + 1, y + dh - 5, w - 2, 1, C.deskFront);
+      rect(x + w / 2 - 5, y + (dh >> 1) - 2, 10, 2, "#b08850");
+      rect(x + w / 2 - 5, y + (dh >> 1), 10, 1, C.deskHandleD);
+    }
   }
 }
 
@@ -543,30 +667,38 @@ function drawLamp() {
   line(249, 99, 234, 73, C.ol, 3);
   line(249, 100, 234, 74, C.arm, 2);
   rect(247, 97, 4, 4, C.ol); rect(248, 98, 2, 2, C.armL);
-  poly([[225, 63], [239, 73], [230, 90], [211, 81]], C.ol);
-  poly([[226, 65], [237, 73], [229, 88], [213, 80]], C.brass);
-  line(226, 65, 237, 73, C.brassL);
-  line(229, 87, 237, 74, C.brassD);
-  line(214, 80, 228, 87, "#ffd27a");
-  line(215, 79, 227, 85, "#fff3cf");
+  // Glowing amber shade: brightest toward the open bottom where the bulb sits.
+  poly(LAMP_HEAD, C.ol);
+  poly([[226, 65], [237, 73], [229, 88], [213, 80]], "#ffc45c");
+  poly([[224, 70], [234, 76], [228, 86], [216, 80]], "#ffd98a");
+  line(226, 65, 237, 73, "#e8a040");
+  line(229, 87, 237, 74, "#d98a30");
+  line(214, 80, 228, 87, "#fff1c4");
+  line(215, 79, 227, 85, "#fffbe8");
 }
 
 function drawStatic() {
   use(winBack); g.clearRect(0, 0, W, H); drawWindowBack();
   use(winFront); g.clearRect(0, 0, W, H); drawWindowFront();
   use(bg);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, bg.width, bg.height);
+  g.setTransform(1, 0, 0, 1, padX, padTop);
   drawWall();
+  drawRoof();
   g.drawImage(winBack, 0, 0);
   g.drawImage(winFront, 0, 0);
   drawShelf();
   FRAMES.forEach((_, i) => drawFrame(i));
   drawDesk();
+  drawFloor();
   shadow(160, 127, 30, 2); shadow(161, 139, 46, 1.6); shadow(MUGX + 6, MUGY + 14, 9, 1.6);
   shadow(242, 133, 13, 1.6); shadow(280, 128, 28, 2.4); shadow(CATX + 32, 130, 24, 2.2);
   shadow(SPEAKER.x + SPEAKER.w / 2, 128, 14, 1.6);
   shadow(CAMERA.x + CAMERA.w / 2, CAMERA.y + CAMERA.h + 1, 10, 1.4);
   drawMouseCable();
   drawSpeaker(); drawCamera(); drawTower(); drawTowerBooks(); drawMonitor(); drawKeyboard(); drawMouse(); drawMug(); drawLamp();
+  g.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 // ---------- cat sprite: seal-point snowshoe (procedural so breathing swells the back) ----------
@@ -675,48 +807,97 @@ const CLOUDS = [
   { w: 26, h: 7, y: WIN.y + 33, speed: 0.5, off: 15 },
 ].map((c) => ({ ...c, sprite: cloudSprite(c.w, c.h) }));
 
-// ---------- light maps (dithered, quantized) ----------
-const IL = new Float32Array(W * H), IC = new Float32Array(W * H), IS = new Float32Array(W * H), IV = new Float32Array(W * H);
-(function buildLight() {
+// ---------- lighting ----------
+// Dusk: a dark warm ambient, with the desk lamp and the sunset adding strong
+// saturated light. Each pixel's colour is multiplied by the light reaching it
+// (ambient + lights), so materials keep their contrast while lit areas glow.
+
+/** Lamp shade outline; the shade itself is a light source. */
+const LAMP_HEAD = [[225, 63], [239, 73], [230, 90], [211, 81]];
+/** Light reaching an unlit surface, per channel. */
+const AMBIENT = [0.5, 0.42, 0.34];
+/** Light colours (per channel) and how strongly each can add. */
+const LAMP_LIGHT = [1, 0.62, 0.24], LAMP_GAIN = 1.3;
+const SUN_LIGHT = [1, 0.45, 0.4], SUN_GAIN = 1.1;
+const CRT_LIGHT = [0.25, 0.8, 0.45], CRT_GAIN = 0.3;
+const PIC_LIGHT = [1, 0.86, 0.62], PIC_GAIN = 0.55;
+
+/** Picture lights: a soft cone washing down over each frame. */
+function picI(x, y) {
+  let p = 0;
+  for (let i = 0; i < FRAMES.length; i++) {
+    const L = picLight(i), cx = L.x + L.w / 2, dy = y - (L.y + 2);
+    if (dy < 0 || dy > 48) continue;
+    const half = 9 + dy * 0.45, ax = Math.abs(x + 0.5 - cx);
+    if (ax < half) p += Math.pow(1 - ax / half, 0.7) * (1 - dy / 48);
+  }
+  return Math.min(1, p);
+}
+const isPicBulb = (x, y) => FRAMES.some((_, i) => { const L = picLight(i); return y === L.y + 2 && x > L.x && x < L.x + L.w - 1; });
+
+/** Desk lamp: pool on the desk, beam through the air, bulb, and a wide soft glow around the shade. */
+function lampI(x, y) {
   const S = [221, 84], E = [182, 130], ex = E[0] - S[0], ey = E[1] - S[1], len2 = ex * ex + ey * ey;
+  let l = 0;
+  if (y >= 120) { const a = (x - 178) / 74, b = (y - 133) / 13; l += Math.max(0, 1 - (a * a + b * b)) * 0.8; }
+  else {
+    const t = Math.max(0, Math.min(1, ((x - S[0]) * ex + (y - S[1]) * ey) / len2));
+    const d = Math.hypot(x - (S[0] + ex * t), y - (S[1] + ey * t)), w = 3 + t * 34;
+    if (t > 0) l += Math.max(0, 1 - d / w) * (1 - t * 0.3) * 0.4;
+  }
+  l += Math.pow(Math.max(0, 1 - Math.hypot(x - 221, y - 84) / 26), 1.5);
+  l += Math.pow(Math.max(0, 1 - Math.hypot(x - 226, (y - 80) * 1.1) / 160), 1.8) * 0.8;
+  return Math.min(1.2, l);
+}
+
+/** Sunset: pink-orange spill around the window, plus the window's shape cast onto the desk. */
+function sunI(x, y) {
+  const dx = Math.max(WIN.x - x, 0, x - (WIN.x + WIN.w - 1)), dy = Math.max(WIN.y - y, 0, y - (WIN.y + WIN.h - 1));
+  let s = Math.pow(Math.max(0, 1 - Math.hypot(dx, dy) / 55), 1.5) * 0.7;
+  if (y >= 121 && y < 140) {
+    // Beams travel toward the viewer, away from the sun (right of centre), so the patch leans left.
+    const gx = x + (y - 121) * 0.25;
+    if (gx >= WIN.x && gx < WIN.x + WIN.w && !(gx >= WIN.x + 35 && gx < WIN.x + 40)) s += 0.6 * (1 - (y - 121) / 24);
+  }
+  return Math.min(1, s);
+}
+
+/** Light multiplier for one channel at a room point (used for the HTML cover overlays). */
+const lightAt = (x, y, k) =>
+  AMBIENT[k] + LAMP_LIGHT[k] * lampI(x, y) * LAMP_GAIN + SUN_LIGHT[k] * sunI(x, y) * SUN_GAIN + PIC_LIGHT[k] * picI(x, y) * PIC_GAIN;
+
+let IL, IC, IS, IP, IV, EM;
+function buildLight() {
+  const cw = bg.width, ch = bg.height;
+  IL = new Float32Array(cw * ch); IC = new Float32Array(cw * ch); IS = new Float32Array(cw * ch);
+  IP = new Float32Array(cw * ch); IV = new Float32Array(cw * ch); EM = new Uint8Array(cw * ch);
   const sc = [SCREEN.x + SCREEN.w / 2, SCREEN.y + SCREEN.h / 2];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x;
-    let l = 0;
-    if (y >= 120) { const a = (x - 178) / 74, b = (y - 133) / 13; l += Math.max(0, 1 - (a * a + b * b)); }
-    else {
-      const t = Math.max(0, Math.min(1, ((x - S[0]) * ex + (y - S[1]) * ey) / len2));
-      const d = Math.hypot(x - (S[0] + ex * t), y - (S[1] + ey * t)), w = 3 + t * 34;
-      if (t > 0) l += Math.max(0, 1 - d / w) * (1 - t * 0.3) * 0.5;
-    }
-    l += Math.pow(Math.max(0, 1 - Math.hypot(x - 221, y - 84) / 22), 1.5);
-    l += Math.max(0, 1 - Math.hypot(x - 232, y - 80) / 82) * 0.35;
-    IL[i] = Math.min(1.25, l);
+  for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) {
+    const i = cy * cw + cx, x = cx - padX, y = cy - padTop;
+    // Light sources keep their own colour.
+    if (inGlass(x, y) || inPoly(x + 0.5, y + 0.5, LAMP_HEAD) || isPicBulb(x, y)) { EM[i] = 1; continue; }
+    IL[i] = lampI(x, y);
+    IS[i] = sunI(x, y);
+    IP[i] = picI(x, y);
     IC[i] = Math.max(0, 1 - Math.hypot((x - sc[0]) / 1.25, y - sc[1]) / 72) * 0.9;
-    // The window is emissive: it lights the room but isn't darkened by vignette.
-    if (inGlass(x, y)) continue;
-    IS[i] = Math.max(0, 1 - Math.hypot(x - (WIN.x + WIN.w / 2), (y - (WIN.y + WIN.h / 2)) * 1.2) / 175) * 0.85;
-    const vx = (x - 160) / 160, vy = (y - 90) / 110;
+    const vx = (cx - cw / 2) / (cw / 2), vy = (cy - ch / 2) / (ch * 0.61);
     IV[i] = Math.max(0, vx * vx + vy * vy - 0.35) * 1.4;
   }
-})();
+}
 
 function applyLight(crtF) {
-  const img = ctx.getImageData(0, 0, W, H), d = img.data;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x, o = i * 4, t = by(x, y);
-    let r = d[o], gg = d[o + 1], b = d[o + 2];
-    // Blend toward warm lamp light so pale surfaces glow instead of clipping to white.
-    const l = Math.min(4, Math.floor(IL[i] * 3 + t));
-    if (l) { r += (255 - r) * 0.13 * l + 4 * l; gg += (235 - gg) * 0.09 * l + 2 * l; b += (180 - b) * 0.03 * l; }
-    const lc = Math.floor(IC[i] * 2 * crtF + t);
-    if (lc) { gg += 9 * lc; b += 5 * lc; r += lc; }
-    const ls = Math.floor(IS[i] * 2.8 + t);
-    if (ls) { r += 14 * ls; gg += 5 * ls; b += 6 * ls; }
-    const lv = Math.floor(IV[i] * 3 + t);
-    if (lv) { const k = 1 - 0.13 * lv; r *= k; gg *= k; b *= k; }
-    // Global warm grade toward the sunset.
-    d[o] = r * 1.04 + 5; d[o + 1] = gg + 1; d[o + 2] = b * 0.9;
+  const cw = bg.width, ch = bg.height;
+  const img = ctx.getImageData(0, 0, cw, ch), d = img.data;
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+    const i = y * cw + x;
+    if (EM[i]) continue;
+    const o = i * 4, t = by(x, y);
+    // Dithered 12-step light levels keep falloffs smooth but pixel-y.
+    const q = (v) => Math.floor(Math.min(1.2, v) * 12 + t) / 12;
+    const l = q(IL[i]) * LAMP_GAIN, s = q(IS[i]) * SUN_GAIN, c = q(IC[i] * crtF) * CRT_GAIN, p = q(IP[i]) * PIC_GAIN;
+    const v = 1 - 0.08 * Math.min(4, Math.floor(IV[i] * 3 + t));
+    for (let k = 0; k < 3; k++)
+      d[o + k] = d[o + k] * v * (AMBIENT[k] + LAMP_LIGHT[k] * l + SUN_LIGHT[k] * s + CRT_LIGHT[k] * c + PIC_LIGHT[k] * p);
   }
   ctx.putImageData(img, 0, 0);
 }
@@ -808,14 +989,19 @@ function drawDynamic(t, dt) {
     if (m.y < 84) { m.y = 128; m.x = 180 + Math.random() * 50; }
     if (m.x < 176 || m.x > 234) m.vx *= -1;
     const ix = Math.round(m.x), iy = Math.round(m.y);
-    if (IL[iy * W + ix] > 0.3 && Math.sin(t * 2 + m.ph) > -0.3) px(ix, iy, "#ffe9b8");
+    if (IL[(iy + padTop) * bg.width + ix + padX] > 0.3 && Math.sin(t * 2 + m.ph) > -0.3) px(ix, iy, "#ffe9b8");
   }
 }
 
 function renderFrame(t, dt) {
   if (!ctx) return;
+  lastT = t;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(bg, 0, 0);
+  // Dynamic bits are drawn in room coordinates.
+  ctx.setTransform(1, 0, 0, 1, padX, padTop);
   drawDynamic(t, dt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   applyLight(0.92 + 0.08 * Math.sin(t * 9));
 }
 
@@ -825,7 +1011,9 @@ const COVER_RES = COVER * 2;
 const coverUrls = [];
 
 // Album art → COVER_RES² pixel art: step-down resize, then light ordered-dither posterize with a warm push.
-function pixelateCover(img, out) {
+function pixelateCover(img, out, slot) {
+  // Covers sit above the canvas, so light them by hand with the light reaching their frame.
+  const f = FRAMES[slot], light = [0, 1, 2].map((k) => lightAt(f.x + 18, f.y + 18, k));
   const mid = document.createElement("canvas");
   mid.width = mid.height = 128;
   const s = Math.min(img.naturalWidth, img.naturalHeight);
@@ -837,7 +1025,7 @@ function pixelateCover(img, out) {
   for (let i = 0; i < COVER_RES * COVER_RES; i++) {
     const t = (by(i % COVER_RES, (i / COVER_RES) | 0) - 0.5) * 0.3;
     for (let k = 0; k < 3; k++) a[i * 4 + k] = (Math.round((a[i * 4 + k] / 255) * (L - 1) + t) / (L - 1)) * 255;
-    a[i * 4] = a[i * 4] * 1.04 + 6; a[i * 4 + 2] *= 0.9;
+    for (let k = 0; k < 3; k++) a[i * 4 + k] *= light[k];
   }
   x.putImageData(d, 0, 0);
 }
@@ -851,7 +1039,7 @@ export function setVinylCover(i, url) {
   img.crossOrigin = "anonymous";
   img.onload = () => {
     if (coverUrls[i] !== url) return;
-    try { pixelateCover(img, out); } catch { return; /* CORS-tainted: keep vinyl fallback */ }
+    try { pixelateCover(img, out, i); } catch { return; /* CORS-tainted: keep vinyl fallback */ }
     out.hidden = false;
   };
   img.src = url;
@@ -910,6 +1098,43 @@ export function crtRoomSceneHtml() {
 }
 
 /**
+ * Room area that must stay on screen: window sill through tower side, and from
+ * the roof peak down past the rug. Its centre (ANCHOR_Y) sits mid-way down the
+ * space below the fixed nav bar.
+ */
+const FIT_TOP = -ROOF_H, FIT_BOTTOM = FLOOR_Y + 22;
+const FIT = { w: DESK_X1 - DESK_X0 + 4, h: FIT_BOTTOM - FIT_TOP };
+const ANCHOR_Y = (FIT_TOP + FIT_BOTTOM) / 2;
+/** Smallest scale: keeps the monitor's boot text legible. */
+const MIN_ART_PX = 3;
+/**
+ * How far down the page the 100vh stage starts (the nav sits above it), in screen px.
+ * At rest only the top innerHeight - stageTop of the stage is on screen.
+ */
+let stageTop = 0;
+
+/**
+ * Size the canvas to cover the stage at the current scale. The room's anchor
+ * sits mid-way down the on-screen part of the stage; extra space is filled
+ * with more roof, wall, desk and floor.
+ */
+function layoutCanvas() {
+  if (!ctx || !artPx) return;
+  const canvas = ctx.canvas, anchorStageY = (window.innerHeight - stageTop) / 2;
+  const nx = Math.max(0, Math.ceil((window.innerWidth / artPx - W) / 2));
+  const nt = Math.max(0, Math.ceil(anchorStageY / artPx - ANCHOR_Y));
+  const nb = Math.max(0, Math.ceil((window.innerHeight - anchorStageY) / artPx - (H - ANCHOR_Y)));
+  if (nx === padX && nt === padTop && nb === padBottom) return;
+  padX = nx; padTop = nt; padBottom = nb;
+  bg.width = canvas.width = W + 2 * padX;
+  bg.height = canvas.height = H + padTop + padBottom;
+  Object.assign(canvas.style, { left: -padX + "em", top: -padTop + "em", width: canvas.width + "em", height: canvas.height + "em" });
+  buildLight();
+  drawStatic();
+  renderFrame(lastT, 0);
+}
+
+/**
  * Push scene geometry into CSS custom properties. The scale is snapped so one
  * art pixel is a whole number of screen pixels; .crt-zoom-screen and the scene
  * both read --crt-slice-scale, so the HTML screen stays on the drawn monitor.
@@ -917,12 +1142,16 @@ export function crtRoomSceneHtml() {
  */
 export function applyCrtRoomLayoutVars(root) {
   if (!root) return;
-  const raw = Math.max(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h);
-  const artPx = Math.max(1, Math.ceil(raw * ART - 0.01));
+  // Zoom out as far as whole pixels allow while the whole room still fits,
+  // but never so far that the monitor's boot text gets unreadable (portrait phones).
+  stageTop = Math.max(0, root.getBoundingClientRect().top + window.scrollY);
+  artPx = Math.max(MIN_ART_PX, Math.floor(Math.min(window.innerWidth / FIT.w, (window.innerHeight - stageTop) / FIT.h)));
+  layoutCanvas();
   root.style.setProperty("--crt-vb-w", String(VIEW.w));
   root.style.setProperty("--crt-vb-h", String(VIEW.h));
   root.style.setProperty("--crt-vb-cx", String(VIEW.w / 2));
-  root.style.setProperty("--crt-vb-cy", String(VIEW.h / 2));
+  // Room point that sits at the stage's 50vh: the anchor, nudged so it lands mid-way down the on-screen part.
+  root.style.setProperty("--crt-vb-cy", String(ANCHOR_Y * ART + (ART / 2) * stageTop / artPx));
   root.style.setProperty("--crt-monitor-cx", String(MONITOR.cx));
   root.style.setProperty("--crt-monitor-cy", String(MONITOR.cy));
   root.style.setProperty("--crt-screen-w", String(MONITOR.screenW));
@@ -956,8 +1185,8 @@ export function initCrtRoom() {
   const canvas = document.getElementById("crt-room-canvas");
   if (!canvas || ctx) return;
   ctx = canvas.getContext("2d", { willReadFrequently: true });
-  drawStatic();
-  renderFrame(0, 0);
+  padX = -1; // force the first layout
+  layoutCanvas();
   // Fit after the pixel font loads; refit on resize since pixel rounding changes with scale.
   document.fonts.ready.then(fitBookLabels);
   window.addEventListener("resize", fitBookLabels, { passive: true });
