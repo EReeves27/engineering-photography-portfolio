@@ -1046,7 +1046,7 @@ function initStackExperience() {
     experience.querySelectorAll(".stack-layer-panel")
   );
   var dots = Array.prototype.slice.call(
-    experience.querySelectorAll(".stack-progress-dot")
+    experience.querySelectorAll(".stack-progress-dot, .stack-pc-part")
   );
   var progressRail = document.getElementById("stack-progress");
   // Phases: index 0 = boot, 1..6 = stack layers (Apps → Materials).
@@ -1078,6 +1078,8 @@ function initStackExperience() {
     var domain = active ? active.getAttribute("data-domain") || "boot" : "boot";
     experience.setAttribute("data-active-domain", domain);
     experience.setAttribute("data-active-idx", String(idx));
+    experience.setAttribute("data-at-top", idx <= 1 ? "true" : "false");
+    experience.setAttribute("data-at-bottom", idx === totalPhases - 1 ? "true" : "false");
   }
 
   function updateScroll() {
@@ -1241,6 +1243,22 @@ function initStackExperience() {
   if (reset) {
     reset.addEventListener("click", function () {
       window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // Ascend button: scroll to the layer above (hidden on the first layer via CSS).
+  var ascend = document.getElementById("eng-crt-ascend");
+  if (ascend) {
+    ascend.addEventListener("click", function () {
+      if (lastPhase > 1) scrollToPhase(lastPhase - 1);
+    });
+  }
+
+  // Descend button: scroll to the next layer down (hidden on the last one via CSS).
+  var descend = document.getElementById("eng-crt-descend");
+  if (descend) {
+    descend.addEventListener("click", function () {
+      if (lastPhase < totalPhases - 1) scrollToPhase(lastPhase + 1);
     });
   }
 }

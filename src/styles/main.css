@@ -2045,11 +2045,15 @@ a.res-dl { color: #0d0d1a; }
 .stack-progress-dot[data-domain="devices"].is-active .stack-progress-tick { color: var(--layer-devices); }
 .stack-progress-dot[data-domain="materials"].is-active .stack-progress-tick { color: var(--layer-materials); }
 
-/* Reassemble button — floats bottom-left, fades in once scrolled */
-.stack-reassemble {
+/* Home / Ascend / Descend buttons — float bottom-left, fade in once scrolled */
+.stack-actions {
   position: fixed;
   bottom: 18px; left: 18px;
   z-index: 50;
+  display: flex; gap: 8px;
+  pointer-events: none;
+}
+.stack-reassemble {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px;
   background: rgba(7, 7, 13, .75);
@@ -2072,6 +2076,83 @@ a.res-dl { color: #0d0d1a; }
 }
 .stack-reassemble:hover { background: rgba(212, 154, 58, .15); color: #fff; }
 .stack-reassemble i { font-size: 13px; }
+.eng-stack-experience[data-at-top="true"] .stack-ascend,
+.eng-stack-experience[data-at-bottom="true"] .stack-descend { display: none; }
+
+/* Desktop stack map — pixel computer exploded into its layers (left side) */
+.stack-pc {
+  position: fixed;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-20px);
+  z-index: 50;
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s ease, transform .35s ease;
+}
+.eng-stack-experience[data-mode="stack"] .stack-pc {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  pointer-events: auto;
+}
+.stack-pc-parts {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px;
+  transition: gap .5s ease;
+}
+/* Exploded once you're in the stack */
+.eng-stack-experience[data-mode="stack"] .stack-pc-parts { gap: 14px; }
+.stack-pc-part {
+  position: relative;
+  display: flex; justify-content: center;
+  padding: 0;
+  background: none; border: 0;
+  cursor: pointer;
+  color: rgba(168, 187, 160, .28);
+  transition: color .3s ease, transform .3s ease, filter .3s ease;
+}
+.stack-pc-part svg { display: block; position: relative; }
+.stack-pc-part:hover { color: rgba(241, 245, 234, .6); }
+.stack-pc-part.is-active { transform: translateX(10px); }
+.stack-pc-part[data-domain="applications"].is-active { color: var(--layer-applications); }
+.stack-pc-part[data-domain="software"].is-active { color: var(--layer-software); }
+.stack-pc-part[data-domain="architecture"].is-active { color: var(--layer-architecture); }
+.stack-pc-part[data-domain="circuits"].is-active { color: var(--layer-circuits); }
+.stack-pc-part[data-domain="devices"].is-active { color: var(--layer-devices); }
+.stack-pc-part[data-domain="materials"].is-active { color: var(--layer-materials); }
+.stack-pc-part.is-active svg { filter: drop-shadow(0 0 6px currentColor); }
+.stack-pc-label {
+  position: absolute;
+  left: calc(100% + 12px); top: 50%;
+  transform: translateY(-50%);
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase;
+  white-space: nowrap;
+  color: #f1f5ea;
+  padding: 4px 8px;
+  background: rgba(7, 7, 13, .8);
+  border: .5px solid rgba(212, 154, 58, .3);
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+.stack-pc-part:hover .stack-pc-label,
+.stack-pc-part:focus-visible .stack-pc-label { opacity: 1; }
+
+@media (min-width: 901px) {
+  .stack-pc { display: block; }
+  .stack-progress { display: none; }
+  /* Leave the left gutter for the pixel computer */
+  .crt-zoom-screen {
+    width: calc(var(--screen-w0) + (min(calc(100vw - 300px), 1400px) - var(--screen-w0)) * var(--zoom-progress, 0));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stack-pc, .stack-pc-parts, .stack-pc-part { transition: none; }
+}
 
 /* ══════════════════════════════════════════════════════════════
    BIOGRAPHY PAGE

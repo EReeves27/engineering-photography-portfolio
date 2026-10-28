@@ -366,6 +366,144 @@ function stackProgressHtml() {
   );
 }
 
+// Pixel sprites for the desktop "disassembled computer" stack map.
+// '#' = solid pixel, '+' = half-tone pixel, '.' = empty.
+var STACK_PC_SPRITES = {
+  applications: [ // monitor with a UI on screen
+    "########################",
+    "#......................#",
+    "#.########.............#",
+    "#.#++++++#..#########..#",
+    "#.#++++++#.............#",
+    "#.#++++++#..######.....#",
+    "#.########.............#",
+    "#..........#########...#",
+    "#......................#",
+    "########################",
+    "..........####..........",
+    "..........####..........",
+    "......############......",
+  ],
+  software: [ // macOS-style terminal
+    ".######################.",
+    "##.##.##.###############",
+    "########################",
+    "#++++++++++++++++++++++#",
+    "#+##+++++++++++++++++++#",
+    "#++##++++++++++++++++++#",
+    "#+++##+++++++++++++++++#",
+    "#++##++++++++++++++++++#",
+    "#+##+++++++++++++++++++#",
+    "#++++++######++++++++++#",
+    "#++++++++++++++++++++++#",
+    ".######################.",
+  ],
+  architecture: [ // CPU package with pins
+    "....#.#.#.#.#.#....",
+    "....#.#.#.#.#.#....",
+    "..###############..",
+    "###+++++++++++++###",
+    "..#+++++++++++++#..",
+    "###++#########++###",
+    "..#++#.......#++#..",
+    "###++#.......#++###",
+    "..#++#.......#++#..",
+    "###++#########++###",
+    "..#+++++++++++++#..",
+    "###+++++++++++++###",
+    "..###############..",
+    "....#.#.#.#.#.#....",
+    "....#.#.#.#.#.#....",
+  ],
+  circuits: [ // XOR gate
+    "...#..########..........",
+    "....#..#......##........",
+    "....#..#........#.......",
+    "#########........#......",
+    ".....#..#.........#.....",
+    ".....#..#..........#....",
+    ".....#..#...........####",
+    ".....#..#...........####",
+    ".....#..#..........#....",
+    ".....#..#.........#.....",
+    "#########........#......",
+    "....#..#........#.......",
+    "....#..#......##........",
+    "...#..########..........",
+  ],
+  devices: [ // NMOS transistor
+    "..............#.....",
+    "..............#.....",
+    ".........#....#.....",
+    "......#..######.....",
+    "......#..#..........",
+    "......#.............",
+    "......#..#.##.......",
+    "#######..######.....",
+    "......#..#.##.#.....",
+    "......#.......#.....",
+    "......#..#....#.....",
+    "......#..######.....",
+    ".........#....#.....",
+    "..............#.....",
+    "..............#.....",
+  ],
+  materials: [ // silicon wafer
+    "......#####......",
+    "....##++#++##....",
+    "...###########...",
+    "..#++#++#++#++#..",
+    ".##++#++#++#++##.",
+    ".###############.",
+    "#+#++#++#++#++#+#",
+    "#+#++#++#++#++#+#",
+    "#################",
+    "#+#++#++#++#++#+#",
+    "#+#++#++#++#++#+#",
+    ".###############.",
+    ".##++#++#++#++##.",
+    "..#++#++#++#++#..",
+    "...###########...",
+    "....#########....",
+  ],
+};
+
+function pixelSpriteSvg(rows) {
+  var rects = "";
+  rows.forEach(function (row, y) {
+    for (var x = 0; x < row.length; x++) {
+      var c = row[x];
+      if (c === ".") continue;
+      rects += '<rect x="' + x + '" y="' + y + '" width="1" height="1"' + (c === "+" ? ' opacity=".4"' : "") + "/>";
+    }
+  });
+  var w = rows[0].length, h = rows.length;
+  return (
+    '<svg viewBox="0 0 ' + w + " " + h + '" width="' + w * 3 + '" height="' + h * 3 + '" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">' +
+      rects +
+    "</svg>"
+  );
+}
+
+function stackComputerHtml() {
+  // Desktop-only exploded computer: one pixel part per layer, top → bottom.
+  var parts = ENG_STACK.layers.map(function (L, i) {
+    var sprite = STACK_PC_SPRITES[L.domain];
+    if (!sprite) return "";
+    return (
+      '<button type="button" class="stack-pc-part" data-idx="' + (i + 1) + '" data-domain="' + escapeAttr(L.domain) + '" aria-label="' + escapeAttr("L" + L.ordinal + " " + L.title) + '">' +
+        pixelSpriteSvg(sprite) +
+        '<span class="stack-pc-label">L' + L.ordinal + " · " + escapeHtml(L.title) + "</span>" +
+      "</button>"
+    );
+  });
+  return (
+    '<nav class="stack-pc" id="stack-pc" aria-label="Stack navigation">' +
+      '<div class="stack-pc-parts">' + parts.join("") + "</div>" +
+    "</nav>"
+  );
+}
+
 function buildEngHomeInnerHtml() {
   // The boot panel + all 6 layer panels render into an HTML overlay
   // (.crt-zoom-screen) that sits on top of the pixel room. The overlay
@@ -395,9 +533,18 @@ function buildEngHomeInnerHtml() {
         '</div>' +
       '</div>' +
       stackProgressHtml() +
-      '<button type="button" class="stack-reassemble" id="eng-crt-reassemble" aria-label="Back to top">' +
-        '<i class="ti ti-arrow-up"></i> Reassemble' +
-      '</button>' +
+      stackComputerHtml() +
+      '<div class="stack-actions">' +
+        '<button type="button" class="stack-reassemble" id="eng-crt-reassemble" aria-label="Back to top">' +
+          '<i class="ti ti-home"></i> Home' +
+        '</button>' +
+        '<button type="button" class="stack-reassemble stack-ascend" id="eng-crt-ascend" aria-label="Ascend a layer">' +
+          '<i class="ti ti-arrow-up"></i> Ascend' +
+        '</button>' +
+        '<button type="button" class="stack-reassemble stack-descend" id="eng-crt-descend" aria-label="Descend a layer">' +
+          '<i class="ti ti-arrow-down"></i> Descend' +
+        '</button>' +
+      '</div>' +
     '</div>'
   );
 }
